@@ -301,3 +301,149 @@ dense_vecs = self.model.encode(batch_texts, ...)
 
 - 安装任何包之前先检查它的依赖会不会升级关键库（`pip install X --dry-run`）。
 - `transformers` 大版本升级是高风险操作，embedding 模型的 prompt 行为、tokenizer 接口都可能静默变化。
+
+---
+
+## 坑 8：前端 `accept=".pdf"` 硬编码导致多格式支持形同虚设
+
+### 现象
+
+后端 Phase 5 已支持 PDF / MD / TXT / DOCX / 图片全格式解析和入库，但用户在前端只能上传 PDF，其他格式无论拖拽还是点击都无法选择。
+
+### 根本原因
+
+前端 `index.html` 有 3 处硬编码：
+
+```html
+<!-- 两个 file-input 的 accept 属性 -->
+<input type="file" accept=".pdf" ...>
+
+<!-- handleDrop 过滤器 -->
+await uploadFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf')));
+
+<!-- filter chip 名称处理 -->
+btn.textContent = f.file_name.replace(/\.pdf$/i, '');
+```
+
+后端 `/api/upload` 从一开始就支持所有格式，卡点完全在前端。
+
+### 解法
+
+```html
+<input type="file" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" ...>
+```
+
+`handleDrop` 改为检查 `SUPPORTED` 数组，filter chip 名称处理扩展到所有已知后缀。
+
+### 教训
+
+- 后端加新功能时，前端的入口点（`accept` 属性、拖拽过滤器、UI 文案）要同步更新，否则功能对用户不可见。
+- 前端 `accept` 属性只影响文件选择器的默认过滤，不影响后端安全性，不要过度依赖它做格式校验。
+
+---
+
+## 坑 9：`needs_ingest()` 不处理 `processing` 状态导致中断后文件永久跳过
+
+### 现象
+
+服务在 ingest 过程中被强制中断（kill/crash），重启后这些文件状态为 `processing`，但 `needs_ingest()` 返回 `False`，导致文件被永久跳过，知识库数据残缺。
+
+```python
+# 问题代码
+def needs_ingest(self, file_path):
+    ...
+    if row["status"] == "error":
+        return True   # error 重试
+    return False      # processing 被漏掉了 → 变成"永远跳过"
+```
+
+### 根本原因
+
+`needs_ingest()` 只处理了 `error` 状态，没有把 `processing` 也视为"需要重新入库"。而 ingest 开始时状态就会被设成 `processing`，中断后就永久卡住。
+
+### 解法
+
+```python
+if row["status"] in ("error", "processing"):
+    return True
+```
+
+### 教训
+
+- 持久化状态机的每个中间状态都要考虑"进程崩溃后如何恢复"。`processing` 不等于"正在处理中"，也可能是"上次没处理完"。
+- 只有 `done` 才是真正的终态，其他所有非终态在重启时都应该重新处理。
+
+---
+
+## 坑 10：PyTorch CPU 默认只用 4 线程，M5 的 10 核没有充分利用
+
+### 现象
+
+31 个 chunks 的 CPU embedding 耗时 **6 分钟**（约 12s/chunk），与 M5 的 CPU 性能完全不符。
+
+### 排查过程
+
+```python
+import torch
+print(torch.get_num_threads())   # → 4（只用了 4 核）
+print(os.cpu_count())            # → 10（实际有 10 核）
+```
+
+PyTorch 在 macOS 上默认只使用 4 个线程，不自动探测可用核心数。
+
+### 解法
+
+在模型懒加载时显式设置：
+
+```python
+import os, torch
+torch.set_num_threads(os.cpu_count() or 4)
+```
+
+设置后实测：**1.23s/chunk**，提速约 10x。
+
+### 教训
+
+- PyTorch CPU 线程数不会自动适配硬件，必须手动设置。
+- 性能测试时先用 `torch.get_num_threads()` 确认当前线程数，再考虑其他优化方向。
+- 只适用于 CPU embedding，不涉及 MLX/Metal，设置后不影响统一内存安全性（见坑 1）。
+
+---
+
+## 坑 11：IngestQueue 使用 `ml_executor` 导致 PyTorch 线程清理触发 executor shutdown
+
+### 现象
+
+服务启动后，第一个大文件 embedding 完成，后续文件 `ml_executor.submit()` 抛出：
+
+```
+RuntimeError: cannot schedule new futures after shutdown
+```
+
+后续所有待入库文件全部失败，知识库入库中途中止。
+
+### 根本原因
+
+`ml_executor` 是 `ThreadPoolExecutor(max_workers=1)`，原本设计用于 MLX/Metal 推理（reranker、LLM），确保 Metal command queue 串行。
+
+`IngestQueue` 把 ingest 任务（含 CPU embedding）也提交给了这个 executor。当 `torch.set_num_threads(10)` 开启多线程 embedding 后，PyTorch 在 embedding 完成时清理 OpenMP worker threads，这触发了 Python 内部的"解释器关闭"检测逻辑，导致 `ml_executor` 被标记为 `_shutdown=True`，后续 `submit()` 全部失败。
+
+### 解法
+
+CPU embedding 不需要 Metal executor，ingest 直接在 `IngestQueue` 自己的 worker 线程里跑：
+
+```python
+# app.py
+ingest_queue = IngestQueue(
+    pipeline,
+    on_done=None,
+    ml_executor=None,   # CPU embedding 不走 MLX executor
+)
+```
+
+`ml_executor` 只保留给 MLX 推理（reranker、LLM 生成）。
+
+### 教训
+
+- `ThreadPoolExecutor` 的职责要单一：MLX Metal 推理用一个，CPU 计算用另一个（或直接用普通线程）。把不同 runtime 的任务混进同一个 executor，任何一方的清理行为都可能影响另一方。
+- 增加 CPU 并行度（如 `torch.set_num_threads`）后，要重新审视线程安全性和 executor 的 shutdown 时序。
