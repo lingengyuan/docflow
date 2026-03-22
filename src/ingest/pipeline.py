@@ -16,6 +16,8 @@ from pathlib import Path
 
 import yaml
 
+import json
+
 from src.ingest.chunker import StructuredChunker
 from src.ingest.embedder import Embedder
 from src.ingest.parsers import ParserRegistry
@@ -99,12 +101,14 @@ class IngestPipeline:
             return {"status": "skipped", "file": path.name, "chunks": 0}
 
         file_hash = DocStore.compute_hash(path)
+        mtime_ns = path.stat().st_mtime_ns
 
         file_id = self.store.upsert_file(
             file_path=path,
             file_name=path.name,
             file_hash=file_hash,
             status="processing",
+            mtime_ns=mtime_ns,
         )
         self.store.set_status(path, "processing")
 
@@ -120,6 +124,9 @@ class IngestPipeline:
             parser = self.registry.resolve(path)
             doc = parser.parse(path)
 
+            tags_json = json.dumps(
+                doc.metadata.get("tags", []), ensure_ascii=False
+            )
             self.store.upsert_file(
                 file_path=path,
                 file_name=path.name,
@@ -127,6 +134,8 @@ class IngestPipeline:
                 status="processing",
                 total_pages=doc.total_pages,
                 is_scanned=doc.is_scanned,
+                tags=tags_json,
+                mtime_ns=mtime_ns,
             )
 
             # Chunk all pages

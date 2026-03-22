@@ -410,7 +410,55 @@ torch.set_num_threads(os.cpu_count() or 4)
 
 ---
 
-## 坑 11：IngestQueue 使用 `ml_executor` 导致 PyTorch 线程清理触发 executor shutdown
+## 坑 11：Obsidian inline tag 提取的三个误匹配陷阱
+
+### 现象
+
+MarkdownParser 清洗 Obsidian 语法时，`#tag` 提取逻辑将以下内容误识别为 inline tag：
+
+```
+docflow-plan.md  tags=['一竞品现状与核心问题', '二技术选型调研结论', ..., 'page']
+vibe-kb-plan.md  tags=['1-项目定位', ..., 'F7F5F0', '7A9E87']
+```
+
+### 根本原因
+
+三类误匹配：
+
+| 误匹配内容 | 来源 | 为什么 regex 命中 |
+|-----------|------|-----------------|
+| `(#一竞品现状与核心问题)` | Markdown 目录锚链接 `[text](#anchor)` | `(` 不是 `\w`，negative lookbehind `(?<!\w)` 不拦 |
+| `#F7F5F0` | CSS/hex 颜色码 | `F` 是字母，regex 无法区分 tag 和颜色 |
+| `#page=1` → 匹配出 `pag` | PDF URL fragment `#page=N` | regex `*` 贪婪匹配失败后**回溯**，截短到 `pag` 绕过 lookahead |
+
+第三个尤其隐蔽：用 `(?![=)])` negative lookahead 试图排除 `#page=1`，但 regex 引擎的回溯机制使 `#page` 缩短为 `#pag`（`e` 后面不是 `=`，通过了 lookahead）。Python regex 没有 possessive quantifier `*+` 来阻止回溯。
+
+### 解法
+
+不依赖 regex lookahead，改用三步后过滤：
+
+```python
+# 1. 清除锚链接：先把 (#anchor) 替换掉再提取
+cleaned = _MD_ANCHOR_RE.sub("", text)
+
+# 2. 排除 hex 颜色码
+if _HEX_COLOR_RE.match(tag):  # 纯 hex 3-8 位
+    continue
+
+# 3. 排除 URL fragment：检查匹配结束位置的下一个字符
+if end < len(line) and line[end] == "=":
+    continue
+```
+
+### 教训
+
+- Regex negative lookahead + 贪婪量词 = 回溯陷阱。当引擎无法匹配完整 pattern 时，会缩短量词匹配长度重试，产生意想不到的部分匹配。
+- 对于"匹配X但排除Y"的需求，先清除Y再匹配X（预处理）比在 regex 内部做排除更可靠。
+- Obsidian tag 的合法字符集（字母/数字/下划线/连字符/斜杠）与 markdown 锚链接、hex 颜色码、URL fragment 高度重叠，纯 regex 无法安全区分。
+
+---
+
+## 坑 12：IngestQueue 使用 `ml_executor` 导致 PyTorch 线程清理触发 executor shutdown
 
 ### 现象
 

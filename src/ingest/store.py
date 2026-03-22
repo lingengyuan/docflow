@@ -42,6 +42,7 @@ class DocStore:
     def __init__(self, db_path: str | Path):
         self.db_path = str(db_path)
         self._init_db()
+        self._migrate()
 
     # ------------------------------------------------------------------
     # Schema
@@ -60,6 +61,8 @@ class DocStore:
                     is_scanned   INTEGER NOT NULL DEFAULT 0,
                     chunk_count  INTEGER NOT NULL DEFAULT 0,
                     error_msg    TEXT    NOT NULL DEFAULT '',
+                    tags         TEXT    NOT NULL DEFAULT '[]',
+                    mtime_ns     INTEGER NOT NULL DEFAULT 0,
                     created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
                     updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
                 );
@@ -110,6 +113,19 @@ class DocStore:
                 );
             """)
 
+    def _migrate(self):
+        """增量迁移：为已有 DB 添加新列（幂等）。"""
+        migrations = [
+            "ALTER TABLE files ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE files ADD COLUMN mtime_ns INTEGER NOT NULL DEFAULT 0",
+        ]
+        with self._conn() as conn:
+            for sql in migrations:
+                try:
+                    conn.execute(sql)
+                except sqlite3.OperationalError:
+                    pass  # 列已存在
+
     @contextmanager
     def _conn(self):
         conn = sqlite3.connect(self.db_path)
@@ -140,21 +156,26 @@ class DocStore:
         True if:
         - File is not in DB, or
         - File hash has changed (file updated), or
-        - Previous ingest errored
+        - Previous ingest errored / interrupted
+
+        优化：先比较 mtime，未变则跳过 hash 计算（大 vault 启动加速）。
         """
-        path = str(file_path)
-        current_hash = self.compute_hash(file_path)
+        path = Path(file_path)
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT file_hash, status FROM files WHERE file_path = ?", (path,)
+                "SELECT file_hash, status, mtime_ns FROM files WHERE file_path = ?",
+                (str(path),),
             ).fetchone()
         if row is None:
             return True
-        if row["file_hash"] != current_hash:
-            return True
         if row["status"] in ("error", "processing"):
             return True
-        return False
+        # mtime 快跳：未变则大概率不需要重新 ingest
+        current_mtime = path.stat().st_mtime_ns
+        if row["mtime_ns"] and current_mtime <= row["mtime_ns"]:
+            return False
+        # mtime 变了才算 hash（防止 touch 但内容没变）
+        return row["file_hash"] != self.compute_hash(path)
 
     def upsert_file(
         self,
@@ -164,25 +185,70 @@ class DocStore:
         status: str = "pending",
         total_pages: int = 0,
         is_scanned: bool = False,
+        tags: str = "[]",
+        mtime_ns: int = 0,
     ) -> int:
         path = str(file_path)
         with self._conn() as conn:
             conn.execute("""
-                INSERT INTO files (file_path, file_name, file_hash, status, total_pages, is_scanned)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO files (file_path, file_name, file_hash, status, total_pages, is_scanned, tags, mtime_ns)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_path) DO UPDATE SET
                     file_name   = excluded.file_name,
                     file_hash   = excluded.file_hash,
                     status      = excluded.status,
                     total_pages = excluded.total_pages,
                     is_scanned  = excluded.is_scanned,
+                    tags        = excluded.tags,
+                    mtime_ns    = excluded.mtime_ns,
                     error_msg   = '',
                     updated_at  = datetime('now')
-            """, (path, file_name, file_hash, status, total_pages, int(is_scanned)))
+            """, (path, file_name, file_hash, status, total_pages, int(is_scanned), tags, mtime_ns))
             file_id = conn.execute(
                 "SELECT id FROM files WHERE file_path = ?", (path,)
             ).fetchone()["id"]
         return file_id
+
+    def reset_processing_files(self) -> int:
+        """启动时调用：将残留的 'processing' 状态（上次 server 崩溃遗留）重置为 'error'。
+        由于 needs_ingest() 对 'error' 返回 True，这些文件会在启动扫描时自动重新入队。
+        """
+        with self._conn() as conn:
+            result = conn.execute(
+                "UPDATE files SET status='error', error_msg='Interrupted (server restart)', "
+                "updated_at=datetime('now') WHERE status='processing'"
+            )
+            return result.rowcount
+
+    def cleanup_deleted_files(self) -> list[dict]:
+        """清理磁盘上已不存在的文件记录。返回被删除的文件列表（含 qdrant_ids 供向量清理）。"""
+        removed: list[dict] = []
+        with self._conn() as conn:
+            rows = conn.execute("SELECT id, file_path, file_name FROM files").fetchall()
+            for row in rows:
+                if not Path(row["file_path"]).exists():
+                    file_id = row["id"]
+                    # 收集需要删除的 Qdrant IDs
+                    qids = [r["qdrant_id"] for r in conn.execute(
+                        "SELECT qdrant_id FROM chunks WHERE file_id = ?", (file_id,)
+                    ).fetchall()]
+                    # 删除 FTS5 记录
+                    chunk_ids = [r["id"] for r in conn.execute(
+                        "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
+                    ).fetchall()]
+                    if chunk_ids:
+                        ph = ",".join("?" * len(chunk_ids))
+                        conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({ph})", chunk_ids)
+                        conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({ph})", chunk_ids)
+                    # 删除 chunks、favorites、file 记录
+                    conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
+                    conn.execute("DELETE FROM favorites WHERE file_id = ?", (file_id,))
+                    conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
+                    removed.append({
+                        "file_name": row["file_name"],
+                        "qdrant_ids": qids,
+                    })
+        return removed
 
     def set_status(self, file_path: str | Path, status: str, error_msg: str = ""):
         with self._conn() as conn:

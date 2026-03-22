@@ -37,6 +37,7 @@ class ParsedDocument:
     total_pages: int
     is_scanned: bool
     pages: list[PageContent] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)  # parser 可附加元数据，如 {"tags": [...]}
 
     def all_text(self) -> str:
         return "\n\n".join(p.text for p in self.pages)

@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.store import DocStore
-from src.ingest.watcher import FolderWatcher, WatchDir
+from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
 from src.query.engine import QueryEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +94,12 @@ async def lifespan(app: FastAPI):
     watch_dirs = _parse_watch_dirs(cfg)
 
     store = DocStore(db_path)
+
+    # 清理上次崩溃遗留的 processing 状态，确保启动扫描能重新处理这些文件
+    n_reset = store.reset_processing_files()
+    if n_reset:
+        logger.info(f"[startup] Reset {n_reset} interrupted file(s) from 'processing' → 'error'")
+
     pipeline = IngestPipeline.from_config(CONFIG_PATH)
     query_engine = QueryEngine.from_config(CONFIG_PATH)
 
@@ -131,13 +137,28 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"[migration] FTS5 backfill failed (non-fatal): {e}")
 
-    # Background scan: enqueue existing files
+    # 清理磁盘上已删除的文件（DB + Qdrant 向量）
+    removed = store.cleanup_deleted_files()
+    if removed:
+        qdrant = query_engine.retriever._qdrant
+        for r in removed:
+            if r["qdrant_ids"]:
+                try:
+                    qdrant.delete(
+                        collection_name=cfg["qdrant"].get("collection", "docflow"),
+                        points_selector=r["qdrant_ids"],
+                    )
+                except Exception as e:
+                    logger.warning(f"[cleanup] Failed to delete vectors for {r['file_name']}: {e}")
+            logger.info(f"[cleanup] Removed deleted file: {r['file_name']} ({len(r['qdrant_ids'])} vectors)")
+
+    # Background scan: enqueue existing files (skip .obsidian/.trash/.git)
     supported_exts = pipeline.registry.supported_extensions
     all_files: list[Path] = []
     for wd in watch_dirs:
         for ext in (wd.extensions if wd.extensions else supported_exts):
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
-            all_files.extend(wd.path.glob(pattern))
+            all_files.extend(f for f in wd.path.glob(pattern) if not _is_excluded(f))
     if all_files:
         ingest_queue.submit_many(all_files)
 
@@ -268,7 +289,7 @@ async def trigger_ingest():
     for wd in watch_dirs:
         for ext in (wd.extensions if wd.extensions else supported_exts):
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
-            all_files.extend(wd.path.glob(pattern))
+            all_files.extend(f for f in wd.path.glob(pattern) if not _is_excluded(f))
     result = ingest_queue.submit_many(all_files)
     return {**result, "files": [p.name for p in all_files]}
 

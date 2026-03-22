@@ -25,6 +25,14 @@ from src.ingest.pipeline import IngestPipeline
 
 logger = logging.getLogger(__name__)
 
+# 递归扫描 Obsidian vault 时需要排除的目录名
+_EXCLUDED_DIRS = {".obsidian", ".trash", ".git"}
+
+
+def _is_excluded(path: Path) -> bool:
+    """路径中包含排除目录则返回 True。"""
+    return bool(_EXCLUDED_DIRS & set(path.parts))
+
 
 @dataclass
 class WatchDir:
@@ -33,11 +41,15 @@ class WatchDir:
     extensions: list[str] = field(default_factory=list)  # empty = use pipeline default
 
 
+_DEBOUNCE_SECONDS = 3.0
+
+
 class FileEventHandler(FileSystemEventHandler):
     def __init__(self, pipeline: IngestPipeline, extensions: list[str]):
         self.pipeline = pipeline
         self.extensions = [e.lower() for e in extensions]
         self._processing: set[str] = set()
+        self._last_event: dict[str, float] = {}  # path → timestamp
 
     def on_created(self, event: FileSystemEvent):
         self._handle(event)
@@ -51,15 +63,24 @@ class FileEventHandler(FileSystemEventHandler):
         path = Path(str(event.src_path))
         if path.suffix.lower() not in self.extensions:
             return
-        if str(path) in self._processing:
+        if _is_excluded(path):
             return
-        self._processing.add(str(path))
+        key = str(path)
+        now = time.time()
+        # Debounce: 距上次事件不足 N 秒则跳过
+        last = self._last_event.get(key, 0)
+        if now - last < _DEBOUNCE_SECONDS:
+            return
+        self._last_event[key] = now
+        if key in self._processing:
+            return
+        self._processing.add(key)
         try:
             logger.info(f"[watcher] detected: {path.name}")
             result = self.pipeline.ingest(path)
             logger.info(f"[watcher] {result}")
         finally:
-            self._processing.discard(str(path))
+            self._processing.discard(key)
 
 
 class FolderWatcher:
@@ -91,7 +112,7 @@ class FolderWatcher:
             files: list[Path] = []
             for ext in exts:
                 pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
-                files.extend(wd.path.glob(pattern))
+                files.extend(f for f in wd.path.glob(pattern) if not _is_excluded(f))
             logger.info(f"[watcher] scanning {len(files)} files in {wd.path}")
             for f in files:
                 result = self.pipeline.ingest(f)

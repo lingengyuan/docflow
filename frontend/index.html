@@ -128,11 +128,6 @@
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40 sticky top-0">
       <div class="flex items-center gap-4">
         <h1 class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
-        <div class="h-4 w-px bg-outline-variant/30"></div>
-        <!-- File filter chips -->
-        <div id="filter-bar" class="flex gap-2 flex-wrap">
-          <button class="filter-chip active-chip px-3 py-1 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container transition-all" data-file="__all__" onclick="toggleFilter(this)">All Files</button>
-        </div>
       </div>
       <div class="flex items-center gap-4">
         <!-- LLM selector -->
@@ -281,7 +276,6 @@
 
 <script>
 const API = '';
-let activeFiles = new Set();
 let selectedFileIds = new Set();
 let favoritedIds = new Set();
 let queuePollTimer = null;
@@ -358,55 +352,6 @@ async function switchLLM(model) {
       loadLLMOptions();
     }
   } catch {}
-}
-
-// ── File filter ──
-async function loadFilterChips() {
-  try {
-    const files = await fetch(`${API}/api/files`).then(r => r.json());
-    const bar = document.getElementById('filter-bar');
-    bar.querySelectorAll('[data-file]:not([data-file="__all__"])').forEach(c => c.remove());
-    files.filter(f => f.status === 'done').forEach(f => {
-      const btn = document.createElement('button');
-      btn.className = 'filter-chip px-3 py-1 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-all';
-      btn.dataset.file = f.file_name;
-      btn.textContent = f.file_name.replace(/\.(pdf|md|txt|docx|jpg|jpeg|png|webp|heic|heif)$/i, '');
-      btn.onclick = () => toggleFilter(btn);
-      bar.appendChild(btn);
-    });
-  } catch {}
-}
-loadFilterChips();
-
-function toggleFilter(btn) {
-  if (btn.dataset.file === '__all__') {
-    activeFiles.clear();
-    document.querySelectorAll('.filter-chip').forEach(c => {
-      c.classList.remove('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
-      c.classList.add('bg-surface-container-high', 'text-on-surface-variant');
-    });
-    btn.classList.add('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
-    btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
-  } else {
-    const allBtn = document.querySelector('[data-file="__all__"]');
-    allBtn.classList.remove('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
-    allBtn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
-
-    btn.classList.toggle('active-chip');
-    if (btn.classList.contains('active-chip')) {
-      btn.classList.add('bg-tertiary-container', 'text-on-tertiary-container');
-      btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
-      activeFiles.add(btn.dataset.file);
-    } else {
-      btn.classList.remove('bg-tertiary-container', 'text-on-tertiary-container');
-      btn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
-      activeFiles.delete(btn.dataset.file);
-    }
-    if (activeFiles.size === 0) {
-      allBtn.classList.add('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
-      allBtn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
-    }
-  }
 }
 
 // ── Chat ──
@@ -531,7 +476,7 @@ async function sendMessage() {
   appendThinking();
 
   try {
-    const body = { question, file_filter: activeFiles.size > 0 ? [...activeFiles] : null };
+    const body = { question };
     const r = await fetch(`${API}/api/query/stream`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -610,6 +555,16 @@ function openPdf(fileName, pageNum) {
 }
 
 // ── Files page ──
+function fileTypeLabel(fileName, isScanned) {
+  const ext = (fileName || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') return isScanned ? 'OCR 扫描件' : '原生 PDF';
+  if (ext === 'md' || ext === 'markdown') return 'Markdown';
+  if (ext === 'txt') return '文本文件';
+  if (ext === 'docx') return 'Word 文档';
+  if (['jpg','jpeg','png','webp','heic','heif'].includes(ext)) return '图片';
+  return ext.toUpperCase() || '未知';
+}
+
 async function refreshFiles() {
   try {
     const [files, favs] = await Promise.all([
@@ -630,7 +585,7 @@ async function refreshFiles() {
       return `<tr class="hover:bg-surface-container/50 transition-all">
         <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" class="rounded"></td>
         <td class="py-3 pr-4 text-sm font-medium">${escHtml(f.file_name)}</td>
-        <td class="py-3 pr-4 text-xs text-on-surface-variant">${f.is_scanned ? 'OCR 扫描件' : '原生 PDF'}</td>
+        <td class="py-3 pr-4 text-xs text-on-surface-variant">${fileTypeLabel(f.file_name, f.is_scanned)}</td>
         <td class="py-3 pr-4">${statusBadge(f.status)}</td>
         <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.total_pages}</td>
         <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.chunk_count}</td>
@@ -643,7 +598,6 @@ async function refreshFiles() {
       </tr>`;
     }).join('');
     document.getElementById('select-all').checked = false;
-    loadFilterChips();
   } catch (e) {
     document.getElementById('file-tbody').innerHTML =
       `<tr><td colspan="8" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
@@ -742,17 +696,20 @@ async function summarizeSelected() {
 }
 
 // ── History page ──
+let historyItems = [];
+
 async function refreshHistory() {
   const listEl = document.getElementById('history-list');
   try {
     const items = await fetch(`${API}/api/history`).then(r => r.json());
+    historyItems = items;
     if (!items.length) {
       listEl.innerHTML = '<div class="text-center text-on-surface-variant/60 text-sm py-16">暂无历史记录</div>';
       return;
     }
-    listEl.innerHTML = items.map(item => `
+    listEl.innerHTML = items.map((item, idx) => `
       <div class="bg-surface-container-lowest rounded-xl p-4 cursor-pointer hover:bg-surface-container transition-all shadow-sm"
-           onclick="replayHistory(${JSON.stringify(item.question)})">
+           onclick="replayHistory(${idx})">
         <div class="text-sm font-semibold text-on-surface mb-2">${escHtml(item.question)}</div>
         <div class="text-xs text-on-surface-variant leading-relaxed mb-3 line-clamp-2">${escHtml(item.answer?.slice(0,150))}…</div>
         <div class="flex gap-4 text-[11px] text-on-surface-variant/60 font-medium">
@@ -766,10 +723,68 @@ async function refreshHistory() {
   }
 }
 
-function replayHistory(question) {
+function replayHistory(idx) {
+  const item = historyItems[idx];
+  if (!item) return;
+
   switchView('chat');
+
+  // Replace chat messages with this historical Q&A
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  inner.innerHTML = '';
+
+  // History context banner
+  const banner = document.createElement('div');
+  banner.className = 'flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/50 pb-2';
+  banner.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px">history</span>历史记录 · ${(item.created_at || '').slice(0,16)}`;
+  inner.appendChild(banner);
+
+  // User message bubble
+  const userDiv = document.createElement('div');
+  userDiv.className = 'flex flex-col items-end gap-2';
+  userDiv.innerHTML = `
+    <div class="max-w-[85%] bg-primary text-on-primary px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm">
+      <p class="text-sm leading-relaxed">${escHtml(item.question)}</p>
+    </div>`;
+  inner.appendChild(userDiv);
+
+  // AI answer bubble with citations
+  const citationsHtml = (item.citations || []).map(c => `
+    <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
+         onclick="openPdf('${escHtml(c.file_name)}', ${c.page_num})">
+      <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
+      <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
+      <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
+      <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
+        <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
+      </div>
+    </div>`).join('');
+
+  const aiDiv = document.createElement('div');
+  aiDiv.className = 'flex flex-col gap-4';
+  aiDiv.innerHTML = `
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary icon-fill" style="font-size:13px">auto_awesome</span>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+    </div>
+    <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(item.answer || '')}</div>
+    <div class="flex flex-wrap gap-2">${citationsHtml}</div>
+    <div class="flex gap-4 mt-1">
+      <button class="text-on-surface-variant/40 hover:text-primary transition-colors" data-copy-text="${escHtml(item.answer || '')}"
+              onclick="const t=this.dataset.copyText;navigator.clipboard.writeText(t).then(()=>{const i=this.querySelector('.material-symbols-outlined');i.textContent='check';setTimeout(()=>i.textContent='content_copy',1500)})">
+        <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+      </button>
+    </div>`;
+  inner.appendChild(aiDiv);
+
+  msgs.scrollTop = 0;
+
+  // Pre-fill input so user can modify and resend
   const input = document.getElementById('input');
-  input.value = question;
+  input.value = item.question;
   autoResize(input);
   input.focus();
 }
