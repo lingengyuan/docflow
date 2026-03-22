@@ -9,6 +9,7 @@ BM25 全文索引已迁移至 SQLite FTS5（由 DocStore 管理）。
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -51,7 +52,12 @@ class Embedder:
     @property
     def model(self):
         if self._model is None:
+            import torch
             from sentence_transformers import SentenceTransformer
+            # 用满所有 CPU 核心做矩阵运算（M5 有 10 核，PyTorch 默认只用 4）
+            n_threads = os.cpu_count() or 4
+            torch.set_num_threads(n_threads)
+            logger.info(f"[embedder] CPU threads: {n_threads}")
             logger.info(f"[embedder] Loading embedding model: {self._embedding_model_name}")
             self._model = SentenceTransformer(
                 self._embedding_model_name,

@@ -11,6 +11,7 @@ pipeline:
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -164,7 +165,11 @@ class HybridRetriever:
     @property
     def embed_model(self):
         if self._embed_model is None:
+            import torch
             from sentence_transformers import SentenceTransformer
+            n_threads = os.cpu_count() or 4
+            torch.set_num_threads(n_threads)
+            logger.info(f"[retriever] CPU threads: {n_threads}")
             logger.info(f"[retriever] Loading embedding model: {self._embedding_model_name}")
             self._embed_model = SentenceTransformer(
                 self._embedding_model_name,
