@@ -279,20 +279,25 @@ class HybridRetriever:
 
     def _fts_search(self, query: str, file_filter: list[str] | None) -> list[dict]:
         tokens = self._tokenize(query)
-        if not tokens:
-            return []
+        rows: list[dict] = []
 
-        # Build FTS5 OR query; wrap each token in quotes to treat as phrase
-        escaped = [t.replace('"', "") for t in tokens]
-        fts_query = " OR ".join(f'"{t}"' for t in escaped if t)
-        if not fts_query:
-            return []
+        if tokens:
+            # Layer 1: jieba 精确匹配
+            escaped = [t.replace('"', "") for t in tokens]
+            fts_query = " OR ".join(f'"{t}"' for t in escaped if t)
+            if fts_query:
+                try:
+                    rows = self._store.search_fts(fts_query, file_filter, limit=self.top_k_retrieval)
+                except Exception:
+                    logger.warning("[retriever] FTS5 exact search failed", exc_info=True)
 
-        try:
-            rows = self._store.search_fts(fts_query, file_filter, limit=self.top_k_retrieval)
-        except Exception:
-            logger.warning("[retriever] FTS5 search failed", exc_info=True)
-            return []
+        if not rows:
+            # Layer 2: trigram 子串匹配（OCR 错字、简繁混用容错）
+            logger.debug("[retriever] FTS5 exact empty → trigram fallback")
+            try:
+                rows = self._store.search_fts_trigram(query, file_filter, limit=self.top_k_retrieval)
+            except Exception:
+                logger.warning("[retriever] FTS5 trigram search failed", exc_info=True)
 
         if not rows:
             return []

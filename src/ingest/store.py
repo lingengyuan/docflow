@@ -98,6 +98,16 @@ class DocStore:
                     tokenized_text,
                     tokenize='unicode61'
                 );
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts_trigram USING fts5(
+                    raw_text,
+                    tokenize='trigram'
+                );
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS history_fts USING fts5(
+                    question,
+                    tokenize='trigram'
+                );
             """)
 
     @contextmanager
@@ -192,8 +202,10 @@ class DocStore:
 
     def add_chunks(self, file_id: int, chunk_records: list[dict]):
         """
-        chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count, tokenized_text?}
-        也同步写入 FTS5 全文索引（tokenized_text 字段，jieba 预分词后空格分隔）。
+        chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count, tokenized_text?, raw_text?}
+        同步写入两个 FTS5 索引：
+          chunks_fts         — jieba 预分词，精确匹配
+          chunks_fts_trigram — trigram，子串匹配（OCR 容错降级）
         """
         with self._conn() as conn:
             # Delete old FTS5 entries before clearing chunks
@@ -201,10 +213,9 @@ class DocStore:
                 "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
             ).fetchall()]
             if old_ids:
-                conn.execute(
-                    f"DELETE FROM chunks_fts WHERE rowid IN ({','.join('?'*len(old_ids))})",
-                    old_ids,
-                )
+                placeholders = ",".join("?" * len(old_ids))
+                conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({placeholders})", old_ids)
+                conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", old_ids)
             conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
             # Insert chunks one by one to capture rowid for FTS5
             for r in chunk_records:
@@ -219,6 +230,12 @@ class DocStore:
                     conn.execute(
                         "INSERT INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
                         (chunk_id, tokenized),
+                    )
+                raw = r.get("raw_text", "")
+                if raw:
+                    conn.execute(
+                        "INSERT INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
+                        (chunk_id, raw),
                     )
 
     # ------------------------------------------------------------------
@@ -271,7 +288,32 @@ class DocStore:
                 (question, answer, citations_json, file_filter_json),
             )
             row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            conn.execute(
+                "INSERT INTO history_fts(rowid, question) VALUES (?, ?)",
+                (row_id, question),
+            )
         return row_id
+
+    def search_history(self, query: str, limit: int = 20) -> list[dict]:
+        """全文搜索历史问题，返回匹配的历史记录（含 answer、citations）。"""
+        try:
+            sql = """
+                SELECT h.id, h.question, h.answer, h.citations, h.file_filter, h.created_at
+                FROM (
+                    SELECT rowid, -rank AS score
+                    FROM history_fts
+                    WHERE history_fts MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                ) fts
+                JOIN history h ON h.id = fts.rowid
+                ORDER BY fts.score DESC
+            """
+            with self._conn() as conn:
+                rows = conn.execute(sql, [query, limit]).fetchall()
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
 
     def list_history(self, limit: int = 50) -> list[dict]:
         with self._conn() as conn:
@@ -321,6 +363,43 @@ class DocStore:
     # FTS5 全文检索
     # ------------------------------------------------------------------
 
+    def search_fts_trigram(
+        self,
+        query: str,
+        file_filter: list[str] | None,
+        limit: int,
+    ) -> list[dict]:
+        """
+        Trigram 子串全文检索（降级层）。
+        query: 原始查询字符串，FTS5 trigram tokenizer 会自动拆成 3-gram。
+        返回格式与 search_fts() 相同。
+        """
+        subq_limit = limit * 3 if file_filter else limit
+        sql = """
+            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type,
+                   fi.file_name, fi.file_path, fts.score
+            FROM (
+                SELECT rowid, -rank AS score
+                FROM chunks_fts_trigram
+                WHERE chunks_fts_trigram MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            ) fts
+            JOIN chunks c ON c.id = fts.rowid
+            JOIN files fi ON fi.id = c.file_id
+        """
+        params: list = [query, subq_limit]
+        if file_filter:
+            placeholders = ",".join("?" * len(file_filter))
+            sql += f" WHERE fi.file_name IN ({placeholders})"
+            params.extend(file_filter)
+        sql += " ORDER BY fts.score DESC LIMIT ?"
+        params.append(limit)
+
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
     def backfill_fts(self, qdrant_client, collection_name: str = "docflow") -> int:
         """
         将已有 chunks 中缺失 FTS5 记录的条目从 Qdrant 拉取文本并回填。
@@ -330,7 +409,7 @@ class DocStore:
         import jieba
 
         with self._conn() as conn:
-            # 找出没有 FTS5 记录的 chunks
+            # 找出没有 FTS5 记录的 chunks（两张表都缺）
             rows = conn.execute("""
                 SELECT c.id, c.qdrant_id
                 FROM chunks c
@@ -366,6 +445,10 @@ class DocStore:
                         conn.execute(
                             "INSERT OR IGNORE INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
                             (chunk_id, tokenized),
+                        )
+                        conn.execute(
+                            "INSERT OR IGNORE INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
+                            (chunk_id, text),
                         )
                         filled += 1
         return filled

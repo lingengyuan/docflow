@@ -24,10 +24,23 @@ from src.ingest.store import DocStore
 logger = logging.getLogger(__name__)
 
 
+def _is_cjk_dominant(text: str, threshold: float = 0.2) -> bool:
+    """CJK 字符占比超过阈值则视为中文主导。"""
+    if not text:
+        return False
+    cjk_count = sum(1 for c in text if "\u4e00" <= c <= "\u9fff" or "\u3400" <= c <= "\u4dbf")
+    return cjk_count / len(text) > threshold
+
+
 def _fts_tokenize(text: str) -> str:
-    """jieba 分词 → 空格分隔字符串，用于 FTS5 全文索引。"""
-    import jieba
-    return " ".join(t for t in jieba.cut(text.lower()) if t.strip())
+    """
+    分词 → 空格分隔字符串，用于 FTS5 精确匹配索引。
+    中文主导：jieba 分词；英文主导：直接小写（利用 FTS5 unicode61 英文处理）。
+    """
+    if _is_cjk_dominant(text):
+        import jieba
+        return " ".join(t for t in jieba.cut(text.lower()) if t.strip())
+    return text.lower()
 
 
 class IngestPipeline:
@@ -143,6 +156,7 @@ class IngestPipeline:
                     "section": all_chunks[i].section,
                     "char_count": all_chunks[i].char_count,
                     "tokenized_text": _fts_tokenize(all_chunks[i].text),
+                    "raw_text": all_chunks[i].text,
                 }
                 for i in range(len(all_chunks))
             ]

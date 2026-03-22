@@ -365,6 +365,23 @@ async def list_history(limit: int = 50):
     return items
 
 
+@app.get("/api/history/search")
+async def search_history(q: str, limit: int = 20):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    items = store.search_history(q, limit=limit)
+    for item in items:
+        try:
+            item["citations"] = json.loads(item["citations"])
+        except Exception:
+            item["citations"] = []
+        try:
+            item["file_filter"] = json.loads(item["file_filter"])
+        except Exception:
+            item["file_filter"] = []
+    return items
+
+
 @app.delete("/api/history")
 async def clear_history():
     if store is None:
