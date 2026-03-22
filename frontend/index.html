@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocFlow</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#cfdce3",
+            "background": "#f7f9fb",
+            "on-primary-container": "#455367",
+            "surface-bright": "#f7f9fb",
+            "outline": "#717c82",
+            "on-primary": "#f6f7ff",
+            "on-tertiary": "#e9ffe5",
+            "on-surface-variant": "#566166",
+            "tertiary-container": "#dcfcd9",
+            "surface-container-highest": "#d9e4ea",
+            "on-tertiary-container": "#476248",
+            "primary-dim": "#455368",
+            "tertiary": "#4a664b",
+            "primary": "#515f74",
+            "on-secondary-container": "#445365",
+            "surface-container": "#e8eff3",
+            "primary-container": "#d5e3fd",
+            "surface-container-high": "#e1e9ee",
+            "inverse-primary": "#d5e3fd",
+            "on-background": "#2a3439",
+            "surface-container-low": "#f0f4f7",
+            "surface": "#f7f9fb",
+            "on-surface": "#2a3439",
+            "surface-container-lowest": "#ffffff",
+            "outline-variant": "#a9b4b9",
+            "error": "#9f403d",
+            "secondary-container": "#d4e4fa",
+          },
+          fontFamily: {
+            "sans": ["-apple-system", "PingFang SC", "Noto Sans SC", "Inter", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "full": "9999px",
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d9e4ea; border-radius: 10px; }
+    .streaming-cursor::after {
+      content: '';
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background-color: #515f74;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+    .prose p { margin-bottom: 0.75rem; line-height: 1.65; }
+    .prose p:last-child { margin-bottom: 0; }
+    .prose ul, .prose ol { margin-bottom: 0.75rem; padding-left: 1.5rem; }
+    .prose li { margin-bottom: 0.25rem; line-height: 1.65; }
+    .prose code { background: #e8eff3; border-radius: 4px; padding: 1px 5px; font-size: 0.85em; }
+    .prose pre { background: #e8eff3; border-radius: 8px; padding: 12px 16px; overflow-x: auto; margin-bottom: 0.75rem; }
+    .prose pre code { background: none; padding: 0; }
+    .thinking-dot { animation: thinking-pulse 1.2s ease-in-out infinite; }
+    .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes thinking-pulse { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-on-surface overflow-hidden h-screen flex">
+
+<!-- ── Left Sidebar ── -->
+<aside class="flex flex-col items-center py-8 gap-6 h-screen w-20 flex-shrink-0 bg-surface-container-low">
+  <!-- Logo -->
+  <div class="mb-2 flex items-center justify-center w-10 h-10 rounded-xl bg-primary-container">
+    <span class="material-symbols-outlined text-primary icon-fill" style="font-size:22px">auto_awesome</span>
+  </div>
+  <!-- Nav -->
+  <nav class="flex flex-col gap-3 flex-1">
+    <button id="nav-chat" class="nav-btn active-nav w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200" onclick="switchView('chat')">
+      <span class="material-symbols-outlined icon-fill" style="font-size:20px">chat_bubble</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Chat</span>
+    </button>
+    <button id="nav-library" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('library')">
+      <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Files</span>
+    </button>
+    <button id="nav-history" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('history')">
+      <span class="material-symbols-outlined" style="font-size:20px">history</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">History</span>
+    </button>
+  </nav>
+  <!-- Status -->
+  <div class="flex flex-col items-center gap-3">
+    <div id="status-dot" class="w-2 h-2 rounded-full bg-tertiary" title="服务状态"></div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+
+  <!-- ── Chat View ── -->
+  <div id="view-chat" class="view flex flex-col h-full">
+    <!-- Header -->
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40 sticky top-0">
+      <div class="flex items-center gap-4">
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
+        <div class="h-4 w-px bg-outline-variant/30"></div>
+        <!-- File filter chips -->
+        <div id="filter-bar" class="flex gap-2 flex-wrap">
+          <button class="filter-chip active-chip px-3 py-1 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container transition-all" data-file="__all__" onclick="toggleFilter(this)">All Files</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- LLM selector -->
+        <div class="relative group">
+          <button id="llm-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all cursor-pointer text-xs font-medium text-on-surface-variant">
+            <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
+            <span id="llm-current">LLM</span>
+            <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
+          </button>
+          <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 overflow-hidden z-50 min-w-max">
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+          <span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Local LLM</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto custom-scrollbar pt-8 pb-36">
+      <div class="max-w-2xl mx-auto px-6 flex flex-col gap-10">
+        <!-- Welcome message -->
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary icon-fill" style="font-size:14px">auto_awesome</span>
+            </div>
+            <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+          </div>
+          <div class="text-sm text-on-surface leading-relaxed">
+            你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
+            将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Files 页面上传，即可开始提问。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pt-12 pb-8 px-6">
+      <div class="max-w-2xl mx-auto">
+        <div class="relative flex items-end bg-surface-container-lowest border border-outline-variant/15 rounded-2xl shadow-sm focus-within:shadow-md focus-within:border-primary/40 transition-all p-1.5 gap-1">
+          <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()">
+            <span class="material-symbols-outlined">add_circle</span>
+          </button>
+          <input type="file" id="file-input-chat" accept=".pdf" multiple class="hidden" onchange="handleFileSelect(event)">
+          <textarea id="input" rows="1"
+            placeholder="向你的文档提问…"
+            class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-2 placeholder:text-on-surface-variant/40 resize-none overflow-hidden leading-relaxed outline-none"
+            style="max-height:120px"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"></textarea>
+          <button id="send-btn" onclick="sendMessage()"
+            class="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center bg-primary text-on-primary hover:bg-primary-dim active:scale-95 transition-all">
+            <span class="material-symbols-outlined" style="font-size:18px">arrow_upward</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-center mt-3 text-on-surface-variant/40 tracking-wide font-medium">DocFlow 可能出错，请核对重要信息</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ── Library View ── -->
+  <div id="view-library" class="view hidden flex flex-col h-full overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
+      <h1 class="text-base font-semibold text-on-surface tracking-tight">文件库</h1>
+      <div class="flex items-center gap-3">
+        <div id="queue-banner" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-medium">
+          <span class="spinner"></span>
+          <span id="queue-text">处理中…</span>
+        </div>
+        <button onclick="refreshFiles()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+          刷新
+        </button>
+        <button onclick="triggerIngest()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">folder_search</span>
+          扫描文件夹
+        </button>
+        <button onclick="document.getElementById('file-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
+          上传 PDF
+        </button>
+        <input type="file" id="file-input" accept=".pdf" multiple class="hidden" onchange="handleFileSelect(event)">
+      </div>
+    </header>
+
+    <!-- Upload zone -->
+    <div class="px-8 py-4 flex-shrink-0">
+      <div id="upload-zone"
+        class="border-2 border-dashed border-outline-variant/40 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-primary/40 hover:bg-surface-container/50 transition-all text-center"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('border-primary/60','bg-surface-container')"
+        ondragleave="this.classList.remove('border-primary/60','bg-surface-container')"
+        ondrop="handleDrop(event)">
+        <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:32px">upload_file</span>
+        <div class="text-sm font-medium text-on-surface-variant">拖拽 PDF 至此或点击上传</div>
+        <div class="text-xs text-on-surface-variant/60">也可以将文件直接放入 ~/Documents/DocFlow/</div>
+      </div>
+    </div>
+
+    <!-- Summarize bar -->
+    <div id="summarize-bar" class="hidden px-8 py-2 flex-shrink-0 flex items-center gap-3">
+      <span id="selected-count" class="text-xs text-on-surface-variant"></span>
+      <button onclick="summarizeSelected()" id="summarize-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
+        <span class="material-symbols-outlined" style="font-size:15px">summarize</span>
+        生成摘要
+      </button>
+    </div>
+
+    <!-- File table -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar px-8 pb-8">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
+            <th class="text-left py-3 pr-4 w-8"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded"></th>
+            <th class="text-left py-3 pr-4">文件名</th>
+            <th class="text-left py-3 pr-4">类型</th>
+            <th class="text-left py-3 pr-4">状态</th>
+            <th class="text-left py-3 pr-4">页数</th>
+            <th class="text-left py-3 pr-4">Chunks</th>
+            <th class="text-left py-3 pr-4">更新时间</th>
+            <th class="text-left py-3"></th>
+          </tr>
+        </thead>
+        <tbody id="file-tbody" class="divide-y divide-surface-container">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── History View ── -->
+  <div id="view-history" class="view hidden flex flex-col h-full overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
+      <h1 class="text-base font-semibold text-on-surface tracking-tight">搜索历史</h1>
+      <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-error bg-surface-container hover:bg-surface-container-high transition-all">
+        <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>
+        清空历史
+      </button>
+    </header>
+    <div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 flex flex-col gap-3">
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = '';
+let activeFiles = new Set();
+let selectedFileIds = new Set();
+let favoritedIds = new Set();
+let queuePollTimer = null;
+let llmOptions = [];
+
+// ── View switching ──
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  document.getElementById(`view-${view}`).classList.remove('hidden');
+
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.remove('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+    b.classList.add('text-on-surface-variant', 'opacity-60');
+  });
+  const btn = document.getElementById(`nav-${view}`);
+  btn.classList.add('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+  btn.classList.remove('text-on-surface-variant', 'opacity-60');
+
+  if (view === 'library') { refreshFiles(); pollQueueOnce(); }
+  if (view === 'history') refreshHistory();
+}
+
+// Init active nav style
+document.getElementById('nav-chat').classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+
+// ── Health check ──
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API}/api/health`);
+    const dot = document.getElementById('status-dot');
+    dot.className = r.ok
+      ? 'w-2 h-2 rounded-full bg-tertiary'
+      : 'w-2 h-2 rounded-full bg-error';
+  } catch {
+    document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-error';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 15000);
+
+// ── LLM selector ──
+async function loadLLMOptions() {
+  try {
+    const d = await fetch(`${API}/api/llm`).then(r => r.json());
+    llmOptions = d.options || [];
+    document.getElementById('llm-current').textContent = d.current || 'LLM';
+
+    const dropdown = document.getElementById('llm-dropdown');
+    dropdown.innerHTML = llmOptions.map(m => `
+      <button onclick="switchLLM('${m}')" class="w-full text-left px-4 py-2.5 text-xs font-medium text-on-surface hover:bg-surface-container transition-all ${m === d.current ? 'text-primary font-bold' : ''}">
+        ${m}
+      </button>`).join('');
+  } catch {}
+}
+loadLLMOptions();
+
+document.getElementById('llm-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('llm-dropdown').classList.toggle('hidden');
+});
+document.addEventListener('click', () => document.getElementById('llm-dropdown').classList.add('hidden'));
+
+async function switchLLM(model) {
+  try {
+    document.getElementById('llm-dropdown').classList.add('hidden');
+    const r = await fetch(`${API}/api/llm`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ model }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('llm-current').textContent = model;
+      loadLLMOptions();
+    }
+  } catch {}
+}
+
+// ── File filter ──
+async function loadFilterChips() {
+  try {
+    const files = await fetch(`${API}/api/files`).then(r => r.json());
+    const bar = document.getElementById('filter-bar');
+    bar.querySelectorAll('[data-file]:not([data-file="__all__"])').forEach(c => c.remove());
+    files.filter(f => f.status === 'done').forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip px-3 py-1 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-all';
+      btn.dataset.file = f.file_name;
+      btn.textContent = f.file_name.replace(/\.pdf$/i, '');
+      btn.onclick = () => toggleFilter(btn);
+      bar.appendChild(btn);
+    });
+  } catch {}
+}
+loadFilterChips();
+
+function toggleFilter(btn) {
+  if (btn.dataset.file === '__all__') {
+    activeFiles.clear();
+    document.querySelectorAll('.filter-chip').forEach(c => {
+      c.classList.remove('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
+      c.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+    });
+    btn.classList.add('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
+    btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+  } else {
+    const allBtn = document.querySelector('[data-file="__all__"]');
+    allBtn.classList.remove('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
+    allBtn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+
+    btn.classList.toggle('active-chip');
+    if (btn.classList.contains('active-chip')) {
+      btn.classList.add('bg-tertiary-container', 'text-on-tertiary-container');
+      btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+      activeFiles.add(btn.dataset.file);
+    } else {
+      btn.classList.remove('bg-tertiary-container', 'text-on-tertiary-container');
+      btn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+      activeFiles.delete(btn.dataset.file);
+    }
+    if (activeFiles.size === 0) {
+      allBtn.classList.add('active-chip', 'bg-tertiary-container', 'text-on-tertiary-container');
+      allBtn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+    }
+  }
+}
+
+// ── Chat ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Minimal markdown: bold, inline code, newlines
+function renderMarkdown(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+function appendUserMessage(question) {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  const div = document.createElement('div');
+  div.className = 'flex flex-col items-end gap-2';
+  div.innerHTML = `
+    <div class="max-w-[85%] bg-primary text-on-primary px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm">
+      <p class="text-sm leading-relaxed">${escHtml(question)}</p>
+    </div>
+    <span class="text-[10px] font-bold text-on-surface-variant/40 tracking-wider">${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</span>`;
+  inner.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendThinking() {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  const div = document.createElement('div');
+  div.id = 'thinking-indicator';
+  div.className = 'flex flex-col gap-4';
+  div.innerHTML = `
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary icon-fill" style="font-size:13px">auto_awesome</span>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+    </div>
+    <div class="flex gap-1.5 items-center py-2">
+      <span class="thinking-dot w-1.5 h-1.5 rounded-full bg-on-surface-variant/40"></span>
+      <span class="thinking-dot w-1.5 h-1.5 rounded-full bg-on-surface-variant/40"></span>
+      <span class="thinking-dot w-1.5 h-1.5 rounded-full bg-on-surface-variant/40"></span>
+    </div>`;
+  inner.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function createAIMessageContainer() {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  const div = document.createElement('div');
+  div.className = 'flex flex-col gap-4';
+  div.innerHTML = `
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary icon-fill" style="font-size:13px">auto_awesome</span>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+    </div>
+    <div id="stream-prose" class="prose text-sm text-on-surface max-w-none"></div>
+    <div id="stream-citations" class="flex flex-wrap gap-2"></div>
+    <div class="flex gap-4 mt-1">
+      <button onclick="copyAnswer(this)" class="text-on-surface-variant/40 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+      </button>
+    </div>`;
+  inner.appendChild(div);
+  return div;
+}
+
+function renderCitations(citations) {
+  const el = document.getElementById('stream-citations');
+  if (!el || !citations.length) return;
+  el.innerHTML = citations.map(c => `
+    <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
+         onclick="openPdf('${escHtml(c.file_name)}', ${c.page_num})">
+      <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
+      <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
+      <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
+      <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
+        <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
+      </div>
+    </div>`).join('');
+}
+
+let _copyAnswerText = '';
+function copyAnswer(btn) {
+  if (_copyAnswerText) {
+    navigator.clipboard.writeText(_copyAnswerText).then(() => {
+      const icon = btn.querySelector('.material-symbols-outlined');
+      icon.textContent = 'check';
+      setTimeout(() => { icon.textContent = 'content_copy'; }, 1500);
+    });
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('input');
+  const question = input.value.trim();
+  if (!question) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
+
+  appendUserMessage(question);
+  appendThinking();
+
+  try {
+    const body = { question, file_filter: activeFiles.size > 0 ? [...activeFiles] : null };
+    const r = await fetch(`${API}/api/query/stream`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+
+    document.getElementById('thinking-indicator')?.remove();
+    const msgContainer = createAIMessageContainer();
+    const msgs = document.getElementById('messages');
+    const prose = document.getElementById('stream-prose');
+
+    let answerText = '';
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();
+
+      for (const part of parts) {
+        const lines = part.split('\n');
+        let eventType = '', eventData = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) eventType = line.slice(7);
+          else if (line.startsWith('data: ')) eventData = line.slice(6);
+        }
+        if (!eventType) continue;
+
+        if (eventType === 'citations') {
+          renderCitations(JSON.parse(eventData));
+        } else if (eventType === 'token') {
+          const token = JSON.parse(eventData);
+          answerText += token;
+          prose.classList.add('streaming-cursor');
+          prose.innerHTML = renderMarkdown(answerText);
+          msgs.scrollTop = msgs.scrollHeight;
+        } else if (eventType === 'done') {
+          prose.classList.remove('streaming-cursor');
+          _copyAnswerText = answerText;
+        } else if (eventType === 'error') {
+          prose.classList.remove('streaming-cursor');
+          prose.innerHTML = `<span class="text-error">${escHtml(JSON.parse(eventData))}</span>`;
+        }
+      }
+    }
+
+    prose.classList.remove('streaming-cursor');
+    prose.removeAttribute('id');
+    document.getElementById('stream-citations')?.removeAttribute('id');
+  } catch (e) {
+    document.getElementById('thinking-indicator')?.remove();
+    const msgs = document.getElementById('messages');
+    const inner = msgs.querySelector('.max-w-2xl');
+    const div = document.createElement('div');
+    div.className = 'text-sm text-error';
+    div.textContent = `错误: ${e.message}`;
+    inner.appendChild(div);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+// ── PDF Preview ──
+function openPdf(fileName, pageNum) {
+  fetch(`${API}/api/files`).then(r => r.json()).then(files => {
+    const f = files.find(f => f.file_name === fileName);
+    if (!f) return;
+    window.open(`${API}/api/file/${f.id}/preview#page=${pageNum}`, '_blank');
+  });
+}
+
+// ── Files page ──
+async function refreshFiles() {
+  try {
+    const [files, favs] = await Promise.all([
+      fetch(`${API}/api/files`).then(r => r.json()),
+      fetch(`${API}/api/favorites`).then(r => r.json()).catch(() => []),
+    ]);
+    favoritedIds = new Set(favs.map(f => f.id));
+    selectedFileIds.clear();
+    updateSummarizeBar();
+
+    const tbody = document.getElementById('file-tbody');
+    if (!files.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-on-surface-variant/60 text-sm">暂无文件，请上传 PDF 或扫描文件夹</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = files.map(f => {
+      const isStarred = favoritedIds.has(f.id);
+      return `<tr class="hover:bg-surface-container/50 transition-all">
+        <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" class="rounded"></td>
+        <td class="py-3 pr-4 text-sm font-medium">${escHtml(f.file_name)}</td>
+        <td class="py-3 pr-4 text-xs text-on-surface-variant">${f.is_scanned ? 'OCR 扫描件' : '原生 PDF'}</td>
+        <td class="py-3 pr-4">${statusBadge(f.status)}</td>
+        <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.total_pages}</td>
+        <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.chunk_count}</td>
+        <td class="py-3 pr-4 text-xs text-on-surface-variant/60">${(f.updated_at || '').slice(0,16) || '-'}</td>
+        <td class="py-3">
+          <button onclick="toggleFavorite(${f.id}, this)" class="text-on-surface-variant/30 hover:text-primary transition-colors">
+            <span class="material-symbols-outlined ${isStarred ? 'icon-fill text-primary' : ''}" style="font-size:18px">star</span>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('select-all').checked = false;
+    loadFilterChips();
+  } catch (e) {
+    document.getElementById('file-tbody').innerHTML =
+      `<tr><td colspan="8" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
+  }
+}
+
+function statusBadge(status) {
+  const map = {
+    done: 'bg-tertiary-container text-on-tertiary-container',
+    processing: 'bg-surface-container-high text-on-surface-variant',
+    error: 'bg-surface-container-high text-error',
+    pending: 'bg-surface-container text-on-surface-variant/60',
+  };
+  const icons = {
+    done: 'check_circle',
+    processing: 'autorenew',
+    error: 'error',
+    pending: 'schedule',
+  };
+  const cls = map[status] || map.pending;
+  const icon = icons[status] || 'schedule';
+  return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold ${cls}">
+    <span class="material-symbols-outlined" style="font-size:12px">${icon}</span>${status}
+  </span>`;
+}
+
+function toggleFileSelect(cb) {
+  const id = parseInt(cb.dataset.id);
+  if (cb.checked) selectedFileIds.add(id);
+  else selectedFileIds.delete(id);
+  updateSummarizeBar();
+}
+
+function toggleSelectAll(master) {
+  document.querySelectorAll('#file-tbody input[type=checkbox]:not(:disabled)').forEach(cb => {
+    cb.checked = master.checked;
+    const id = parseInt(cb.dataset.id);
+    if (master.checked) selectedFileIds.add(id);
+    else selectedFileIds.delete(id);
+  });
+  updateSummarizeBar();
+}
+
+function updateSummarizeBar() {
+  const bar = document.getElementById('summarize-bar');
+  const count = document.getElementById('selected-count');
+  if (selectedFileIds.size > 0) {
+    bar.classList.remove('hidden');
+    bar.classList.add('flex');
+    count.textContent = `已选 ${selectedFileIds.size} 个文件`;
+  } else {
+    bar.classList.add('hidden');
+    bar.classList.remove('flex');
+  }
+}
+
+async function toggleFavorite(fileId, btn) {
+  try {
+    const r = await fetch(`${API}/api/favorites/${fileId}`, { method: 'POST' });
+    const data = await r.json();
+    const icon = btn.querySelector('.material-symbols-outlined');
+    if (data.favorited) {
+      icon.classList.add('icon-fill', 'text-primary');
+      favoritedIds.add(fileId);
+    } else {
+      icon.classList.remove('icon-fill', 'text-primary');
+      favoritedIds.delete(fileId);
+    }
+  } catch {}
+}
+
+async function summarizeSelected() {
+  if (selectedFileIds.size === 0) return;
+  const btn = document.getElementById('summarize-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span><span class="ml-1.5">生成中…</span>';
+  try {
+    const r = await fetch(`${API}/api/summarize`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file_ids: [...selectedFileIds] }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const md = await r.text();
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'docflow-summary.md'; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert(`摘要生成失败: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">summarize</span><span class="ml-1">生成摘要</span>';
+  }
+}
+
+// ── History page ──
+async function refreshHistory() {
+  const listEl = document.getElementById('history-list');
+  try {
+    const items = await fetch(`${API}/api/history`).then(r => r.json());
+    if (!items.length) {
+      listEl.innerHTML = '<div class="text-center text-on-surface-variant/60 text-sm py-16">暂无历史记录</div>';
+      return;
+    }
+    listEl.innerHTML = items.map(item => `
+      <div class="bg-surface-container-lowest rounded-xl p-4 cursor-pointer hover:bg-surface-container transition-all shadow-sm"
+           onclick="replayHistory(${JSON.stringify(item.question)})">
+        <div class="text-sm font-semibold text-on-surface mb-2">${escHtml(item.question)}</div>
+        <div class="text-xs text-on-surface-variant leading-relaxed mb-3 line-clamp-2">${escHtml(item.answer?.slice(0,150))}…</div>
+        <div class="flex gap-4 text-[11px] text-on-surface-variant/60 font-medium">
+          <span>${(item.created_at || '').slice(0,16)}</span>
+          ${item.file_filter?.length ? `<span class="flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:12px">folder_open</span>${escHtml(item.file_filter.join(', '))}</span>` : ''}
+          ${item.citations?.length ? `<span class="flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:12px">link</span>${item.citations.length} 引用</span>` : ''}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    listEl.innerHTML = `<div class="text-center text-error text-sm py-8">加载失败: ${e.message}</div>`;
+  }
+}
+
+function replayHistory(question) {
+  switchView('chat');
+  const input = document.getElementById('input');
+  input.value = question;
+  autoResize(input);
+  input.focus();
+}
+
+async function clearHistory() {
+  if (!confirm('确定要清空所有历史记录吗？')) return;
+  await fetch(`${API}/api/history`, { method: 'DELETE' });
+  refreshHistory();
+}
+
+// ── Queue polling ──
+let queuePollTimer2 = null;
+
+function startQueuePolling() {
+  if (queuePollTimer2) return;
+  queuePollTimer2 = setInterval(pollQueueOnce, 2000);
+}
+
+function stopQueuePolling() {
+  if (queuePollTimer2) { clearInterval(queuePollTimer2); queuePollTimer2 = null; }
+  document.getElementById('queue-banner')?.classList.add('hidden');
+}
+
+async function pollQueueOnce() {
+  try {
+    const q = await fetch(`${API}/api/queue`).then(r => r.json());
+    const banner = document.getElementById('queue-banner');
+    const textEl = document.getElementById('queue-text');
+    if (q.queue_size > 0 || q.processing) {
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+      const parts = [];
+      if (q.processing) parts.push(`处理：${q.processing}`);
+      if (q.queue_size > 0) parts.push(`队列 ${q.queue_size} 个`);
+      textEl.textContent = parts.join(' · ');
+      refreshFiles();
+    } else {
+      stopQueuePolling();
+      refreshFiles();
+    }
+  } catch {}
+}
+
+async function triggerIngest() {
+  try {
+    await fetch(`${API}/api/ingest`, { method: 'POST' });
+    startQueuePolling();
+    setTimeout(refreshFiles, 500);
+  } catch {}
+}
+
+async function handleFileSelect(e) {
+  await uploadFiles([...e.target.files]);
+  e.target.value = '';
+}
+
+async function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('border-primary/60', 'bg-surface-container');
+  await uploadFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf')));
+}
+
+async function uploadFiles(files) {
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      await fetch(`${API}/api/upload`, { method: 'POST', body: fd });
+    } catch {}
+  }
+  startQueuePolling();
+  if (document.getElementById('view-library').classList.contains('hidden') === false) {
+    refreshFiles();
+  }
+}
+</script>
+</body>
+</html>

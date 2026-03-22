@@ -1,0 +1,410 @@
+"""
+DocStore — SQLite 元数据存储。
+
+Schema:
+  files  — 文件状态追踪（pending / processing / done / error）
+  chunks — chunk 元数据索引（与 Qdrant 向量 ID 对应）
+"""
+
+from __future__ import annotations
+
+import hashlib
+import sqlite3
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Data types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class FileRecord:
+    id: int
+    file_path: str
+    file_name: str
+    file_hash: str
+    status: str          # pending | processing | done | error
+    total_pages: int
+    is_scanned: bool
+    chunk_count: int
+    error_msg: str
+    created_at: str
+    updated_at: str
+
+
+# ---------------------------------------------------------------------------
+# DocStore
+# ---------------------------------------------------------------------------
+
+class DocStore:
+    def __init__(self, db_path: str | Path):
+        self.db_path = str(db_path)
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Schema
+    # ------------------------------------------------------------------
+
+    def _init_db(self):
+        with self._conn() as conn:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS files (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_path    TEXT    NOT NULL UNIQUE,
+                    file_name    TEXT    NOT NULL,
+                    file_hash    TEXT    NOT NULL,
+                    status       TEXT    NOT NULL DEFAULT 'pending',
+                    total_pages  INTEGER NOT NULL DEFAULT 0,
+                    is_scanned   INTEGER NOT NULL DEFAULT 0,
+                    chunk_count  INTEGER NOT NULL DEFAULT 0,
+                    error_msg    TEXT    NOT NULL DEFAULT '',
+                    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS chunks (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_id      INTEGER NOT NULL REFERENCES files(id),
+                    qdrant_id    INTEGER NOT NULL,
+                    chunk_type   TEXT    NOT NULL,
+                    page_num     INTEGER NOT NULL,
+                    section      TEXT    NOT NULL DEFAULT '',
+                    char_count   INTEGER NOT NULL DEFAULT 0,
+                    created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS history (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question    TEXT    NOT NULL,
+                    answer      TEXT    NOT NULL,
+                    citations   TEXT    NOT NULL DEFAULT '[]',
+                    file_filter TEXT    NOT NULL DEFAULT '[]',
+                    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS favorites (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_id    INTEGER NOT NULL UNIQUE REFERENCES files(id),
+                    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
+                CREATE INDEX IF NOT EXISTS idx_files_hash     ON files(file_hash);
+                CREATE INDEX IF NOT EXISTS idx_files_status   ON files(status);
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+                    tokenized_text,
+                    tokenize='unicode61'
+                );
+            """)
+
+    @contextmanager
+    def _conn(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # File operations
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def compute_hash(file_path: str | Path) -> str:
+        h = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def needs_ingest(self, file_path: str | Path) -> bool:
+        """
+        True if:
+        - File is not in DB, or
+        - File hash has changed (file updated), or
+        - Previous ingest errored
+        """
+        path = str(file_path)
+        current_hash = self.compute_hash(file_path)
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT file_hash, status FROM files WHERE file_path = ?", (path,)
+            ).fetchone()
+        if row is None:
+            return True
+        if row["file_hash"] != current_hash:
+            return True
+        if row["status"] == "error":
+            return True
+        return False
+
+    def upsert_file(
+        self,
+        file_path: str | Path,
+        file_name: str,
+        file_hash: str,
+        status: str = "pending",
+        total_pages: int = 0,
+        is_scanned: bool = False,
+    ) -> int:
+        path = str(file_path)
+        with self._conn() as conn:
+            conn.execute("""
+                INSERT INTO files (file_path, file_name, file_hash, status, total_pages, is_scanned)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(file_path) DO UPDATE SET
+                    file_name   = excluded.file_name,
+                    file_hash   = excluded.file_hash,
+                    status      = excluded.status,
+                    total_pages = excluded.total_pages,
+                    is_scanned  = excluded.is_scanned,
+                    error_msg   = '',
+                    updated_at  = datetime('now')
+            """, (path, file_name, file_hash, status, total_pages, int(is_scanned)))
+            file_id = conn.execute(
+                "SELECT id FROM files WHERE file_path = ?", (path,)
+            ).fetchone()["id"]
+        return file_id
+
+    def set_status(self, file_path: str | Path, status: str, error_msg: str = ""):
+        with self._conn() as conn:
+            conn.execute("""
+                UPDATE files
+                SET status = ?, error_msg = ?, updated_at = datetime('now')
+                WHERE file_path = ?
+            """, (status, error_msg, str(file_path)))
+
+    def set_chunk_count(self, file_path: str | Path, count: int):
+        with self._conn() as conn:
+            conn.execute("""
+                UPDATE files
+                SET chunk_count = ?, updated_at = datetime('now')
+                WHERE file_path = ?
+            """, (count, str(file_path)))
+
+    def add_chunks(self, file_id: int, chunk_records: list[dict]):
+        """
+        chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count, tokenized_text?}
+        也同步写入 FTS5 全文索引（tokenized_text 字段，jieba 预分词后空格分隔）。
+        """
+        with self._conn() as conn:
+            # Delete old FTS5 entries before clearing chunks
+            old_ids = [r["id"] for r in conn.execute(
+                "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
+            ).fetchall()]
+            if old_ids:
+                conn.execute(
+                    f"DELETE FROM chunks_fts WHERE rowid IN ({','.join('?'*len(old_ids))})",
+                    old_ids,
+                )
+            conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
+            # Insert chunks one by one to capture rowid for FTS5
+            for r in chunk_records:
+                conn.execute(
+                    """INSERT INTO chunks (file_id, qdrant_id, chunk_type, page_num, section, char_count)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (file_id, r["qdrant_id"], r["chunk_type"], r["page_num"], r["section"], r["char_count"]),
+                )
+                chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                tokenized = r.get("tokenized_text", "")
+                if tokenized:
+                    conn.execute(
+                        "INSERT INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
+                        (chunk_id, tokenized),
+                    )
+
+    # ------------------------------------------------------------------
+    # Query
+    # ------------------------------------------------------------------
+
+    def list_files(self, status: str | None = None) -> list[dict]:
+        query = "SELECT * FROM files"
+        params: tuple = ()
+        if status:
+            query += " WHERE status = ?"
+            params = (status,)
+        query += " ORDER BY updated_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_file_by_path(self, file_path: str | Path) -> dict | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM files WHERE file_path = ?", (str(file_path),)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_file_by_id(self, file_id: int) -> dict | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM files WHERE id = ?", (file_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_file_qdrant_ids(self, file_id: int) -> list[int]:
+        """返回某文件所有 chunk 的 Qdrant point ID（用于重新索引时清理旧向量）。"""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT qdrant_id FROM chunks WHERE file_id = ? ORDER BY id", (file_id,)
+            ).fetchall()
+        return [r["qdrant_id"] for r in rows]
+
+    # ------------------------------------------------------------------
+    # History
+    # ------------------------------------------------------------------
+
+    def add_history(
+        self, question: str, answer: str, citations_json: str, file_filter_json: str = "[]"
+    ) -> int:
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT INTO history (question, answer, citations, file_filter) VALUES (?, ?, ?, ?)",
+                (question, answer, citations_json, file_filter_json),
+            )
+            row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return row_id
+
+    def list_history(self, limit: int = 50) -> list[dict]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM history ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def clear_history(self):
+        with self._conn() as conn:
+            conn.execute("DELETE FROM history")
+
+    # ------------------------------------------------------------------
+    # Favorites
+    # ------------------------------------------------------------------
+
+    def toggle_favorite(self, file_id: int) -> bool:
+        """添加/取消收藏。返回 True=已收藏，False=已取消。"""
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT id FROM favorites WHERE file_id = ?", (file_id,)
+            ).fetchone()
+            if existing:
+                conn.execute("DELETE FROM favorites WHERE file_id = ?", (file_id,))
+                return False
+            else:
+                conn.execute("INSERT INTO favorites (file_id) VALUES (?)", (file_id,))
+                return True
+
+    def is_favorite(self, file_id: int) -> bool:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT id FROM favorites WHERE file_id = ?", (file_id,)
+            ).fetchone()
+        return row is not None
+
+    def list_favorites(self) -> list[dict]:
+        with self._conn() as conn:
+            rows = conn.execute("""
+                SELECT f.* FROM files f
+                INNER JOIN favorites fav ON f.id = fav.file_id
+                ORDER BY fav.created_at DESC
+            """).fetchall()
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # FTS5 全文检索
+    # ------------------------------------------------------------------
+
+    def backfill_fts(self, qdrant_client, collection_name: str = "docflow") -> int:
+        """
+        将已有 chunks 中缺失 FTS5 记录的条目从 Qdrant 拉取文本并回填。
+        用于 DB 迁移（旧版 DB 无 FTS5 记录）。
+        返回回填的条目数。
+        """
+        import jieba
+
+        with self._conn() as conn:
+            # 找出没有 FTS5 记录的 chunks
+            rows = conn.execute("""
+                SELECT c.id, c.qdrant_id
+                FROM chunks c
+                LEFT JOIN chunks_fts ON chunks_fts.rowid = c.id
+                WHERE chunks_fts.rowid IS NULL
+            """).fetchall()
+
+        if not rows:
+            return 0
+
+        chunk_ids = [r["id"] for r in rows]
+        qdrant_ids = [r["qdrant_id"] for r in rows]
+        id_to_chunk_id = {r["qdrant_id"]: r["id"] for r in rows}
+
+        # Qdrant 批量拉取（每次最多 100 个）
+        BATCH = 100
+        filled = 0
+        for i in range(0, len(qdrant_ids), BATCH):
+            batch_qids = qdrant_ids[i : i + BATCH]
+            records = qdrant_client.retrieve(
+                collection_name=collection_name,
+                ids=batch_qids,
+                with_payload=True,
+            )
+            with self._conn() as conn:
+                for rec in records:
+                    text = rec.payload.get("text", "") if rec.payload else ""
+                    if not text:
+                        continue
+                    tokenized = " ".join(t for t in jieba.cut(text.lower()) if t.strip())
+                    chunk_id = id_to_chunk_id.get(rec.id)
+                    if chunk_id and tokenized:
+                        conn.execute(
+                            "INSERT OR IGNORE INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
+                            (chunk_id, tokenized),
+                        )
+                        filled += 1
+        return filled
+
+    def search_fts(
+        self,
+        fts_query: str,
+        file_filter: list[str] | None,
+        limit: int,
+    ) -> list[dict]:
+        """
+        BM25 全文检索（SQLite FTS5）。
+        fts_query: FTS5 MATCH 表达式，如 '"机器" OR "学习"'
+        返回: [{qdrant_id, page_num, section, chunk_type, file_name, file_path, score}]
+        score 为正值（-rank），值越大越相关。
+        """
+        # 子查询先在 FTS5 内排序，再 JOIN 元数据表（FTS5 rank 在子查询中更稳定）
+        subq_limit = limit * 3 if file_filter else limit
+        sql = """
+            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type,
+                   fi.file_name, fi.file_path, fts.score
+            FROM (
+                SELECT rowid, -rank AS score
+                FROM chunks_fts
+                WHERE chunks_fts MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            ) fts
+            JOIN chunks c ON c.id = fts.rowid
+            JOIN files fi ON fi.id = c.file_id
+        """
+        params: list = [fts_query, subq_limit]
+        if file_filter:
+            placeholders = ",".join("?" * len(file_filter))
+            sql += f" WHERE fi.file_name IN ({placeholders})"
+            params.extend(file_filter)
+        sql += " ORDER BY fts.score DESC LIMIT ?"
+        params.append(limit)
+
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
