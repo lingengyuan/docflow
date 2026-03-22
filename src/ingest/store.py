@@ -152,7 +152,7 @@ class DocStore:
             return True
         if row["file_hash"] != current_hash:
             return True
-        if row["status"] == "error":
+        if row["status"] in ("error", "processing"):
             return True
         return False
 

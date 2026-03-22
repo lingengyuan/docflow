@@ -97,11 +97,12 @@ async def lifespan(app: FastAPI):
     pipeline = IngestPipeline.from_config(CONFIG_PATH)
     query_engine = QueryEngine.from_config(CONFIG_PATH)
 
-    # FTS5 取代 BM25 pickle，无需热重载回调（增量写入，始终最新）
+    # CPU embedding 不需要走 MLX Metal 执行器，直接在 ingest worker 线程里跑
+    # ml_executor 只保留给 MLX 推理（reranker、LLM）
     ingest_queue = IngestQueue(
         pipeline,
         on_done=None,
-        ml_executor=ml_executor,
+        ml_executor=None,
     )
     ingest_queue.start()
 
