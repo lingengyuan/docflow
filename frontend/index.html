@@ -178,7 +178,7 @@
           <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()">
             <span class="material-symbols-outlined">add_circle</span>
           </button>
-          <input type="file" id="file-input-chat" accept=".pdf" multiple class="hidden" onchange="handleFileSelect(event)">
+          <input type="file" id="file-input-chat" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
           <textarea id="input" rows="1"
             placeholder="向你的文档提问…"
             class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-2 placeholder:text-on-surface-variant/40 resize-none overflow-hidden leading-relaxed outline-none"
@@ -214,9 +214,9 @@
         </button>
         <button onclick="document.getElementById('file-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
           <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
-          上传 PDF
+          上传文件
         </button>
-        <input type="file" id="file-input" accept=".pdf" multiple class="hidden" onchange="handleFileSelect(event)">
+        <input type="file" id="file-input" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
       </div>
     </header>
 
@@ -229,8 +229,8 @@
         ondragleave="this.classList.remove('border-primary/60','bg-surface-container')"
         ondrop="handleDrop(event)">
         <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:32px">upload_file</span>
-        <div class="text-sm font-medium text-on-surface-variant">拖拽 PDF 至此或点击上传</div>
-        <div class="text-xs text-on-surface-variant/60">也可以将文件直接放入 ~/Documents/DocFlow/</div>
+        <div class="text-sm font-medium text-on-surface-variant">拖拽文件至此或点击上传</div>
+        <div class="text-xs text-on-surface-variant/60">支持 PDF · MD · TXT · DOCX · 图片 &nbsp;|&nbsp; 也可直接放入 ~/Documents/DocFlow/</div>
       </div>
     </div>
 
@@ -370,7 +370,7 @@ async function loadFilterChips() {
       const btn = document.createElement('button');
       btn.className = 'filter-chip px-3 py-1 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-all';
       btn.dataset.file = f.file_name;
-      btn.textContent = f.file_name.replace(/\.pdf$/i, '');
+      btn.textContent = f.file_name.replace(/\.(pdf|md|txt|docx|jpg|jpeg|png|webp|heic|heif)$/i, '');
       btn.onclick = () => toggleFilter(btn);
       bar.appendChild(btn);
     });
@@ -829,7 +829,8 @@ async function handleFileSelect(e) {
 async function handleDrop(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('border-primary/60', 'bg-surface-container');
-  await uploadFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf')));
+  const SUPPORTED = ['.pdf','.md','.txt','.docx','.jpg','.jpeg','.png','.webp','.heic','.heif'];
+  await uploadFiles([...e.dataTransfer.files].filter(f => SUPPORTED.some(ext => f.name.toLowerCase().endsWith(ext))));
 }
 
 async function uploadFiles(files) {
