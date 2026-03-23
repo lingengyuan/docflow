@@ -11,12 +11,12 @@ pipeline:
 from __future__ import annotations
 
 import logging
-import os
 import re
 from pathlib import Path
 
 from qdrant_client import QdrantClient
 
+from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
 
 logger = logging.getLogger(__name__)
@@ -151,14 +151,13 @@ class HybridRetriever:
         self,
         qdrant_host: str = "localhost",
         qdrant_port: int = 6333,
-        embedding_model: str = "Qwen/Qwen3-Embedding-0.6B",
         reranker_model: str = "Qwen/Qwen3-Reranker-0.6B",
         reranker_instruction: str = "",
         db_path: str | Path = "docflow.db",
         top_k_retrieval: int = 20,
         top_k_rerank: int = 5,
-        device: str = "cpu",
         store: DocStore | None = None,
+        embedding_config: EmbeddingBackendConfig | None = None,
     ):
         self.top_k_retrieval = top_k_retrieval
         self.top_k_rerank = top_k_rerank
@@ -167,10 +166,11 @@ class HybridRetriever:
         self._store = store or DocStore(db_path)
         self._embed_model = None
         self._reranker: MLXReranker | None = None
-        self._embedding_model_name = embedding_model
+        self._embedding_config = embedding_config or EmbeddingBackendConfig(
+            model_name="Qwen/Qwen3-Embedding-0.6B"
+        )
         self._reranker_model_name = reranker_model
         self._reranker_instruction = reranker_instruction
-        self._device = device
 
     # ------------------------------------------------------------------
     # Lazy-load models
@@ -179,17 +179,7 @@ class HybridRetriever:
     @property
     def embed_model(self):
         if self._embed_model is None:
-            import torch
-            from sentence_transformers import SentenceTransformer
-            n_threads = os.cpu_count() or 4
-            torch.set_num_threads(n_threads)
-            logger.info(f"[retriever] CPU threads: {n_threads}")
-            logger.info(f"[retriever] Loading embedding model: {self._embedding_model_name}")
-            self._embed_model = SentenceTransformer(
-                self._embedding_model_name,
-                device=self._device,
-                trust_remote_code=True,
-            )
+            self._embed_model = load_embedding_model(self._embedding_config)
         return self._embed_model
 
     @property

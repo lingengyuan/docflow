@@ -122,7 +122,7 @@ def test_queue_batches_files_and_exposes_chunk_progress():
         parse_workers=2,
         microbatch_max_files=8,
         microbatch_max_chunks=128,
-        microbatch_linger_ms=10,
+        microbatch_linger_ms=100,
     )
 
     first = Path("/tmp/source-a/report-a.pdf")

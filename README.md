@@ -175,6 +175,9 @@ vlm:
 
 embedding:
   device: "cpu"           # 保持 cpu，避免 MPS + MLX 双 Metal 运行时冲突
+  backend: "torch"        # 可选 "onnx"；当前 M5 + Qwen3 实测本地 ONNX 未跑赢 torch
+  onnx_provider: "CPUExecutionProvider"
+  onnx_cache_dir: "data/embedding_onnx"
 
 ingest:
   parse_workers: 2
@@ -183,6 +186,11 @@ ingest:
   adaptive_batch_char_budget: 32768
   embedding_cache: true
 ```
+
+> `embedding.backend: "onnx"` 现已支持，并且 ingest/query 共用同一套 backend 配置，避免向量空间漂移。
+> 但在当前 M5 MacBook Air（32 GB）上，用 `Qwen/Qwen3-Embedding-0.6B` 对真实 Markdown chunks 做的本地实测里，
+> `torch CPU` 约 `34.4s / 128 chunks`，而 base `ONNX CPU` 约 `73.9s / 128 chunks`。因此默认仍保持 `torch`，
+> 下一阶段更值得继续验证的是 TEI / Infinity 这类独立 embedding runtime。
 
 **切换 LLM 模型（运行时）**：
 

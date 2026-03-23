@@ -117,6 +117,22 @@ embedding:
 - CPU Embedding 耗时仅从 0.1s → 0.3s，完全可接受
 - 只保留一套 Metal 运行时（MLX）
 
+### Embedding backend：默认 torch，ONNX 为实验开关
+项目现在已经支持共享 `embedding.backend` 配置，ingest 与 query 会走同一套 backend 装载逻辑，
+避免“索引时一种 backend、查询时另一种 backend”带来的向量空间偏移。
+
+当前额外验证结论：
+- `Qwen/Qwen3-Embedding-0.6B` 的本地 ONNX 导出需要补 `position_ids`，否则 encode 会失败
+- 兼容性修复已经落地，测试通过
+- 但在当前 M5 Mac（32GB）上，对真实 Markdown chunks 的实测里，`torch CPU` 仍明显快于 base `ONNX CPU`
+- 因此 `config.yaml` 默认仍保持 `embedding.backend: "torch"`；ONNX 暂时只作为实验入口保留
+
+小型实测（同一批 128 个真实 chunks）：
+- `torch`: `34.388s`（`0.2687s/chunk`）
+- `onnx`: `73.892s`（`0.5773s/chunk`）
+
+结论：下一轮如果继续追 embedding 性能，更应该优先验证 TEI / Infinity 这类独立 runtime，而不是继续在当前本地 base ONNX 上深挖。
+
 ---
 
 ## 6. 当前性能（warm，4 个 PDF / 52 chunks）

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yaml
 
+from src.embedding_backend import embedding_backend_config_from_dict
 from src.query.generator import Answer, AnswerGenerator
 from src.query.retriever import HybridRetriever
 from src.ingest.store import DocStore
@@ -30,15 +31,15 @@ class QueryEngine:
 
         db_path = Path(cfg["paths"]["db_path"]).expanduser()
         reranker_cfg = cfg.get("reranker", {})
+        embedding_config = embedding_backend_config_from_dict(cfg, config_path)
         retriever = HybridRetriever(
             qdrant_host=cfg["qdrant"]["host"],
             qdrant_port=cfg["qdrant"]["port"],
-            embedding_model=cfg["embedding"]["model"],
             reranker_model=reranker_cfg.get("model", "Qwen/Qwen3-Reranker-0.6B"),
             reranker_instruction=reranker_cfg.get("instruction", ""),
             db_path=db_path,
-            device=cfg["embedding"]["device"],
             store=store,
+            embedding_config=embedding_config,
         )
         llm_cfg = cfg.get("llm", {})
         generator = AnswerGenerator(

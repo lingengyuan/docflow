@@ -22,6 +22,7 @@ from typing import Callable
 import numpy as np
 import yaml
 
+from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.chunker import Chunk, StructuredChunker
 from src.ingest.embedder import Embedder
 from src.ingest.parsers import ParserRegistry
@@ -107,6 +108,7 @@ class IngestPipeline:
 
         db_path = Path(cfg["paths"]["db_path"]).expanduser()
         ingest_cfg = cfg.get("ingest", {})
+        embedding_config = embedding_backend_config_from_dict(cfg, config_path)
 
         registry = ParserRegistry.from_config(cfg)
         chunker = StructuredChunker(
@@ -119,12 +121,11 @@ class IngestPipeline:
         embedder = Embedder(
             qdrant_host=cfg["qdrant"]["host"],
             qdrant_port=cfg["qdrant"]["port"],
-            embedding_model=cfg["embedding"]["model"],
             batch_size=cfg["embedding"]["batch_size"],
-            device=cfg["embedding"]["device"],
             id_counter_path=id_counter,
             adaptive_batch_char_budget=ingest_cfg.get("adaptive_batch_char_budget"),
             adaptive_batch_max=ingest_cfg.get("adaptive_batch_max"),
+            embedding_config=embedding_config,
         )
         shared_store = store or DocStore(db_path)
 
@@ -244,7 +245,7 @@ class IngestPipeline:
         text_hashes = [DocStore.compute_text_hash(chunk.text) for chunk in chunks]
         hash_counts = Counter(text_hashes)
         cached_vectors = (
-            self.store.get_cached_embeddings(self.embedder.embedding_model_name, text_hashes)
+            self.store.get_cached_embeddings(self.embedder.embedding_cache_key, text_hashes)
             if self.use_embedding_cache
             else {}
         )
@@ -310,7 +311,7 @@ class IngestPipeline:
             }
             vectors_by_hash.update(new_vectors)
             if self.use_embedding_cache:
-                self.store.put_cached_embeddings(self.embedder.embedding_model_name, new_vectors)
+                self.store.put_cached_embeddings(self.embedder.embedding_cache_key, new_vectors)
         elif progress_callback:
             progress_callback(
                 {

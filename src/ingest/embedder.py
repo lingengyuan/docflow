@@ -9,13 +9,13 @@ BM25 全文索引已迁移至 SQLite FTS5（由 DocStore 管理）。
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.chunker import Chunk
 
 logger = logging.getLogger(__name__)
@@ -28,18 +28,18 @@ class Embedder:
         self,
         qdrant_host: str = "localhost",
         qdrant_port: int = 6333,
-        embedding_model: str = "Qwen/Qwen3-Embedding-0.6B",
         batch_size: int = 8,
-        device: str = "cpu",
         id_counter_path: str | Path = "qdrant_id_counter.txt",
         adaptive_batch_char_budget: int | None = None,
         adaptive_batch_max: int | None = None,
+        embedding_config: EmbeddingBackendConfig | None = None,
     ):
         self.batch_size = batch_size
         self.adaptive_batch_char_budget = adaptive_batch_char_budget or (batch_size * 1024)
         self.adaptive_batch_max = adaptive_batch_max or max(batch_size, batch_size * 2)
-        self._embedding_model_name = embedding_model
-        self._device = device
+        self._embedding_config = embedding_config or EmbeddingBackendConfig(
+            model_name="Qwen/Qwen3-Embedding-0.6B"
+        )
 
         self._model = None          # lazy-loaded SentenceTransformer
         self._vector_dim: int | None = None
@@ -57,18 +57,7 @@ class Embedder:
     @property
     def model(self):
         if self._model is None:
-            import torch
-            from sentence_transformers import SentenceTransformer
-            # 用满所有 CPU 核心做矩阵运算（M5 有 10 核，PyTorch 默认只用 4）
-            n_threads = os.cpu_count() or 4
-            torch.set_num_threads(n_threads)
-            logger.info(f"[embedder] CPU threads: {n_threads}")
-            logger.info(f"[embedder] Loading embedding model: {self._embedding_model_name}")
-            self._model = SentenceTransformer(
-                self._embedding_model_name,
-                device=self._device,
-                trust_remote_code=True,
-            )
+            self._model = load_embedding_model(self._embedding_config)
             self._vector_dim = self._model.get_sentence_embedding_dimension()
             logger.info(f"[embedder] Embedding dim: {self._vector_dim}")
             self._ensure_collection(self._vector_dim)
@@ -109,7 +98,11 @@ class Embedder:
 
     @property
     def embedding_model_name(self) -> str:
-        return self._embedding_model_name
+        return self._embedding_config.model_name
+
+    @property
+    def embedding_cache_key(self) -> str:
+        return self._embedding_config.cache_key()
 
     def _adaptive_batch_size(self, texts: list[str]) -> int:
         if not texts:

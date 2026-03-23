@@ -50,6 +50,7 @@ class FakeEmbedder:
     def __init__(self):
         self.encode_calls: list[list[str]] = []
         self.embedding_model_name = "fake-embedding"
+        self.embedding_cache_key = "torch::fake-embedding"
 
     def encode_texts(self, texts, progress_callback=None):
         self.encode_calls.append(list(texts))
@@ -101,5 +102,8 @@ def test_embedding_cache_reuses_duplicate_chunks_across_batches(tmp_path):
 
     assert result_c["status"] == "done"
     assert pipeline.embedder.encode_calls == [["shared chunk"]]
-    cached = store.get_cached_embeddings("fake-embedding", [DocStore.compute_text_hash("shared chunk")])
+    cached = store.get_cached_embeddings(
+        pipeline.embedder.embedding_cache_key,
+        [DocStore.compute_text_hash("shared chunk")],
+    )
     assert len(cached) == 1

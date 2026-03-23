@@ -250,6 +250,8 @@ class IngestQueue:
                 path = self._queue.popleft()
                 future = self._prepare_executor.submit(self.pipeline.prepare_file, path)
                 self._prepare_futures[future] = path
+                if self._prepared:
+                    self._prepared_ready_at = time.monotonic()
                 self._refresh_progress_locked()
                 scheduled = True
 
@@ -370,8 +372,6 @@ class IngestQueue:
                 return False
             if self._reached_microbatch_limit_locked():
                 return False
-            if not (self._prepare_futures or self._queue):
-                return False
             ready_at = self._prepared_ready_at
         if ready_at is None:
             return False
@@ -383,10 +383,10 @@ class IngestQueue:
                 return False
             if self._reached_microbatch_limit_locked():
                 return True
-            if not (self._prepare_futures or self._queue):
-                return True
             if self._prepared_ready_at is None:
                 return False
+            if not (self._prepare_futures or self._queue):
+                return time.monotonic() - self._prepared_ready_at >= self._microbatch_linger_s
             return time.monotonic() - self._prepared_ready_at >= self._microbatch_linger_s
 
     def _pop_prepared_batch(self) -> list[PreparedIngestFile]:

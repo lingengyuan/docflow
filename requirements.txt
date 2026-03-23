@@ -46,6 +46,10 @@ multidict==6.7.1
 multiprocess==0.70.18
 networkx==3.6.1
 numpy==2.4.3
+onnx==1.20.1
+onnxruntime==1.24.4
+optimum==2.1.0
+optimum-onnx==0.1.0
 packaging==26.0
 pandas==3.0.1
 peft==0.18.1

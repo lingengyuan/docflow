@@ -6,8 +6,13 @@ ollama:
 
 embedding:
   model: "Qwen/Qwen3-Embedding-0.6B" # 600M 参数，中文优化，内存友好
+  backend: "torch"                    # 默认仍用 torch CPU；本地 ONNX 对 Qwen3 可用，但在当前 M5 实测未跑赢 torch
   batch_size: 32
   device: "cpu"                       # CPU：避免 PyTorch MPS Metal shader 大量编译占用统一内存
+  onnx_provider: "CPUExecutionProvider"
+  onnx_optimization: ""               # Qwen3 当前本地 ONNX 导出默认使用基础图；如切换兼容模型可再开启 O1/O2/O3
+  onnx_quantization: ""               # 可选：arm64；会进一步提速，但可能带来轻微数值偏移
+  onnx_cache_dir: "data/embedding_onnx"
 
 ingest:
   parse_workers: 2
