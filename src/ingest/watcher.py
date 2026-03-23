@@ -45,10 +45,10 @@ _DEBOUNCE_SECONDS = 3.0
 
 
 class FileEventHandler(FileSystemEventHandler):
-    def __init__(self, pipeline: IngestPipeline, extensions: list[str]):
+    def __init__(self, pipeline: IngestPipeline, extensions: list[str], ingest_queue=None):
         self.pipeline = pipeline
         self.extensions = [e.lower() for e in extensions]
-        self._processing: set[str] = set()
+        self._ingest_queue = ingest_queue
         self._last_event: dict[str, float] = {}  # path → timestamp
 
     def on_created(self, event: FileSystemEvent):
@@ -72,21 +72,19 @@ class FileEventHandler(FileSystemEventHandler):
         if now - last < _DEBOUNCE_SECONDS:
             return
         self._last_event[key] = now
-        if key in self._processing:
-            return
-        self._processing.add(key)
-        try:
-            logger.info(f"[watcher] detected: {path.name}")
+        logger.info(f"[watcher] detected: {path.name}")
+        if self._ingest_queue:
+            self._ingest_queue.submit(path)
+        else:
             result = self.pipeline.ingest(path)
             logger.info(f"[watcher] {result}")
-        finally:
-            self._processing.discard(key)
 
 
 class FolderWatcher:
-    def __init__(self, pipeline: IngestPipeline, watch_dirs: list[WatchDir]):
+    def __init__(self, pipeline: IngestPipeline, watch_dirs: list[WatchDir], ingest_queue=None):
         self.pipeline = pipeline
         self.watch_dirs = watch_dirs
+        self._ingest_queue = ingest_queue
         for wd in self.watch_dirs:
             wd.path.mkdir(parents=True, exist_ok=True)
         self._observer = Observer()
@@ -95,7 +93,7 @@ class FolderWatcher:
         default_exts = self.pipeline.registry.supported_extensions
         for wd in self.watch_dirs:
             exts = wd.extensions if wd.extensions else default_exts
-            handler = FileEventHandler(self.pipeline, exts)
+            handler = FileEventHandler(self.pipeline, exts, ingest_queue=self._ingest_queue)
             self._observer.schedule(handler, str(wd.path), recursive=wd.recursive)
             logger.info(f"[watcher] watching: {wd.path} (recursive={wd.recursive}, exts={exts})")
         self._observer.start()

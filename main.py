@@ -9,10 +9,14 @@ DocFlow 入口。
   # 手动 ingest 单个文件
   python main.py ingest /path/to/file.pdf
 
+  # dry-run benchmark 一个或多个文件
+  python main.py benchmark /path/to/file1.md /path/to/file2.pdf
+
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan
 """
 
+import json
 import sys
 import logging
 
@@ -39,6 +43,7 @@ def scan():
     import yaml
     from src.ingest.pipeline import IngestPipeline
     from src.api.app import _parse_watch_dirs
+    from src.ingest.watcher import _is_excluded
     with open("config.yaml") as f:
         cfg = yaml.safe_load(f)
     pipeline = IngestPipeline.from_config("config.yaml")
@@ -47,7 +52,17 @@ def scan():
         for ext in exts:
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
             for path in wd.path.glob(pattern):
+                if _is_excluded(path):
+                    continue
                 print(pipeline.ingest(path))
+
+
+def benchmark(paths: list[str]):
+    from src.ingest.pipeline import IngestPipeline
+
+    pipeline = IngestPipeline.from_config("config.yaml")
+    results = [pipeline.benchmark_file(path) for path in paths]
+    print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
@@ -61,6 +76,11 @@ if __name__ == "__main__":
         ingest(sys.argv[2])
     elif cmd == "scan":
         scan()
+    elif cmd == "benchmark":
+        if len(sys.argv) < 3:
+            print("Usage: python main.py benchmark <path> [<path> ...]")
+            sys.exit(1)
+        benchmark(sys.argv[2:])
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

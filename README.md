@@ -141,6 +141,9 @@ python main.py scan
 
 # 或直接 ingest 单个文件
 python main.py ingest /path/to/file.pdf
+
+# 或对真实语料做 dry-run benchmark（parse / chunk / embed，不写入索引）
+python main.py benchmark README.md docs/HANDOFF-v3.md
 ```
 
 ---
@@ -172,6 +175,13 @@ vlm:
 
 embedding:
   device: "cpu"           # 保持 cpu，避免 MPS + MLX 双 Metal 运行时冲突
+
+ingest:
+  parse_workers: 2
+  microbatch_max_files: 8
+  microbatch_max_chunks: 128
+  adaptive_batch_char_budget: 32768
+  embedding_cache: true
 ```
 
 **切换 LLM 模型（运行时）**：
@@ -191,7 +201,7 @@ curl -X POST http://localhost:8000/api/llm \
 | `/api/query` | POST | 同步查询 |
 | `/api/query/stream` | POST | SSE 流式查询（主用） |
 | `/api/ingest` | POST | 手动触发全量扫描 |
-| `/api/queue` | GET | Ingest 队列状态 |
+| `/api/queue` | GET | Ingest 队列状态（含阶段、chunk 进度、最近一次完成结果） |
 | `/api/files` | GET | 文件列表（含状态、tags） |
 | `/api/upload` | POST | 上传文件（支持所有格式） |
 | `/api/file/{id}/preview` | GET | 预览原始文件 |

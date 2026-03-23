@@ -366,7 +366,12 @@ function handleKey(e) {
 
 function escHtml(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
 
 // Minimal markdown: bold, inline code, newlines
@@ -442,7 +447,7 @@ function renderCitations(citations) {
   if (!el || !citations.length) return;
   el.innerHTML = citations.map(c => `
     <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
-         onclick="openPdf('${escHtml(c.file_name)}', ${c.page_num})">
+         onclick="openPdfByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num})">
       <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
       <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
@@ -482,6 +487,9 @@ async function sendMessage() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(body),
     });
+    if (!r.ok || !r.body) {
+      throw new Error(await r.text() || '查询失败');
+    }
 
     document.getElementById('thinking-indicator')?.remove();
     const msgContainer = createAIMessageContainer();
@@ -546,9 +554,9 @@ async function sendMessage() {
 }
 
 // ── PDF Preview ──
-function openPdf(fileName, pageNum) {
+function openPdfByPath(filePath, pageNum) {
   fetch(`${API}/api/files`).then(r => r.json()).then(files => {
-    const f = files.find(f => f.file_name === fileName);
+    const f = files.find(f => f.file_path === filePath);
     if (!f) return;
     window.open(`${API}/api/file/${f.id}/preview#page=${pageNum}`, '_blank');
   });
@@ -752,7 +760,7 @@ function replayHistory(idx) {
   // AI answer bubble with citations
   const citationsHtml = (item.citations || []).map(c => `
     <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
-         onclick="openPdf('${escHtml(c.file_name)}', ${c.page_num})">
+         onclick="openPdfByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num})">
       <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
       <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
@@ -817,7 +825,21 @@ async function pollQueueOnce() {
       banner.classList.remove('hidden');
       banner.classList.add('flex');
       const parts = [];
+      const stageLabels = {
+        queued: '排队中',
+        preparing: '解析/切块',
+        embedding: '向量化',
+        storing: '写入索引',
+        processing: '处理中',
+      };
       if (q.processing) parts.push(`处理：${q.processing}`);
+      if (q.progress?.stage) parts.push(`阶段：${stageLabels[q.progress.stage] || q.progress.stage}`);
+      if (q.progress?.total_chunks > 0) {
+        parts.push(`chunks ${q.progress.processed_chunks}/${q.progress.total_chunks}`);
+      }
+      if (q.progress?.batch_files?.length > 1) {
+        parts.push(`微批 ${q.progress.batch_files.length} 个文件`);
+      }
       if (q.queue_size > 0) parts.push(`队列 ${q.queue_size} 个`);
       textEl.textContent = parts.join(' · ');
       refreshFiles();

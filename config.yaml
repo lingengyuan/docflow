@@ -9,6 +9,15 @@ embedding:
   batch_size: 32
   device: "cpu"                       # CPU：避免 PyTorch MPS Metal shader 大量编译占用统一内存
 
+ingest:
+  parse_workers: 2
+  microbatch_max_files: 8
+  microbatch_max_chunks: 128
+  microbatch_linger_ms: 75
+  adaptive_batch_char_budget: 32768
+  adaptive_batch_max: 64
+  embedding_cache: true
+
 reranker:
   model: "Qwen/Qwen3-Reranker-0.6B"  # 600M 参数，生成式精排
   instruction: "Given a search query, retrieve relevant text passages that answer the query."

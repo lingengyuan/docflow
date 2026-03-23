@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 import json
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -78,10 +78,17 @@ async def lifespan(app: FastAPI):
         cfg = yaml.safe_load(f)
 
     llm_cfg = cfg.get("llm", {})
-    if llm_cfg.get("backend", "local") == "mlx":
+    ingest_cfg = cfg.get("ingest", {})
+    backend = llm_cfg.get("backend", "local")
+    if backend == "mlx":
         llm_options = list(dict.fromkeys([
             llm_cfg.get("mlx_model", ""),
             llm_cfg.get("mlx_model_enhanced", ""),
+        ]))
+    elif backend == "claude":
+        llm_options = list(dict.fromkeys([
+            llm_cfg.get("claude_model", ""),
+            llm_cfg.get("claude_model_enhanced", ""),
         ]))
     else:
         llm_options = list(dict.fromkeys([
@@ -100,8 +107,8 @@ async def lifespan(app: FastAPI):
     if n_reset:
         logger.info(f"[startup] Reset {n_reset} interrupted file(s) from 'processing' → 'error'")
 
-    pipeline = IngestPipeline.from_config(CONFIG_PATH)
-    query_engine = QueryEngine.from_config(CONFIG_PATH)
+    pipeline = IngestPipeline.from_config(CONFIG_PATH, store=store)
+    query_engine = QueryEngine.from_config(CONFIG_PATH, store=store)
 
     # CPU embedding 不需要走 MLX Metal 执行器，直接在 ingest worker 线程里跑
     # ml_executor 只保留给 MLX 推理（reranker、LLM）
@@ -109,10 +116,14 @@ async def lifespan(app: FastAPI):
         pipeline,
         on_done=None,
         ml_executor=None,
+        parse_workers=ingest_cfg.get("parse_workers", 2),
+        microbatch_max_files=ingest_cfg.get("microbatch_max_files", 8),
+        microbatch_max_chunks=ingest_cfg.get("microbatch_max_chunks", 128),
+        microbatch_linger_ms=ingest_cfg.get("microbatch_linger_ms", 75),
     )
     ingest_queue.start()
 
-    watcher = FolderWatcher(pipeline, watch_dirs)
+    watcher = FolderWatcher(pipeline, watch_dirs, ingest_queue=ingest_queue)
     watcher.start()
 
     import asyncio
@@ -202,9 +213,11 @@ async def query(req: QueryRequest):
     )
     seen_files: dict[str, dict] = {}
     for c in result.citations:
-        if c.file_name not in seen_files or c.score > seen_files[c.file_name]["score"]:
-            seen_files[c.file_name] = {
+        key = c.file_path or c.file_name
+        if key not in seen_files or c.score > seen_files[key]["score"]:
+            seen_files[key] = {
                 "file_name": c.file_name,
+                "file_path": c.file_path,
                 "page_num": c.page_num,
                 "snippet": c.snippet,
                 "score": round(c.score, 4),
@@ -221,7 +234,7 @@ async def query(req: QueryRequest):
 
 
 @app.post("/api/query/stream")
-async def query_stream(req: QueryRequest):
+async def query_stream(req: QueryRequest, request: Request):
     """SSE 流式查询：先返回 citations，再逐 token 返回答案。"""
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
@@ -229,49 +242,64 @@ async def query_stream(req: QueryRequest):
 
     loop = asyncio.get_event_loop()
     q: queue.Queue = queue.Queue()
+    cancel = threading.Event()
 
     def _run():
         try:
             chunks, token_gen = query_engine.query_stream(
-                req.question, file_filter=req.file_filter
+                req.question,
+                file_filter=req.file_filter,
+                cancel_event=cancel,
             )
+            if cancel.is_set():
+                return
             seen_files: dict[str, dict] = {}
             for c in chunks:
-                fn = c["file_name"]
+                key = c.get("file_path") or c["file_name"]
                 score = c.get("rerank_score", c.get("rrf_score", 0.0))
-                if fn not in seen_files or score > seen_files[fn]["score"]:
-                    seen_files[fn] = {
-                        "file_name": fn,
+                if key not in seen_files or score > seen_files[key]["score"]:
+                    seen_files[key] = {
+                        "file_name": c["file_name"],
+                        "file_path": c.get("file_path", ""),
                         "page_num": c["page_num"],
                         "snippet": c["text"][:200],
                         "score": round(score, 4),
                     }
             citations_data = list(seen_files.values())
+            if cancel.is_set():
+                return
             q.put(("citations", citations_data))
             full_answer = []
             for token in token_gen:
+                if cancel.is_set():
+                    return
                 full_answer.append(token)
                 q.put(("token", token))
             answer_text = "".join(full_answer).strip()
-            if store is not None:
+            if not cancel.is_set() and store is not None:
                 store.add_history(
                     question=req.question,
                     answer=answer_text,
                     citations_json=json.dumps(citations_data, ensure_ascii=False),
                     file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
                 )
-            q.put(("done", ""))
+            if not cancel.is_set():
+                q.put(("done", ""))
         except Exception as e:
-            q.put(("error", str(e)))
+            if not cancel.is_set():
+                q.put(("error", str(e)))
 
     ml_executor.submit(_run)
 
     async def event_stream():
         while True:
-            try:
-                event, data = await loop.run_in_executor(None, q.get, True, 600)
-            except Exception:
+            if await request.is_disconnected():
+                cancel.set()
                 break
+            try:
+                event, data = await loop.run_in_executor(None, q.get, True, 1)
+            except queue.Empty:
+                continue
             yield f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
             if event in ("done", "error"):
                 break
@@ -297,7 +325,14 @@ async def trigger_ingest():
 @app.get("/api/queue")
 async def queue_status():
     if ingest_queue is None:
-        return {"queue_size": 0, "processing": None, "pending_files": []}
+        return {
+            "queue_size": 0,
+            "processing": None,
+            "processing_files": [],
+            "pending_files": [],
+            "progress": None,
+            "last_completed": None,
+        }
     return ingest_queue.status()
 
 
@@ -336,14 +371,22 @@ async def upload_file(file: UploadFile):
     """上传文件到第一个监控目录（支持所有已注册格式）。"""
     if not watch_dirs or ingest_queue is None:
         raise HTTPException(503, "Not ready")
+    original_name = file.filename or ""
+    safe_name = Path(original_name).name
+    if not safe_name:
+        raise HTTPException(400, "Missing filename")
     supported_exts = pipeline.registry.supported_extensions
-    suffix = Path(file.filename).suffix.lower()
+    suffix = Path(safe_name).suffix.lower()
     if suffix not in supported_exts:
         raise HTTPException(400, f"Unsupported file type: {suffix}. Supported: {supported_exts}")
 
-    dest = watch_dirs[0].path / file.filename
-    content = await file.read()
-    dest.write_bytes(content)
+    dest = watch_dirs[0].path / safe_name
+    try:
+        with dest.open("wb") as f:
+            while chunk := await file.read(1024 * 1024):
+                f.write(chunk)
+    finally:
+        await file.close()
 
     return ingest_queue.submit(dest)
 
@@ -489,6 +532,8 @@ async def set_llm(req: LLMSwitchRequest):
         import asyncio
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(ml_executor, gen._load_mlx_model, req.model)
+    elif gen.backend == "claude":
+        gen.claude_model = req.model
     else:
         gen.ollama_model = req.model
     logger.info(f"[llm] Switched to {req.model}")

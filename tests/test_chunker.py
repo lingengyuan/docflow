@@ -24,6 +24,12 @@ class TestTableDetection:
         segments = c._split_tables(text)
         assert all(t == "text" for t, _ in segments)
 
+    def test_pipe_line_without_separator_is_not_table(self):
+        c = StructuredChunker()
+        text = "Intro\n| not | a | real | table |\nOutro"
+        segments = c._split_tables(text)
+        assert segments == [("text", text)]
+
     def test_is_table_line(self):
         assert StructuredChunker._is_table_line("| A | B | C |")
         assert StructuredChunker._is_table_line("|---|---|---|")
@@ -47,6 +53,10 @@ class TestHeaderSplitting:
 
 
 class TestRecursiveSplit:
+    def test_invalid_overlap_rejected(self):
+        with pytest.raises(ValueError):
+            StructuredChunker(chunk_size=10, chunk_overlap=10)
+
     def test_short_text_not_split(self):
         c = StructuredChunker(chunk_size=512)
         text = "Short text."

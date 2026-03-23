@@ -95,7 +95,7 @@ class PDFAnalyzer:
         total_chars = 0
         for i in range(sample_pages):
             text = doc[i].get_text("text")
-            total_chars += len([c for c in text if c.strip()])
+            total_chars += sum(1 for c in text if c.strip())
         return total_chars < 20
 
     # ------------------------------------------------------------------

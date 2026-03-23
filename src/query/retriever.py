@@ -107,12 +107,23 @@ class MLXReranker:
         )
         return text + "<think>\n\n</think>\n\n"
 
-    def compute_score(self, pairs: list[list[str]], normalize: bool = True) -> list[float]:
+    def compute_score(
+        self,
+        pairs: list[list[str]],
+        normalize: bool = True,
+        cancel_event=None,
+    ) -> list[float]:
         """pairs: [[query, passage], ...] → relevance scores in [0, 1]。"""
         import mlx.core as mx
 
-        scores = []
+        if cancel_event is not None and cancel_event.is_set():
+            return []
+
+        # Collect logits lazily — defer mx.eval() to batch-sync once
+        all_last_logits = []
         for q, p in pairs:
+            if cancel_event is not None and cancel_event.is_set():
+                return []
             prompt = self._build_prompt(q, p)
             tokens = self._tokenizer.encode(prompt)
             if len(tokens) > self.max_length:
@@ -120,13 +131,15 @@ class MLXReranker:
 
             inputs = mx.array([tokens])
             logits = self._model(inputs)
-            mx.eval(logits)
+            all_last_logits.append(logits[0, -1, [self._yes_id, self._no_id]])
 
-            last = logits[0, -1, [self._yes_id, self._no_id]]
-            score = float(mx.softmax(last, axis=0)[0])
-            scores.append(score)
+        if not all_last_logits:
+            return []
 
-        return scores
+        # Single GPU sync instead of per-pair sync
+        mx.eval(*all_last_logits)
+
+        return [float(mx.softmax(last, axis=0)[0]) for last in all_last_logits]
 
 
 # ---------------------------------------------------------------------------
@@ -145,12 +158,13 @@ class HybridRetriever:
         top_k_retrieval: int = 20,
         top_k_rerank: int = 5,
         device: str = "cpu",
+        store: DocStore | None = None,
     ):
         self.top_k_retrieval = top_k_retrieval
         self.top_k_rerank = top_k_rerank
 
         self._qdrant = QdrantClient(host=qdrant_host, port=qdrant_port)
-        self._store = DocStore(db_path)
+        self._store = store or DocStore(db_path)
         self._embed_model = None
         self._reranker: MLXReranker | None = None
         self._embedding_model_name = embedding_model
@@ -205,6 +219,7 @@ class HybridRetriever:
         query: str,
         file_filter: list[str] | None = None,
         prefer_tables: bool = False,
+        cancel_event=None,
     ) -> list[dict]:
         """
         混合检索 + 精排，返回 top-k 结果。
@@ -221,16 +236,22 @@ class HybridRetriever:
             convert_to_numpy=True,
         )[0]
         logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
+        if cancel_event is not None and cancel_event.is_set():
+            return []
 
         # 2. Vector search
         _t1 = _time.time()
         vec_results = self._vector_search(query_vec.tolist(), file_filter)
         logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
+        if cancel_event is not None and cancel_event.is_set():
+            return []
 
         # 3. FTS5 keyword search
         _t1 = _time.time()
         fts_results = self._fts_search(query, file_filter)
         logger.info(f"[perf] fts_search: {_time.time()-_t1:.2f}s ({len(fts_results)} results)")
+        if cancel_event is not None and cancel_event.is_set():
+            return []
 
         # 4. QueryRouter + RRF fusion
         weights = QueryRouter.classify(query)
@@ -242,10 +263,12 @@ class HybridRetriever:
 
         # 5. Deduplicate
         top_candidates = self._deduplicate(top_candidates)
+        if cancel_event is not None and cancel_event.is_set():
+            return []
 
         # 6. Rerank
         _t1 = _time.time()
-        result = self._rerank(query, top_candidates)
+        result = self._rerank(query, top_candidates, cancel_event=cancel_event)
         logger.info(f"[perf] rerank: {_time.time()-_t1:.2f}s ({len(top_candidates)} pairs)")
         logger.info(f"[perf] total_retrieve: {_time.time()-_t0:.2f}s ({len(result)} results)")
         return result
@@ -379,7 +402,9 @@ class HybridRetriever:
         results = []
         for qid in sorted_ids:
             vs = vec_scores.get(qid, 0.0)
-            if vs < vec_score_threshold:
+            # Only apply threshold to items that were in vector results;
+            # BM25-only items (not in vec_scores) should pass through.
+            if qid in vec_scores and vs < vec_score_threshold:
                 continue
             results.append({**id_to_item[qid], "rrf_score": scores[qid], "vec_score": vs})
         return results
@@ -401,9 +426,17 @@ class HybridRetriever:
     # Rerank
     # ------------------------------------------------------------------
 
-    def _rerank(self, query: str, candidates: list[dict]) -> list[dict]:
+    def _rerank(self, query: str, candidates: list[dict], cancel_event=None) -> list[dict]:
+        if cancel_event is not None and cancel_event.is_set():
+            return []
         pairs = [[query, c["text"]] for c in candidates]
-        rerank_scores = self.reranker.compute_score(pairs, normalize=True)
+        rerank_scores = self.reranker.compute_score(
+            pairs,
+            normalize=True,
+            cancel_event=cancel_event,
+        )
+        if not rerank_scores:
+            return []
 
         for i, item in enumerate(candidates):
             item["rerank_score"] = float(rerank_scores[i])

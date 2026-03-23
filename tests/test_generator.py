@@ -14,6 +14,7 @@ CHUNKS = [
     {
         "text": "Q3 total sales: 7,460,000 RMB, up 15.3% YoY",
         "file_name": "Q3报告.pdf",
+        "file_path": "/docs/Q3报告.pdf",
         "page_num": 12,
         "section": "第三章 > 销售数据",
         "chunk_type": "text",
@@ -23,6 +24,7 @@ CHUNKS = [
     {
         "text": "East China: 2,450,000 RMB",
         "file_name": "Q3报告.pdf",
+        "file_path": "/docs/Q3报告.pdf",
         "page_num": 13,
         "section": "",
         "chunk_type": "text",
@@ -72,6 +74,7 @@ class TestOllamaGenerate:
         assert "7,460,000" in answer.text
         assert len(answer.citations) == 2
         assert answer.citations[0].file_name == "Q3报告.pdf"
+        assert answer.citations[0].file_path == "/docs/Q3报告.pdf"
         assert answer.citations[0].page_num == 12
 
     def test_empty_chunks_returns_no_info(self):
@@ -98,3 +101,24 @@ class TestOllamaGenerate:
         assert payload["messages"][0]["role"] == "system"
         assert payload["messages"][1]["role"] == "user"
         assert "test question" in payload["messages"][1]["content"]
+
+    def test_claude_stream_falls_back_to_single_chunk(self):
+        gen = AnswerGenerator(backend="claude", claude_api_key="test-key")
+        with patch.object(gen, "_call_with_system", return_value="claude answer") as mock_call:
+            tokens = list(gen.generate_stream("test question", CHUNKS))
+
+        assert tokens == ["claude answer"]
+        mock_call.assert_called_once()
+
+    def test_generate_stream_honors_pre_cancelled_event(self):
+        import threading
+
+        gen = AnswerGenerator(backend="claude", claude_api_key="test-key")
+        cancel = threading.Event()
+        cancel.set()
+
+        with patch.object(gen, "_call_with_system", return_value="claude answer") as mock_call:
+            tokens = list(gen.generate_stream("test question", CHUNKS, cancel_event=cancel))
+
+        assert tokens == []
+        mock_call.assert_not_called()

@@ -42,6 +42,12 @@ class StructuredChunker:
         chunk_size: int = 512,
         chunk_overlap: int = 51,
     ):
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be positive")
+        if chunk_overlap < 0:
+            raise ValueError("chunk_overlap must be non-negative")
+        if chunk_overlap >= chunk_size:
+            raise ValueError("chunk_overlap must be smaller than chunk_size")
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
@@ -125,43 +131,48 @@ class StructuredChunker:
     def _split_tables(self, text: str) -> list[tuple[str, str]]:
         """
         将文本分割为 (type, content) 列表，type 为 "text" 或 "table"。
-        检测 Markdown 表格（含 | 分隔符的连续行）。
+        仅在检测到合法 Markdown 表头 + 分隔行时识别为表格，
+        避免把普通 `| a | b |` 行误判成表格。
         """
         lines = text.splitlines()
         segments: list[tuple[str, str]] = []
-        current_type = "text"
         current_lines: list[str] = []
 
-        def flush():
+        def flush_text():
             if current_lines:
-                segments.append((current_type, "\n".join(current_lines)))
+                segments.append(("text", "\n".join(current_lines)))
                 current_lines.clear()
 
         i = 0
         while i < len(lines):
-            line = lines[i]
-            in_table = self._is_table_line(line)
+            if (
+                i + 1 < len(lines)
+                and self._is_table_line(lines[i])
+                and self._is_table_separator(lines[i + 1])
+            ):
+                flush_text()
+                table_lines = [lines[i], lines[i + 1]]
+                i += 2
+                while i < len(lines) and self._is_table_line(lines[i]):
+                    table_lines.append(lines[i])
+                    i += 1
+                segments.append(("table", "\n".join(table_lines)))
+                continue
 
-            if in_table and current_type == "text":
-                flush()
-                current_type = "table"
-                current_lines.append(line)
-            elif not in_table and current_type == "table":
-                flush()
-                current_type = "text"
-                current_lines.append(line)
-            else:
-                current_lines.append(line)
+            current_lines.append(lines[i])
             i += 1
 
-        flush()
+        flush_text()
         return segments
 
     @staticmethod
     def _is_table_line(line: str) -> bool:
         stripped = line.strip()
-        # Markdown table: starts and/or ends with |, or is a separator row (|---|)
-        return bool(re.match(r"^\|.+\|", stripped) or re.match(r"^\|[-:| ]+\|", stripped))
+        return bool(re.match(r"^\|.+\|$", stripped))
+
+    @staticmethod
+    def _is_table_separator(line: str) -> bool:
+        return bool(re.match(r"^\|(?:\s*:?-+:?\s*\|)+$", line.strip()))
 
     # ------------------------------------------------------------------
     # Header splitting
@@ -251,6 +262,10 @@ class StructuredChunker:
 
     @staticmethod
     def _hard_split(text: str, max_chars: int, overlap: int) -> list[str]:
+        if max_chars <= 0:
+            raise ValueError("max_chars must be positive")
+        if overlap >= max_chars:
+            raise ValueError("overlap must be smaller than max_chars")
         chunks = []
         start = 0
         while start < len(text):

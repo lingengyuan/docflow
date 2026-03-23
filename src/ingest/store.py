@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +42,7 @@ class FileRecord:
 class DocStore:
     def __init__(self, db_path: str | Path):
         self.db_path = str(db_path)
+        self._local = threading.local()
         self._init_db()
         self._migrate()
 
@@ -111,6 +113,14 @@ class DocStore:
                     question,
                     tokenize='trigram'
                 );
+
+                CREATE TABLE IF NOT EXISTS embedding_cache (
+                    model_name TEXT NOT NULL,
+                    text_hash  TEXT NOT NULL,
+                    vector     BLOB NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    PRIMARY KEY (model_name, text_hash)
+                );
             """)
 
     def _migrate(self):
@@ -128,16 +138,18 @@ class DocStore:
 
     @contextmanager
     def _conn(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            self._local.conn = conn
         try:
             yield conn
             conn.commit()
         except Exception:
             conn.rollback()
             raise
-        finally:
-            conn.close()
 
     # ------------------------------------------------------------------
     # File operations
@@ -151,14 +163,21 @@ class DocStore:
                 h.update(chunk)
         return h.hexdigest()
 
-    def needs_ingest(self, file_path: str | Path) -> bool:
+    @staticmethod
+    def compute_text_hash(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def needs_ingest(self, file_path: str | Path) -> tuple[bool, str | None]:
         """
+        Returns (need_ingest, file_hash_or_none).
+
         True if:
         - File is not in DB, or
         - File hash has changed (file updated), or
         - Previous ingest errored / interrupted
 
         优化：先比较 mtime，未变则跳过 hash 计算（大 vault 启动加速）。
+        hash 一旦计算就返回，避免 pipeline.ingest() 重复计算。
         """
         path = Path(file_path)
         with self._conn() as conn:
@@ -167,15 +186,16 @@ class DocStore:
                 (str(path),),
             ).fetchone()
         if row is None:
-            return True
+            return True, None
         if row["status"] in ("error", "processing"):
-            return True
+            return True, None
         # mtime 快跳：未变则大概率不需要重新 ingest
         current_mtime = path.stat().st_mtime_ns
         if row["mtime_ns"] and current_mtime <= row["mtime_ns"]:
-            return False
+            return False, None
         # mtime 变了才算 hash（防止 touch 但内容没变）
-        return row["file_hash"] != self.compute_hash(path)
+        file_hash = self.compute_hash(path)
+        return row["file_hash"] != file_hash, file_hash
 
     def upsert_file(
         self,
@@ -228,14 +248,12 @@ class DocStore:
             for row in rows:
                 if not Path(row["file_path"]).exists():
                     file_id = row["id"]
-                    # 收集需要删除的 Qdrant IDs
-                    qids = [r["qdrant_id"] for r in conn.execute(
-                        "SELECT qdrant_id FROM chunks WHERE file_id = ?", (file_id,)
-                    ).fetchall()]
-                    # 删除 FTS5 记录
-                    chunk_ids = [r["id"] for r in conn.execute(
-                        "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
-                    ).fetchall()]
+                    # Single query for both id and qdrant_id
+                    chunk_rows = conn.execute(
+                        "SELECT id, qdrant_id FROM chunks WHERE file_id = ?", (file_id,)
+                    ).fetchall()
+                    qids = [r["qdrant_id"] for r in chunk_rows]
+                    chunk_ids = [r["id"] for r in chunk_rows]
                     if chunk_ids:
                         ph = ",".join("?" * len(chunk_ids))
                         conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({ph})", chunk_ids)
@@ -283,26 +301,43 @@ class DocStore:
                 conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({placeholders})", old_ids)
                 conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", old_ids)
             conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
-            # Insert chunks one by one to capture rowid for FTS5
-            for r in chunk_records:
-                conn.execute(
-                    """INSERT INTO chunks (file_id, qdrant_id, chunk_type, page_num, section, char_count)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (file_id, r["qdrant_id"], r["chunk_type"], r["page_num"], r["section"], r["char_count"]),
-                )
-                chunk_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            if not chunk_records:
+                return
+
+            # Batch insert chunks
+            conn.executemany(
+                """INSERT INTO chunks (file_id, qdrant_id, chunk_type, page_num, section, char_count)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                [(file_id, r["qdrant_id"], r["chunk_type"], r["page_num"], r["section"], r["char_count"])
+                 for r in chunk_records],
+            )
+            # Compute rowid range (AUTOINCREMENT guarantees contiguous IDs within a single executemany)
+            last_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            first_id = last_id - len(chunk_records) + 1
+
+            # Batch insert FTS5 entries
+            fts_rows = []
+            fts_trigram_rows = []
+            for i, r in enumerate(chunk_records):
+                chunk_id = first_id + i
                 tokenized = r.get("tokenized_text", "")
                 if tokenized:
-                    conn.execute(
-                        "INSERT INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
-                        (chunk_id, tokenized),
-                    )
+                    fts_rows.append((chunk_id, tokenized))
                 raw = r.get("raw_text", "")
                 if raw:
-                    conn.execute(
-                        "INSERT INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
-                        (chunk_id, raw),
-                    )
+                    fts_trigram_rows.append((chunk_id, raw))
+
+            if fts_rows:
+                conn.executemany(
+                    "INSERT INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
+                    fts_rows,
+                )
+            if fts_trigram_rows:
+                conn.executemany(
+                    "INSERT INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
+                    fts_trigram_rows,
+                )
 
     # ------------------------------------------------------------------
     # Query
@@ -340,6 +375,59 @@ class DocStore:
                 "SELECT qdrant_id FROM chunks WHERE file_id = ? ORDER BY id", (file_id,)
             ).fetchall()
         return [r["qdrant_id"] for r in rows]
+
+    # ------------------------------------------------------------------
+    # Embedding cache
+    # ------------------------------------------------------------------
+
+    def get_cached_embeddings(self, model_name: str, text_hashes: list[str]) -> dict[str, "np.ndarray"]:
+        import numpy as np
+
+        unique_hashes = list(dict.fromkeys(text_hashes))
+        if not unique_hashes:
+            return {}
+
+        result: dict[str, np.ndarray] = {}
+        with self._conn() as conn:
+            for i in range(0, len(unique_hashes), 500):
+                batch = unique_hashes[i:i + 500]
+                placeholders = ",".join("?" * len(batch))
+                rows = conn.execute(
+                    f"""
+                    SELECT text_hash, vector
+                    FROM embedding_cache
+                    WHERE model_name = ? AND text_hash IN ({placeholders})
+                    """,
+                    [model_name, *batch],
+                ).fetchall()
+                for row in rows:
+                    result[row["text_hash"]] = np.frombuffer(
+                        row["vector"], dtype=np.float32
+                    ).copy()
+        return result
+
+    def put_cached_embeddings(self, model_name: str, vectors_by_hash: dict[str, "np.ndarray"]):
+        import numpy as np
+
+        if not vectors_by_hash:
+            return
+
+        rows = [
+            (
+                model_name,
+                text_hash,
+                np.asarray(vector, dtype=np.float32).tobytes(),
+            )
+            for text_hash, vector in vectors_by_hash.items()
+        ]
+        with self._conn() as conn:
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO embedding_cache (model_name, text_hash, vector)
+                VALUES (?, ?, ?)
+                """,
+                rows,
+            )
 
     # ------------------------------------------------------------------
     # History
@@ -390,6 +478,7 @@ class DocStore:
 
     def clear_history(self):
         with self._conn() as conn:
+            conn.execute("DELETE FROM history_fts")
             conn.execute("DELETE FROM history")
 
     # ------------------------------------------------------------------
@@ -501,6 +590,8 @@ class DocStore:
                 with_payload=True,
             )
             with self._conn() as conn:
+                fts_batch = []
+                trigram_batch = []
                 for rec in records:
                     text = rec.payload.get("text", "") if rec.payload else ""
                     if not text:
@@ -508,15 +599,19 @@ class DocStore:
                     tokenized = " ".join(t for t in jieba.cut(text.lower()) if t.strip())
                     chunk_id = id_to_chunk_id.get(rec.id)
                     if chunk_id and tokenized:
-                        conn.execute(
-                            "INSERT OR IGNORE INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
-                            (chunk_id, tokenized),
-                        )
-                        conn.execute(
-                            "INSERT OR IGNORE INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
-                            (chunk_id, text),
-                        )
+                        fts_batch.append((chunk_id, tokenized))
+                        trigram_batch.append((chunk_id, text))
                         filled += 1
+                if fts_batch:
+                    conn.executemany(
+                        "INSERT OR IGNORE INTO chunks_fts(rowid, tokenized_text) VALUES (?, ?)",
+                        fts_batch,
+                    )
+                if trigram_batch:
+                    conn.executemany(
+                        "INSERT OR IGNORE INTO chunks_fts_trigram(rowid, raw_text) VALUES (?, ?)",
+                        trigram_batch,
+                    )
         return filled
 
     def search_fts(

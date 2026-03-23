@@ -62,7 +62,10 @@ class ImageParser:
             from PIL import Image
             import tempfile
             img = Image.open(str(file_path))
-            tmp = Path(tempfile.mktemp(suffix=".png"))
+            fd, tmp_path = tempfile.mkstemp(suffix=".png")
+            import os
+            os.close(fd)
+            tmp = Path(tmp_path)
             img.save(str(tmp), "PNG")
             return tmp
         return file_path

@@ -12,6 +12,7 @@ import logging
 import os
 from pathlib import Path
 
+import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
@@ -31,8 +32,12 @@ class Embedder:
         batch_size: int = 8,
         device: str = "cpu",
         id_counter_path: str | Path = "qdrant_id_counter.txt",
+        adaptive_batch_char_budget: int | None = None,
+        adaptive_batch_max: int | None = None,
     ):
         self.batch_size = batch_size
+        self.adaptive_batch_char_budget = adaptive_batch_char_budget or (batch_size * 1024)
+        self.adaptive_batch_max = adaptive_batch_max or max(batch_size, batch_size * 2)
         self._embedding_model_name = embedding_model
         self._device = device
 
@@ -99,44 +104,92 @@ class Embedder:
         if not chunks:
             return []
 
-        texts = [c.text for c in chunks]
-        all_ids: list[int] = []
+        dense_vecs = self.encode_texts([c.text for c in chunks])
+        return self.upsert_embeddings(chunks, dense_vecs)
 
-        for i in range(0, len(texts), self.batch_size):
-            batch_texts = texts[i : i + self.batch_size]
-            batch_chunks = chunks[i : i + self.batch_size]
+    @property
+    def embedding_model_name(self) -> str:
+        return self._embedding_model_name
 
-            dense_vecs = self.model.encode(
-                batch_texts,
-                batch_size=self.batch_size,
+    def _adaptive_batch_size(self, texts: list[str]) -> int:
+        if not texts:
+            return 1
+
+        avg_chars = max(1, sum(len(t) for t in texts) // len(texts))
+        adaptive = max(1, self.adaptive_batch_char_budget // avg_chars)
+        adaptive = min(adaptive, self.adaptive_batch_max)
+        return max(1, min(len(texts), adaptive))
+
+    def encode_texts(self, texts: list[str], progress_callback=None) -> np.ndarray:
+        if not texts:
+            return np.empty((0, 0), dtype=np.float32)
+
+        batch_size = self._adaptive_batch_size(texts)
+        vectors: list[np.ndarray] = []
+        encoded = 0
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            batch_vectors = self.model.encode(
+                batch,
+                batch_size=batch_size,
                 normalize_embeddings=True,
                 convert_to_numpy=True,
+                show_progress_bar=False,
             )
-            start_id = self._next_id()
-            ids = list(range(start_id, start_id + len(batch_chunks)))
-
-            points = [
-                PointStruct(
-                    id=ids[j],
-                    vector=dense_vecs[j].tolist(),
-                    payload={
-                        "file_name": batch_chunks[j].file_name,
-                        "file_path": batch_chunks[j].file_path,
-                        "page_num": batch_chunks[j].page_num,
-                        "section": batch_chunks[j].section,
-                        "chunk_type": batch_chunks[j].chunk_type,
-                        "text": batch_chunks[j].text,
-                        "char_count": batch_chunks[j].char_count,
-                    },
+            batch_vectors = np.asarray(batch_vectors, dtype=np.float32)
+            if batch_vectors.ndim == 1:
+                batch_vectors = batch_vectors.reshape(1, -1)
+            vectors.append(batch_vectors)
+            encoded += len(batch)
+            if progress_callback:
+                progress_callback(
+                    {
+                        "encoded_texts": encoded,
+                        "total_texts": len(texts),
+                        "batch_size": batch_size,
+                    }
                 )
-                for j in range(len(batch_chunks))
-            ]
-            self._qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
-            self._advance_id(len(batch_chunks))
 
-            all_ids.extend(ids)
+        return np.concatenate(vectors, axis=0)
 
-        return all_ids
+    def upsert_embeddings(self, chunks: list[Chunk], dense_vecs: np.ndarray) -> list[int]:
+        if len(chunks) != len(dense_vecs):
+            raise ValueError("chunks and dense_vecs length mismatch")
+        if not chunks:
+            return []
+
+        dense_vecs = np.asarray(dense_vecs, dtype=np.float32)
+        if dense_vecs.ndim != 2:
+            raise ValueError("dense_vecs must be a 2D array")
+        if self._vector_dim is None:
+            self._vector_dim = dense_vecs.shape[1]
+            self._ensure_collection(self._vector_dim)
+
+        start_id = self._next_id()
+        ids = list(range(start_id, start_id + len(chunks)))
+
+        points = [
+            PointStruct(
+                id=ids[j],
+                vector=dense_vecs[j].tolist(),
+                payload={
+                    "file_name": chunks[j].file_name,
+                    "file_path": chunks[j].file_path,
+                    "page_num": chunks[j].page_num,
+                    "section": chunks[j].section,
+                    "chunk_type": chunks[j].chunk_type,
+                    "text": chunks[j].text,
+                    "char_count": chunks[j].char_count,
+                },
+            )
+            for j in range(len(chunks))
+        ]
+
+        # Single upsert + single ID counter write
+        self._qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
+        self._advance_id(len(chunks))
+
+        return ids
 
     # ------------------------------------------------------------------
     # Monotonic ID counter

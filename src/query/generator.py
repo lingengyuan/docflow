@@ -36,6 +36,7 @@ class Citation:
     page_num: int
     snippet: str
     score: float
+    file_path: str = ""
 
 
 @dataclass
@@ -62,6 +63,7 @@ class AnswerGenerator:
         self.mlx_model_enhanced = mlx_model_enhanced
         self.claude_model = claude_model
         self.claude_api_key = claude_api_key
+        self._anthropic_client = None
         # MLX model instance (loaded lazily via _load_mlx_model)
         self._mlx_model = None
         self._mlx_tokenizer = None
@@ -71,6 +73,8 @@ class AnswerGenerator:
         """当前使用的模型名（用于 /api/llm 端点展示）。"""
         if self.backend == "mlx":
             return self.mlx_model_name
+        if self.backend == "claude":
+            return self.claude_model
         return self.ollama_model
 
     def summarize(self, file_name: str, chunks: list[dict]) -> str:
@@ -108,6 +112,7 @@ class AnswerGenerator:
         citations = [
             Citation(
                 file_name=c["file_name"],
+                file_path=c.get("file_path", ""),
                 page_num=c["page_num"],
                 snippet=c["text"][:200],
                 score=c.get("rerank_score", c.get("rrf_score", 0.0)),
@@ -153,7 +158,7 @@ class AnswerGenerator:
             result = json.load(resp)
         return result["message"]["content"].strip()
 
-    def _stream_ollama_with_system(self, system_prompt: str, user_msg: str):
+    def _stream_ollama_with_system(self, system_prompt: str, user_msg: str, cancel_event=None):
         """Yield token strings as they arrive from Ollama."""
         payload = {
             "model": self.ollama_model,
@@ -171,6 +176,8 @@ class AnswerGenerator:
         )
         with urllib.request.urlopen(req, timeout=600) as resp:
             for line in resp:
+                if cancel_event is not None and cancel_event.is_set():
+                    break
                 if not line:
                     continue
                 chunk = json.loads(line)
@@ -178,17 +185,27 @@ class AnswerGenerator:
                 if token:
                     yield token
 
-    def generate_stream(self, query: str, chunks: list[dict]):
+    def generate_stream(self, query: str, chunks: list[dict], cancel_event=None):
         """Yield token strings; caller is responsible for building Answer."""
+        if cancel_event is not None and cancel_event.is_set():
+            return
         if not chunks:
             yield "在现有文档中未找到相关信息。"
             return
         context = self._build_context(chunks)
         user_msg = f"问题：{query}\n\n文档片段：\n{context}"
         if self.backend == "mlx":
-            yield from self._stream_mlx(SYSTEM_PROMPT, user_msg)
+            yield from self._stream_mlx(SYSTEM_PROMPT, user_msg, cancel_event=cancel_event)
+        elif self.backend == "claude":
+            if cancel_event is not None and cancel_event.is_set():
+                return
+            yield self._call_with_system(SYSTEM_PROMPT, user_msg)
         else:
-            yield from self._stream_ollama_with_system(SYSTEM_PROMPT, user_msg)
+            yield from self._stream_ollama_with_system(
+                SYSTEM_PROMPT,
+                user_msg,
+                cancel_event=cancel_event,
+            )
 
     # ------------------------------------------------------------------
     # MLX (in-process, Apple Silicon)
@@ -215,7 +232,7 @@ class AnswerGenerator:
             enable_thinking=False,  # 注入 <think>\n\n</think>\n\n 前缀
         )
 
-    def _stream_mlx(self, system: str, user: str):
+    def _stream_mlx(self, system: str, user: str, cancel_event=None):
         """通过 mlx_lm.stream_generate 逐 token yield。"""
         from mlx_lm import stream_generate
         prompt = self._build_prompt_nothink(system, user)
@@ -223,6 +240,8 @@ class AnswerGenerator:
             self._mlx_model, self._mlx_tokenizer,
             prompt=prompt, max_tokens=2048,
         ):
+            if cancel_event is not None and cancel_event.is_set():
+                break
             if response.text:
                 yield response.text
 
@@ -240,9 +259,15 @@ class AnswerGenerator:
     # ------------------------------------------------------------------
 
     def _call_with_system(self, system_prompt: str, user_msg: str) -> str:
-        import anthropic
-        client = anthropic.Anthropic(api_key=self.claude_api_key)
-        message = client.messages.create(
+        if not self.claude_api_key:
+            raise RuntimeError("Claude backend requires claude_api_key or ANTHROPIC_API_KEY")
+        try:
+            import anthropic
+        except ImportError as e:
+            raise RuntimeError("Claude backend requires the 'anthropic' package") from e
+        if self._anthropic_client is None:
+            self._anthropic_client = anthropic.Anthropic(api_key=self.claude_api_key)
+        message = self._anthropic_client.messages.create(
             model=self.claude_model,
             max_tokens=2048,
             system=system_prompt,

@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 import fitz
+import numpy as np
 import pytest
 
 from src.ingest.store import DocStore
@@ -31,23 +32,28 @@ class TestDocStore:
         return p
 
     def test_needs_ingest_new_file(self, db, pdf):
-        assert db.needs_ingest(pdf) is True
+        need, h = db.needs_ingest(pdf)
+        assert need is True
 
     def test_needs_ingest_after_done(self, db, pdf):
         h = DocStore.compute_hash(pdf)
         db.upsert_file(pdf, pdf.name, h, status="done")
-        assert db.needs_ingest(pdf) is False
+        need, _ = db.needs_ingest(pdf)
+        assert need is False
 
     def test_needs_ingest_error_status(self, db, pdf):
         h = DocStore.compute_hash(pdf)
         db.upsert_file(pdf, pdf.name, h, status="error")
-        assert db.needs_ingest(pdf) is True
+        need, _ = db.needs_ingest(pdf)
+        assert need is True
 
     def test_needs_ingest_changed_file(self, db, pdf):
         # Store with a fake hash
         db.upsert_file(pdf, pdf.name, "fakehash000", status="done")
-        # Real hash differs → needs re-ingest
-        assert db.needs_ingest(pdf) is True
+        # Real hash differs → needs re-ingest, and returns the computed hash
+        need, cached_hash = db.needs_ingest(pdf)
+        assert need is True
+        assert cached_hash is not None
 
     def test_upsert_idempotent(self, db, pdf):
         h = DocStore.compute_hash(pdf)
@@ -111,3 +117,10 @@ class TestDocStore:
         done_files = db.list_files(status="done")
         assert len(done_files) == 1
         assert done_files[0]["file_name"] == pdf.name
+
+    def test_embedding_cache_roundtrip(self, db):
+        vector = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        db.put_cached_embeddings("test-model", {"hash-a": vector})
+        cached = db.get_cached_embeddings("test-model", ["hash-a", "hash-b"])
+        assert set(cached) == {"hash-a"}
+        np.testing.assert_allclose(cached["hash-a"], vector)

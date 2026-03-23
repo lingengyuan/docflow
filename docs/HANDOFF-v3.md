@@ -144,7 +144,7 @@ Python 进程 Physical Footprint：**30MB**（历史最高 21.5GB）
 | `/api/query` | POST | 同步查询 |
 | `/api/query/stream` | POST | SSE 流式查询（主用） |
 | `/api/ingest` | POST | 触发文件夹全量扫描 |
-| `/api/queue` | GET | Ingest 队列状态 |
+| `/api/queue` | GET | Ingest 队列状态（含阶段 / chunk 级进度） |
 | `/api/files` | GET | 文件列表（含状态） |
 | `/api/file/{id}/preview` | GET | PDF 原文（用于引用跳转） |
 | `/api/upload` | POST | 上传 PDF |
