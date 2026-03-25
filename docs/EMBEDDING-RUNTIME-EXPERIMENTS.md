@@ -26,6 +26,77 @@
   - TEI 对比：同一份大 Markdown 的前 `64` 个真实 chunks
 
 
+## 2.1 补录：更早的真实基线实验
+
+在做 ONNX / TEI 这类 runtime 替换实验之前，先做过一轮更贴近真实使用场景的基线验证，目的是确认：
+
+1. 当前 ingest 慢，到底是卡在 parse / chunk，还是卡在 embedding。
+2. 之前对“小文件很快”的直觉，是否能成立在真实大 Markdown 语料上。
+
+
+### 2.1.1 现场观测：队列里第一个 Markdown 很慢
+
+用户现场反馈：
+
+- 队列里约 `38` 个文件
+- 跑了接近 `2` 分钟，第一份文件仍未完成
+
+排查结论：
+
+- 这不是 hang 死锁，而是真实处理很慢
+- 当时跟踪到的那份 Markdown 大约：
+  - `34.8 KB`
+  - 约 `20k` 字符
+  - 基本是一整行超长 Markdown
+  - 最终切出了 `69` 个 chunks
+- 单文件完成时间约 `4m04s`
+
+这个结果很重要，因为它直接推翻了“普通 Markdown 导入应该只要几秒”的乐观估计。
+
+
+### 2.1.2 基准实验：两份最大 Markdown
+
+随后对监控目录里最大的两份 `.md` 做了 benchmark：
+
+1. `intelligent-ops-automation-plan-v2.md`
+   - `214,942 B`
+   - `450 chunks`
+   - `parse_s=0.017`
+   - `chunk_s=0.016`
+2. `intelligent-ops-automation-plan.md`
+   - `122,577 B`
+   - `259 chunks`
+   - `parse_s=0.010`
+   - `chunk_s=0.005`
+
+合计：
+
+- `709 chunks`
+
+完整 warm benchmark 的结果：
+
+- 进程持续高 CPU
+- 跑到 `36m37s` 仍未完成
+- 最终手动停止
+
+由此可以得到一个非常保守的下界：
+
+- 总耗时 **>`36m37s`**
+- 平均 **>`3.1s/chunk`**
+
+
+### 2.1.3 结论
+
+这轮更早的基线实验说明了两件事：
+
+1. **parse / chunk 几乎可以忽略不计**
+   - 两个超大 Markdown 的 parse + chunk 都只是毫秒级
+2. **真正主瓶颈是 embedding**
+   - 这也是后面所有优化方向从 Python 编排，逐步收敛到 embedding runtime 的根本原因
+
+换句话说，后续之所以没有优先继续纠结 chunker、Zig/Rust 重写、或者普通 I/O 微调，不是因为这些方向永远没价值，而是因为真实 benchmark 已经证明：**它们不是当前最大的矛盾**。
+
+
 ## 3. 实验 A：本地 ONNX backend
 
 ### 3.1 目标
