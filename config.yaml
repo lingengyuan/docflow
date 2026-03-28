@@ -8,7 +8,10 @@ embedding:
   model: "Qwen/Qwen3-Embedding-0.6B" # 600M 参数，中文优化，内存友好
   backend: "torch"                    # 默认仍用 torch CPU；本地 ONNX 对 Qwen3 可用，但在当前 M5 实测未跑赢 torch
   batch_size: 32
-  device: "cpu"                       # CPU：避免 PyTorch MPS Metal shader 大量编译占用统一内存
+  device: "cpu"                       # MPS 需独占 GPU；与其他 MPS 进程共存时回退 CPU
+  mps_memory_fraction: 0.7            # MPS 缓解①：Metal 内存上限占比（0.7 ≈ 17.5GB/32GB），0 = 不限制
+  mps_empty_cache: true               # MPS 缓解②：每 batch 后调用 torch.mps.empty_cache() 释放 buffer pool
+  mps_inference_mode: true            # MPS 缓解③：torch.inference_mode() 包裹推理，阻止计算图累积
   onnx_provider: "CPUExecutionProvider"
   onnx_optimization: ""               # Qwen3 当前本地 ONNX 导出默认使用基础图；如切换兼容模型可再开启 O1/O2/O3
   onnx_quantization: ""               # 可选：arm64；会进一步提速，但可能带来轻微数值偏移
@@ -45,7 +48,10 @@ paths:
     - path: "~/MyNotes/HughLin"
       recursive: true
       extensions: [".md"]
-  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx"]
+    - path: "~/Projects/CodeSnippets"
+      recursive: true
+      extensions: [".md", ".py", ".rs", ".ts", ".css", ".sh"]
+  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
   db_path: "~/Projects/docflow/docflow.db"
   id_counter: "~/Projects/docflow/qdrant_id_counter.txt"
 

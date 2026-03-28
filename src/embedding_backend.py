@@ -21,6 +21,9 @@ class EmbeddingBackendConfig:
     onnx_optimization: str | None = None
     onnx_quantization: str | None = None
     onnx_cache_dir: Path | None = None
+    mps_memory_fraction: float = 0.7
+    mps_empty_cache: bool = True
+    mps_inference_mode: bool = True
 
     def normalized_backend(self) -> str:
         backend = self.backend.strip().lower()
@@ -65,6 +68,9 @@ def embedding_backend_config_from_dict(
         onnx_optimization=_clean_optional(embedding_cfg.get("onnx_optimization")),
         onnx_quantization=_clean_optional(embedding_cfg.get("onnx_quantization")),
         onnx_cache_dir=onnx_cache_dir,
+        mps_memory_fraction=float(embedding_cfg.get("mps_memory_fraction", 0.7)),
+        mps_empty_cache=bool(embedding_cfg.get("mps_empty_cache", True)),
+        mps_inference_mode=bool(embedding_cfg.get("mps_inference_mode", True)),
     )
 
 
@@ -82,6 +88,14 @@ def _load_torch_model(config: EmbeddingBackendConfig):
     n_threads = os.cpu_count() or 4
     torch.set_num_threads(n_threads)
     logger.info(f"[embedding] CPU threads: {n_threads}")
+
+    # MPS 缓解①：限制 Metal buffer pool 内存上限
+    if config.device == "mps" and torch.backends.mps.is_available():
+        frac = config.mps_memory_fraction
+        if frac > 0:
+            torch.mps.set_per_process_memory_fraction(frac)
+            logger.info(f"[embedding] MPS memory fraction set to {frac}")
+
     logger.info(f"[embedding] Loading torch model: {config.model_name}")
     return SentenceTransformer(
         config.model_name,

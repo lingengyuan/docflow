@@ -8,6 +8,7 @@ BM25 全文索引已迁移至 SQLite FTS5（由 DocStore 管理）。
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
 
@@ -117,31 +118,44 @@ class Embedder:
         if not texts:
             return np.empty((0, 0), dtype=np.float32)
 
+        import torch
+
         batch_size = self._adaptive_batch_size(texts)
         vectors: list[np.ndarray] = []
         encoded = 0
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            batch_vectors = self.model.encode(
-                batch,
-                batch_size=batch_size,
-                normalize_embeddings=True,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-            )
-            batch_vectors = np.asarray(batch_vectors, dtype=np.float32)
-            if batch_vectors.ndim == 1:
-                batch_vectors = batch_vectors.reshape(1, -1)
-            vectors.append(batch_vectors)
-            encoded += len(batch)
-            if progress_callback:
-                progress_callback(
-                    {
-                        "encoded_texts": encoded,
-                        "total_texts": len(texts),
-                        "batch_size": batch_size,
-                    }
+        is_mps = self._embedding_config.device == "mps" and torch.backends.mps.is_available()
+        use_empty_cache = is_mps and self._embedding_config.mps_empty_cache
+        use_inference_mode = self._embedding_config.mps_inference_mode
+        ctx = torch.inference_mode() if use_inference_mode else contextlib.nullcontext()
+
+        with ctx:
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                batch_vectors = self.model.encode(
+                    batch,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=False,
                 )
+                batch_vectors = np.asarray(batch_vectors, dtype=np.float32)
+                if batch_vectors.ndim == 1:
+                    batch_vectors = batch_vectors.reshape(1, -1)
+                vectors.append(batch_vectors)
+                encoded += len(batch)
+
+                # MPS 缓解②：每批次后释放 Metal buffer pool 中已 free 的缓存
+                if use_empty_cache:
+                    torch.mps.empty_cache()
+
+                if progress_callback:
+                    progress_callback(
+                        {
+                            "encoded_texts": encoded,
+                            "total_texts": len(texts),
+                            "batch_size": batch_size,
+                        }
+                    )
 
         return np.concatenate(vectors, axis=0)
 

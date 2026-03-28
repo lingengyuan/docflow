@@ -4,11 +4,11 @@
 
 ---
 
-## 坑 1：Apple Silicon 上 Metal Shader 编译缓存导致内存爆炸
+## 坑 1：Apple Silicon 上 PyTorch MPS Metal Buffer Pool 内存膨胀
 
 ### 现象
 
-DocFlow 后端（Python FastAPI）在 Activity Monitor 里显示占用 **21.5GB 内存**，看起来像内存泄漏。
+DocFlow 后端（Python FastAPI）在 Activity Monitor 里显示占用 **21.5GB+ 内存**，看起来像内存泄漏。
 
 ### 排查过程
 
@@ -33,31 +33,64 @@ vmmap <PID> | grep "IOAccelerator" | wc -l
 
 ### 根本原因
 
-Apple Silicon 是统一内存架构（UMA），CPU 和 GPU 共享同一块物理内存。`Physical Footprint` 包含了进程在 GPU 侧分配的所有统一内存，不是"Python 在吃 21.5GB RAM"。
+这是 PyTorch MPS 已知 bug（[pytorch/pytorch#164299](https://github.com/pytorch/pytorch/issues/164299)）：
 
-问题的具体来源：DocFlow 同时加载了两套 Metal 运行时：
-- **PyTorch MPS**（用于 sentence-transformers Embedding 模型）
-- **MLX**（用于 Qwen3 Reranker）
+1. **Metal Buffer Pool 不释放**：MPS 后端为性能复用 GPU buffer，但几乎不归还 OS
+2. **长时间推理循环**（如连续 embed 160 文件）让 buffer pool 无限膨胀至 22GB+
+3. `torch.mps.current_allocated_memory()` 显示正常，但 `driver_allocated_memory()` 持续增长
+4. 多 MPS 进程共存会叠加（如 DocFlow + train_pretrain 共占 28GB）
 
-两套运行时各自进行 Metal shader JIT 编译，产生大量 GPU kernel 缓存，叠加后占满了统一内存的 GPU 侧。
+Apple Silicon 统一内存架构（UMA）下，CPU 和 GPU 共享同一块物理内存。`Physical Footprint` 包含了 GPU 侧的 Metal buffer pool，不是 "Python 在吃 21.5GB RAM"。
 
-### 解法
+### 社区缓解方案（2026-03 实测）
 
-把 Embedding 模型从 MPS 改到 CPU，只保留 MLX 一套 Metal 运行时：
+在 `embedding_backend.py` 和 `embedder.py` 中加入了 3 项缓解：
+
+```python
+# 方案 1：限制 Metal 内存上限（embedding_backend.py）
+torch.mps.set_per_process_memory_fraction(0.7)  # ~17.5GB
+
+# 方案 2：推理模式，阻止计算图累积（embedder.py）
+with torch.inference_mode():
+    batch_vectors = model.encode(...)
+
+# 方案 3：每批次后释放已 free 的 Metal buffer（embedder.py）
+torch.mps.empty_cache()
+```
+
+**实测结果**：
+
+| 配置 | Metal GPU 内存 | Footprint | Swap |
+|------|-------------|-----------|------|
+| MPS 无缓解 | 22 GB | 26 GB | 15 GB ← 危险 |
+| MPS + 3 项缓解 (fraction=0.7) | 6.8 GB | 7.8 GB | 稳定 |
+| MPS + 其他 MPS 进程同时运行 | OOM 报错 | — | — |
+| CPU 模式 | 0 GB | ~3-5 GB | 稳定 |
+
+### 当前解法
+
+当机器上有其他 MPS 进程（如 minimind train_pretrain）时，回退 CPU 模式：
 
 ```yaml
 # config.yaml
 embedding:
-  device: "cpu"   # 原来是 "mps"
+  device: "cpu"   # MPS 需独占 GPU；与其他 MPS 进程共存时回退 CPU
 ```
 
-Embedding 每次 encode 耗时从 0.1s 增加到约 0.3s，完全可接受。Python Physical Footprint 从 21.5GB 降至约 3–5GB。
+当机器空闲（无其他 MPS 进程）时，可切换 MPS 获得 ~4.4x 加速：
+
+```yaml
+embedding:
+  device: "mps"   # 独占时安全，配合 3 项缓解措施（代码已内置）
+```
 
 ### 教训
 
-- `Physical Footprint ≠ RSS`：在 Apple Silicon 上，凡是用了 Metal 的库（PyTorch MPS、MLX、CoreML），都会在 GPU 统一内存侧分配大量 shader 缓存，这些都被计入 Physical Footprint。
-- 多套 Metal 运行时共存会放大这个问题——每套都有自己的 shader 编译缓存，不会复用。
-- **监控方法**：用 `vmmap` 而不是 Activity Monitor，区分 RSS（进程私有内存）和 Physical Footprint（含 GPU 统一内存）。
+- `Physical Footprint ≠ RSS`：在 Apple Silicon 上，凡是用了 Metal 的库（PyTorch MPS、MLX、CoreML），都会在 GPU 统一内存侧分配大量缓存，计入 Physical Footprint
+- **PyTorch MPS 的 `set_per_process_memory_fraction` 限制的是全局 Metal 用量**，包括其他进程的 GPU 占用
+- **短时基准测试会误导**：Metal buffer pool 在短测试中只占 5-7GB，长时间运行后膨胀到 22GB+
+- **多 MPS 进程无法安全共存**：统一内存是零和博弈，建议同一时间只运行一个 MPS 密集型进程
+- **监控方法**：用 `footprint -p <PID>` 查看 "Owned physical footprint (unmapped) (graphics)" 行
 
 ---
 
