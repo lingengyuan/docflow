@@ -28,3 +28,8 @@ data/
 # 环境变量
 .env
 *.env
+
+# 其他
+*.bak
+*.tmp
+/drafts/*
