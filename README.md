@@ -59,7 +59,7 @@ Drop PDFs, Markdown, Word docs, TXT files, and images into a watched folder. Doc
 
 | 层 / Layer | 技术 / Technology | 说明 / Notes |
 |---|---|---|
-| 后端框架 | FastAPI + Uvicorn | SSE 流式，14 个 API 端点 |
+| 后端框架 | FastAPI + Uvicorn | SSE 流式，15 个 API 端点 |
 | 向量数据库 | Qdrant（Docker 本地） | 1024 维，COSINE 距离 |
 | 全文检索 | SQLite FTS5（BM25 + trigram） | 进程内，O(log N) |
 | Embedding | Qwen3-Embedding-0.6B | sentence-transformers，CPU |
