@@ -107,3 +107,47 @@ def test_embedding_cache_reuses_duplicate_chunks_across_batches(tmp_path):
         [DocStore.compute_text_hash("shared chunk")],
     )
     assert len(cached) == 1
+
+
+def test_parent_context_groups_adjacent_chunks(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    pipeline = IngestPipeline(
+        registry=FakeRegistry(),
+        chunker=FakeChunker(),
+        embedder=FakeEmbedder(),
+        store=store,
+        parent_context_chars=1000,
+    )
+    chunks = [
+        Chunk("first", "text", "note.md", "/tmp/note.md", 1, section="A"),
+        Chunk("second", "text", "note.md", "/tmp/note.md", 1, section="A"),
+        Chunk("third", "text", "note.md", "/tmp/note.md", 1, section="B"),
+    ]
+
+    pipeline._prepare_chunk_contexts(chunks)
+
+    assert chunks[0].parent_id == chunks[1].parent_id
+    assert chunks[0].parent_text == "first\n\nsecond"
+    assert chunks[2].parent_id != chunks[0].parent_id
+
+
+def test_contextual_prefix_uses_embedding_text_without_changing_raw_text(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    embedder = FakeEmbedder()
+    pipeline = IngestPipeline(
+        registry=FakeRegistry(),
+        chunker=FakeChunker(),
+        embedder=embedder,
+        store=store,
+        use_embedding_cache=False,
+        contextual_prefix_enabled=True,
+    )
+    chunk = Chunk("raw body", "text", "note.md", "/tmp/note.md", 1, section="Plan")
+    pipeline._prepare_chunk_contexts([chunk])
+
+    pipeline._build_vectors([chunk])
+
+    assert chunk.raw_text == "raw body"
+    assert chunk.text == "raw body"
+    assert chunk.contextual_prefix == "File: note.md | Section: Plan"
+    assert embedder.encode_calls == [["File: note.md | Section: Plan\n\nraw body"]]

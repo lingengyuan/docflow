@@ -1,0 +1,15 @@
+{"id":"readme_supported_formats","question":"DocFlow 支持哪些文件格式入库？","expected_files":["README.md"],"expected_terms":["PDF","Markdown","DOCX"],"must_find":true}
+{"id":"readme_health_limit","question":"README 里怎么描述 /api/health 当前的限制？","expected_files":["README.md"],"expected_terms":["basic","dependency"],"must_find":true}
+{"id":"config_watch_dirs","question":"默认监控目录有哪些？","expected_files":["README.md","config.yaml"],"expected_terms":["Documents/DocFlow","MyNotes/HughLin","Projects/CodeSnippets"],"must_find":true}
+{"id":"config_embedding_backend","question":"当前 embedding 默认使用什么 backend 和设备？","expected_files":["config.yaml","README.md"],"expected_terms":["torch","cpu"],"must_find":true}
+{"id":"agents_phase_handoff","question":"每个 Phase 完成后需要写什么交接信息？","expected_files":["AGENTS.md"],"expected_terms":["handoff","validation","next phase"],"must_find":true}
+{"id":"agents_project_principles","question":"项目规则里关于 fallback 的原则是什么？","expected_files":["AGENTS.md"],"expected_terms":["fallback","failures","reduced answer quality"],"must_find":true}
+{"id":"readme_debug_endpoints_present","question":"README 里新增了哪些检索调试接口？","expected_files":["README.md"],"expected_terms":["/api/debug/retrieve","/api/file/{id}/chunks"],"must_find":true}
+{"id":"store_fts_rowid","question":"为什么 FTS5 写入必须通过 store.add_chunks？","expected_files":["README.md","AGENTS.md"],"expected_terms":["chunks.id","store"],"must_find":true}
+{"id":"plan_phase1_order","question":"优化计划 Phase 1 先做哪些任务？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["最小评估集","检索调试入口"],"must_find":true}
+{"id":"plan_parent_child_scope","question":"为什么 Parent-Child Chunking 不能只加 parent_id？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["parent","正文","迁移"],"must_find":true}
+{"id":"plan_contextual_prefix_rule","question":"Contextual Prefix 为什么必须默认关闭并保留原文？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["默认关闭","原文","引用"],"must_find":true}
+{"id":"markdown_obsidian_cleanup","question":"Markdown 解析会清理哪些 Obsidian 语法？","expected_files":["README.md"],"expected_terms":["frontmatter","wikilink","callout"],"must_find":true}
+{"id":"query_router_behavior","question":"QueryRouter 根据什么调整全文检索和向量检索权重？","expected_files":["README.md","docflow-optimization-plan.md"],"expected_terms":["QueryRouter","精确","语义"],"must_find":true}
+{"id":"image_ingest_optional","question":"图片解析是不是必选能力？","expected_files":["README.md"],"expected_terms":["optional","VLM"],"must_find":true}
+{"id":"not_found_case","question":"DocFlow 是否内置了云端协作编辑功能？","expected_files":[],"expected_terms":["云端协作"],"must_find":false}

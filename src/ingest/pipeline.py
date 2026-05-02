@@ -94,12 +94,22 @@ class IngestPipeline:
         embedder: Embedder,
         store: DocStore,
         use_embedding_cache: bool = True,
+        contextual_prefix_enabled: bool = False,
+        contextual_prefix_mode: str = "metadata",
+        contextual_prefix_model: str = "",
+        ollama_base_url: str = "http://localhost:11434",
+        parent_context_chars: int = 2048,
     ):
         self.registry = registry
         self.chunker = chunker
         self.embedder = embedder
         self.store = store
         self.use_embedding_cache = use_embedding_cache
+        self.contextual_prefix_enabled = contextual_prefix_enabled
+        self.contextual_prefix_mode = contextual_prefix_mode
+        self.contextual_prefix_model = contextual_prefix_model
+        self.ollama_base_url = ollama_base_url.rstrip("/")
+        self.parent_context_chars = parent_context_chars
 
     @classmethod
     def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> "IngestPipeline":
@@ -135,6 +145,13 @@ class IngestPipeline:
             embedder,
             shared_store,
             use_embedding_cache=ingest_cfg.get("embedding_cache", True),
+            contextual_prefix_enabled=ingest_cfg.get("contextual_prefix", False),
+            contextual_prefix_mode=ingest_cfg.get("contextual_prefix_mode", "metadata"),
+            contextual_prefix_model=ingest_cfg.get(
+                "contextual_prefix_model", cfg.get("ollama", {}).get("llm_model", "")
+            ),
+            ollama_base_url=cfg.get("ollama", {}).get("base_url", "http://localhost:11434"),
+            parent_context_chars=ingest_cfg.get("parent_context_chars", 2048),
         )
 
     def _parse_document(self, path: Path) -> tuple[ParsedDocument, str, float]:
@@ -157,9 +174,111 @@ class IngestPipeline:
                 is_ocr=page.is_ocr,
             )
             all_chunks.extend(page_chunks)
+        self._prepare_chunk_contexts(all_chunks)
         chunk_s = perf_counter() - chunk_start
         sample_text = doc.pages[0].text if doc.pages else ""
         return all_chunks, _is_cjk_dominant(sample_text), chunk_s
+
+    def _prepare_chunk_contexts(self, chunks: list[Chunk]) -> None:
+        self._assign_parent_contexts(chunks)
+        if self.contextual_prefix_enabled:
+            self._apply_contextual_prefixes(chunks)
+
+    def _assign_parent_contexts(self, chunks: list[Chunk]) -> None:
+        """Group adjacent child chunks into bounded parent contexts for answer generation."""
+        parent_id = 0
+        current: list[Chunk] = []
+        current_key: tuple[str, int, str] | None = None
+        current_chars = 0
+
+        def flush_current():
+            nonlocal parent_id, current, current_key, current_chars
+            if not current:
+                return
+            parent_id += 1
+            parent_text = "\n\n".join(chunk.raw_text or chunk.text for chunk in current)
+            for chunk in current:
+                chunk.parent_id = parent_id
+                chunk.parent_text = parent_text
+            current = []
+            current_key = None
+            current_chars = 0
+
+        for chunk in chunks:
+            raw_text = chunk.raw_text or chunk.text
+            key = (chunk.file_path, chunk.page_num, chunk.section)
+            next_chars = current_chars + len(raw_text) + 2
+            if current and (key != current_key or next_chars > self.parent_context_chars):
+                flush_current()
+
+            current.append(chunk)
+            current_key = key
+            current_chars += len(raw_text) + 2
+
+        flush_current()
+
+    def _apply_contextual_prefixes(self, chunks: list[Chunk]) -> None:
+        for chunk in chunks:
+            if not self._should_prefix_chunk(chunk):
+                chunk.embedding_text = chunk.raw_text or chunk.text
+                continue
+
+            prefix = self._build_contextual_prefix(chunk)
+            chunk.contextual_prefix = prefix
+            raw_text = chunk.raw_text or chunk.text
+            chunk.embedding_text = f"{prefix}\n\n{raw_text}" if prefix else raw_text
+
+    @staticmethod
+    def _should_prefix_chunk(chunk: Chunk) -> bool:
+        suffix = Path(chunk.file_path).suffix.lower()
+        return suffix in {".md", ".markdown"} or chunk.chunk_type in {"table", "table_summary"}
+
+    def _build_contextual_prefix(self, chunk: Chunk) -> str:
+        if self.contextual_prefix_mode == "ollama" and self.contextual_prefix_model:
+            prefix = self._build_ollama_contextual_prefix(chunk)
+            if prefix:
+                return prefix
+
+        parts = [f"File: {chunk.file_name}"]
+        if chunk.section:
+            parts.append(f"Section: {chunk.section}")
+        if chunk.chunk_type in {"table", "table_summary"}:
+            parts.append("Content type: table")
+        return " | ".join(parts)
+
+    def _build_ollama_contextual_prefix(self, chunk: Chunk) -> str:
+        import requests
+
+        prompt = (
+            "Write one short retrieval context prefix for this document chunk. "
+            "Use facts only from the metadata and text. Do not add new facts.\n\n"
+            f"File: {chunk.file_name}\n"
+            f"Section: {chunk.section or '(none)'}\n"
+            f"Type: {chunk.chunk_type}\n"
+            f"Text:\n{(chunk.raw_text or chunk.text)[:1200]}\n\n"
+            "Prefix:"
+        )
+        try:
+            response = requests.post(
+                f"{self.ollama_base_url}/api/generate",
+                json={
+                    "model": self.contextual_prefix_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0, "num_predict": 80},
+                },
+                timeout=20,
+            )
+            response.raise_for_status()
+            prefix = response.json().get("response", "").strip()
+            return " ".join(prefix.split())[:300]
+        except Exception:
+            logger.warning("[ingest] contextual prefix generation failed", exc_info=True)
+            return ""
+
+    @staticmethod
+    def _chunk_embedding_text(chunk: Chunk) -> str:
+        return chunk.embedding_text or chunk.raw_text or chunk.text
 
     def prepare_file(self, file_path: str | Path) -> PreparedIngestFile | dict:
         """
@@ -242,7 +361,8 @@ class IngestPipeline:
             return np.empty((0, 0), dtype=np.float32), [], set(), 0.0
 
         embed_start = perf_counter()
-        text_hashes = [DocStore.compute_text_hash(chunk.text) for chunk in chunks]
+        embedding_texts = [self._chunk_embedding_text(chunk) for chunk in chunks]
+        text_hashes = [DocStore.compute_text_hash(text) for text in embedding_texts]
         hash_counts = Counter(text_hashes)
         cached_vectors = (
             self.store.get_cached_embeddings(self.embedder.embedding_cache_key, text_hashes)
@@ -255,12 +375,12 @@ class IngestPipeline:
         missing_hashes: list[str] = []
         missing_texts: list[str] = []
         seen_missing: set[str] = set()
-        for text_hash, chunk in zip(text_hashes, chunks):
+        for text_hash, text in zip(text_hashes, embedding_texts):
             if text_hash in cached_hashes or text_hash in seen_missing:
                 continue
             seen_missing.add(text_hash)
             missing_hashes.append(text_hash)
-            missing_texts.append(chunk.text)
+            missing_texts.append(text)
 
         if progress_callback:
             progress_callback(
@@ -439,8 +559,12 @@ class IngestPipeline:
                         "page_num": prepared.chunks[i].page_num,
                         "section": prepared.chunks[i].section,
                         "char_count": prepared.chunks[i].char_count,
-                        "tokenized_text": _fts_tokenize(prepared.chunks[i].text, is_cjk=prepared.is_cjk),
-                        "raw_text": prepared.chunks[i].text,
+                        "parent_id": prepared.chunks[i].parent_id,
+                        "raw_text": prepared.chunks[i].raw_text,
+                        "embedding_text": prepared.chunks[i].embedding_text,
+                        "parent_text": prepared.chunks[i].parent_text,
+                        "contextual_prefix": prepared.chunks[i].contextual_prefix,
+                        "tokenized_text": _fts_tokenize(prepared.chunks[i].raw_text, is_cjk=prepared.is_cjk),
                     }
                     for i in range(len(prepared.chunks))
                 ]

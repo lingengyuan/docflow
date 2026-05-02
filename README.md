@@ -17,7 +17,8 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Multi-format ingest: PDF, Markdown, TXT, DOCX, code-like text files, and optional image formats.
 - Obsidian-friendly Markdown parsing: frontmatter cleanup, wikilink cleanup, callout cleanup, block-id cleanup, and tag extraction.
 - Structured chunking: heading-aware text chunks, table chunks, and table summary chunks.
-- Hybrid retrieval: vector search plus SQLite FTS5 keyword search, with reranking.
+- Parent context retrieval: small chunks are used for matching, while larger parent context is returned for answer generation.
+- Hybrid retrieval: vector search plus SQLite FTS5 keyword search, adaptive routing, and reranking.
 - Streaming answers: citations are sent first, followed by token streaming.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
@@ -79,6 +80,7 @@ Useful commands:
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
+python main.py eval
 ```
 
 ### Configuration
@@ -93,6 +95,9 @@ Important settings:
 - `qdrant.host`, `qdrant.port`, `qdrant.collection`: Qdrant connection and collection.
 - `embedding.model`, `embedding.backend`, `embedding.device`: embedding model and runtime.
 - `chunking.chunk_size`, `chunking.chunk_overlap`: chunk size and overlap.
+- `ingest.parent_context_chars`: maximum parent context size used when grouping adjacent chunks.
+- `ingest.contextual_prefix`: optional contextual prefix generation for Markdown and table chunks. It is off by default.
+- `ingest.contextual_prefix_mode`: `metadata` for deterministic local prefixes, or `ollama` for Ollama-generated prefixes.
 - `llm.backend`: answer-generation backend. The current default is `mlx`.
 - `vlm.enabled`: enables or disables image parsing.
 
@@ -124,16 +129,20 @@ Main endpoints:
 | `/api/files` | GET | Indexed file list |
 | `/api/upload` | POST | Upload a file into the first watched folder |
 | `/api/file/{id}/preview` | GET | Preview the original file |
+| `/api/file/{id}/chunks` | GET | Debug chunk list for one file |
 | `/api/history` | GET, DELETE | Query history |
 | `/api/history/search` | GET | Search query history |
 | `/api/favorites` | GET | Favorite files |
 | `/api/favorites/{id}` | POST | Toggle a favorite |
 | `/api/summarize` | POST | Export file summaries as Markdown |
+| `/api/debug/retrieve` | POST | Debug retrieval pipeline without answer generation |
 | `/api/llm` | GET, POST | View or switch the active LLM |
 | `/api/sources` | GET | Watched source folders |
 | `/api/health` | GET | Basic health response |
 
 Note: `/api/health` currently returns a basic status only. Full dependency checks are planned but not implemented yet.
+
+`/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, and parent-expanded context so retrieval changes can be inspected before answer generation.
 
 ### Development and Testing
 
@@ -148,6 +157,12 @@ Run a dry-run ingest benchmark:
 
 ```bash
 .venv/bin/python main.py benchmark README.md docs/HANDOFF-v3.md
+```
+
+Run the fixed retrieval evaluation set:
+
+```bash
+.venv/bin/python main.py eval
 ```
 
 Check the FTS tables:
@@ -228,7 +243,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 多格式入库：PDF、Markdown、TXT、DOCX、代码类文本文件，以及可选图片格式。
 - 适配 Obsidian 笔记：清理 frontmatter、wikilink、callout、block id，并提取标签。
 - 结构化分块：支持按标题分块、表格分块、表格摘要分块。
-- 混合检索：向量检索加 SQLite FTS5 全文检索，再做精排。
+- 父级上下文检索：用小块命中问题，再把更完整的上下文交给回答模型。
+- 混合检索：向量检索加 SQLite FTS5 全文检索，自动调整候选数量，再做精排。
 - 流式回答：先返回引用来源，再逐步返回答案内容。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
@@ -290,6 +306,7 @@ open http://localhost:8000
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
+python main.py eval
 ```
 
 ### 配置
@@ -304,6 +321,9 @@ python main.py benchmark README.md docs/HANDOFF-v3.md
 - `qdrant.host`、`qdrant.port`、`qdrant.collection`：Qdrant 连接和集合。
 - `embedding.model`、`embedding.backend`、`embedding.device`：向量模型和运行方式。
 - `chunking.chunk_size`、`chunking.chunk_overlap`：分块大小和重叠长度。
+- `ingest.parent_context_chars`：相邻 chunk 合并为父级上下文时的最大长度。
+- `ingest.contextual_prefix`：是否为 Markdown 和表格 chunk 生成上下文前缀，默认关闭。
+- `ingest.contextual_prefix_mode`：`metadata` 表示使用本地固定前缀，`ollama` 表示使用 Ollama 生成前缀。
 - `llm.backend`：回答生成方式。当前默认是 `mlx`。
 - `vlm.enabled`：是否启用图片解析。
 
@@ -335,16 +355,20 @@ paths:
 | `/api/files` | GET | 已入库文件列表 |
 | `/api/upload` | POST | 上传文件到第一个监控目录 |
 | `/api/file/{id}/preview` | GET | 预览原始文件 |
+| `/api/file/{id}/chunks` | GET | 调试查看单个文件的切块列表 |
 | `/api/history` | GET, DELETE | 查询历史 |
 | `/api/history/search` | GET | 搜索查询历史 |
 | `/api/favorites` | GET | 收藏文件 |
 | `/api/favorites/{id}` | POST | 切换收藏 |
 | `/api/summarize` | POST | 导出文件摘要 |
+| `/api/debug/retrieve` | POST | 调试查看检索链路，不生成回答 |
 | `/api/llm` | GET, POST | 查看或切换当前模型 |
 | `/api/sources` | GET | 查看监控来源目录 |
 | `/api/health` | GET | 基础健康状态 |
 
 注意：`/api/health` 目前只返回基础状态，完整依赖检查还没有实现。
+
+`/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果和父级上下文展开结果，方便在生成回答前检查检索效果。
 
 ### 开发与测试
 
@@ -359,6 +383,12 @@ cd ~/Projects/docflow
 
 ```bash
 .venv/bin/python main.py benchmark README.md docs/HANDOFF-v3.md
+```
+
+运行固定检索评估集：
+
+```bash
+.venv/bin/python main.py eval
 ```
 
 检查全文检索表：

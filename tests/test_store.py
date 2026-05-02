@@ -3,6 +3,7 @@
 """
 
 import tempfile
+import sqlite3
 from pathlib import Path
 
 import fitz
@@ -88,6 +89,50 @@ class TestDocStore:
         record = db.get_file_by_path(pdf)
         assert record["chunk_count"] == 5
 
+    def test_list_file_chunks_returns_metadata_in_order(self, db, pdf):
+        h = DocStore.compute_hash(pdf)
+        file_id = db.upsert_file(pdf, pdf.name, h)
+        records = [
+            {"qdrant_id": 20, "chunk_type": "text", "page_num": 2, "section": "B", "char_count": 20},
+            {"qdrant_id": 10, "chunk_type": "table", "page_num": 1, "section": "A", "char_count": 10},
+        ]
+        db.add_chunks(file_id, records)
+
+        chunks = db.list_file_chunks(file_id)
+
+        assert [c["qdrant_id"] for c in chunks] == [20, 10]
+        assert chunks[0]["chunk_type"] == "text"
+        assert chunks[1]["section"] == "A"
+
+    def test_chunk_parent_context_fields_roundtrip(self, db, pdf):
+        h = DocStore.compute_hash(pdf)
+        file_id = db.upsert_file(pdf, pdf.name, h)
+        db.add_chunks(
+            file_id,
+            [
+                {
+                    "qdrant_id": 99,
+                    "chunk_type": "text",
+                    "page_num": 1,
+                    "section": "A",
+                    "char_count": 10,
+                    "parent_id": 7,
+                    "raw_text": "child text",
+                    "embedding_text": "prefix child text",
+                    "parent_text": "parent context",
+                    "contextual_prefix": "prefix",
+                }
+            ],
+        )
+
+        chunks = db.list_file_chunks(file_id)
+        contexts = db.get_chunk_context_by_qdrant_ids([99])
+
+        assert chunks[0]["parent_id"] == 7
+        assert chunks[0]["raw_text"] == "child text"
+        assert contexts[99]["parent_text"] == "parent context"
+        assert contexts[99]["contextual_prefix"] == "prefix"
+
     def test_add_chunks_replaces_on_reingest(self, db, pdf):
         h = DocStore.compute_hash(pdf)
         file_id = db.upsert_file(pdf, pdf.name, h)
@@ -124,3 +169,29 @@ class TestDocStore:
         cached = db.get_cached_embeddings("test-model", ["hash-a", "hash-b"])
         assert set(cached) == {"hash-a"}
         np.testing.assert_allclose(cached["hash-a"], vector)
+
+    def test_migrates_existing_chunks_table_before_parent_index(self, tmp_path):
+        db_path = tmp_path / "old.db"
+        conn = sqlite3.connect(db_path)
+        conn.executescript(
+            """
+            CREATE TABLE chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_id INTEGER NOT NULL,
+                qdrant_id INTEGER NOT NULL,
+                chunk_type TEXT NOT NULL,
+                page_num INTEGER NOT NULL,
+                section TEXT NOT NULL DEFAULT '',
+                char_count INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            """
+        )
+        conn.close()
+
+        store = DocStore(db_path)
+        with store._conn() as migrated:
+            columns = [row["name"] for row in migrated.execute("PRAGMA table_info(chunks)").fetchall()]
+
+        assert "parent_id" in columns
+        assert "parent_text" in columns

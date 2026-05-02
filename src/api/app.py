@@ -197,6 +197,13 @@ class QueryRequest(BaseModel):
     file_filter: list[str] | None = None
 
 
+class DebugRetrieveRequest(BaseModel):
+    question: str
+    file_filter: list[str] | None = None
+    include_rerank: bool = True
+    max_text_chars: int = 300
+
+
 class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
@@ -413,6 +420,32 @@ async def preview_file(file_id: int):
     return FileResponse(str(file_path), media_type=media_type)
 
 
+@app.get("/api/file/{file_id}/chunks")
+async def list_file_chunks(file_id: int, max_text_chars: int = 500):
+    """本地调试：查看文件实际切出的 chunk 和文本预览。"""
+    if store is None or query_engine is None:
+        raise HTTPException(503, "Not ready")
+    record = store.get_file_by_id(file_id)
+    if record is None:
+        raise HTTPException(404, "File not found")
+
+    chunk_rows = store.list_file_chunks(file_id)
+    qdrant_ids = [row["qdrant_id"] for row in chunk_rows]
+    payloads = query_engine.retriever.fetch_chunks_by_ids(
+        qdrant_ids,
+        max_text_chars=max(0, min(max_text_chars, 2000)),
+    )
+    chunks = []
+    for row in chunk_rows:
+        payload = payloads.get(row["qdrant_id"], {})
+        chunks.append({
+            **row,
+            "text_preview": payload.get("text_preview", ""),
+            "text_length": payload.get("text_length", 0),
+        })
+    return {"file": record, "chunks": chunks, "count": len(chunks)}
+
+
 @app.get("/api/history")
 async def list_history(limit: int = 50):
     if store is None:
@@ -503,6 +536,26 @@ async def summarize_files(req: SummarizeRequest):
         content=combined,
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="docflow-summary.md"'},
+    )
+
+
+@app.post("/api/debug/retrieve")
+async def debug_retrieve(req: DebugRetrieveRequest):
+    """本地调试：返回向量、全文、融合、去重、精排的完整检索链路。"""
+    if query_engine is None:
+        raise HTTPException(503, "Query engine not ready")
+    import asyncio
+    loop = asyncio.get_event_loop()
+    prefer_tables = query_engine._is_table_query(req.question)
+    return await loop.run_in_executor(
+        ml_executor,
+        lambda: query_engine.retriever.debug_retrieve(
+            req.question,
+            file_filter=req.file_filter,
+            prefer_tables=prefer_tables,
+            include_rerank=req.include_rerank,
+            max_text_chars=max(0, min(req.max_text_chars, 2000)),
+        ),
     )
 
 

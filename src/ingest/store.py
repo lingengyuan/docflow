@@ -77,6 +77,11 @@ class DocStore:
                     page_num     INTEGER NOT NULL,
                     section      TEXT    NOT NULL DEFAULT '',
                     char_count   INTEGER NOT NULL DEFAULT 0,
+                    parent_id    INTEGER NOT NULL DEFAULT 0,
+                    raw_text     TEXT    NOT NULL DEFAULT '',
+                    embedding_text TEXT  NOT NULL DEFAULT '',
+                    parent_text  TEXT    NOT NULL DEFAULT '',
+                    contextual_prefix TEXT NOT NULL DEFAULT '',
                     created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
                 );
 
@@ -128,6 +133,11 @@ class DocStore:
         migrations = [
             "ALTER TABLE files ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
             "ALTER TABLE files ADD COLUMN mtime_ns INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE chunks ADD COLUMN parent_id INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE chunks ADD COLUMN raw_text TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE chunks ADD COLUMN embedding_text TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE chunks ADD COLUMN parent_text TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE chunks ADD COLUMN contextual_prefix TEXT NOT NULL DEFAULT ''",
         ]
         with self._conn() as conn:
             for sql in migrations:
@@ -135,6 +145,7 @@ class DocStore:
                     conn.execute(sql)
                 except sqlite3.OperationalError:
                     pass  # 列已存在
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_chunks_parent_id ON chunks(file_id, parent_id)")
 
     @contextmanager
     def _conn(self):
@@ -286,7 +297,8 @@ class DocStore:
 
     def add_chunks(self, file_id: int, chunk_records: list[dict]):
         """
-        chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count, tokenized_text?, raw_text?}
+        chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count,
+          parent_id?, raw_text?, embedding_text?, parent_text?, contextual_prefix?, tokenized_text?}
         同步写入两个 FTS5 索引：
           chunks_fts         — jieba 预分词，精确匹配
           chunks_fts_trigram — trigram，子串匹配（OCR 容错降级）
@@ -307,9 +319,24 @@ class DocStore:
 
             # Batch insert chunks
             conn.executemany(
-                """INSERT INTO chunks (file_id, qdrant_id, chunk_type, page_num, section, char_count)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                [(file_id, r["qdrant_id"], r["chunk_type"], r["page_num"], r["section"], r["char_count"])
+                """INSERT INTO chunks (
+                       file_id, qdrant_id, chunk_type, page_num, section, char_count,
+                       parent_id, raw_text, embedding_text, parent_text, contextual_prefix
+                   )
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(
+                    file_id,
+                    r["qdrant_id"],
+                    r["chunk_type"],
+                    r["page_num"],
+                    r["section"],
+                    r["char_count"],
+                    r.get("parent_id", 0),
+                    r.get("raw_text", ""),
+                    r.get("embedding_text", r.get("raw_text", "")),
+                    r.get("parent_text", ""),
+                    r.get("contextual_prefix", ""),
+                )
                  for r in chunk_records],
             )
             # Compute rowid range (AUTOINCREMENT guarantees contiguous IDs within a single executemany)
@@ -375,6 +402,44 @@ class DocStore:
                 "SELECT qdrant_id FROM chunks WHERE file_id = ? ORDER BY id", (file_id,)
             ).fetchall()
         return [r["qdrant_id"] for r in rows]
+
+    def list_file_chunks(self, file_id: int) -> list[dict]:
+        """返回某文件所有 chunk 元数据，按 SQLite chunk id 排序。"""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, file_id, qdrant_id, chunk_type, page_num, section, char_count,
+                       parent_id, raw_text, embedding_text, parent_text, contextual_prefix, created_at
+                FROM chunks
+                WHERE file_id = ?
+                ORDER BY id
+                """,
+                (file_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chunk_context_by_qdrant_ids(self, qdrant_ids: list[int]) -> dict[int, dict]:
+        """Return stored raw/parent context keyed by Qdrant point id."""
+        unique_ids = list(dict.fromkeys(qdrant_ids))
+        if not unique_ids:
+            return {}
+
+        result: dict[int, dict] = {}
+        with self._conn() as conn:
+            for i in range(0, len(unique_ids), 500):
+                batch = unique_ids[i:i + 500]
+                placeholders = ",".join("?" * len(batch))
+                rows = conn.execute(
+                    f"""
+                    SELECT qdrant_id, parent_id, raw_text, embedding_text, parent_text, contextual_prefix
+                    FROM chunks
+                    WHERE qdrant_id IN ({placeholders})
+                    """,
+                    batch,
+                ).fetchall()
+                for row in rows:
+                    result[int(row["qdrant_id"])] = dict(row)
+        return result
 
     # ------------------------------------------------------------------
     # Embedding cache

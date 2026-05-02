@@ -12,6 +12,9 @@ DocFlow 入口。
   # dry-run benchmark 一个或多个文件
   python main.py benchmark /path/to/file1.md /path/to/file2.pdf
 
+  # 运行固定检索评估集（不调用回答 LLM）
+  python main.py eval
+
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan
 """
@@ -65,6 +68,13 @@ def benchmark(paths: list[str]):
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
+def eval_retrieval(args: list[str]):
+    from scripts.run_eval import main as run_eval_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_eval_main()
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "serve":
@@ -81,6 +91,8 @@ if __name__ == "__main__":
             print("Usage: python main.py benchmark <path> [<path> ...]")
             sys.exit(1)
         benchmark(sys.argv[2:])
+    elif cmd == "eval":
+        sys.exit(eval_retrieval(sys.argv[2:]))
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

@@ -3,7 +3,7 @@
 """
 
 import pytest
-from src.query.retriever import HybridRetriever
+from src.query.retriever import HybridRetriever, QueryRouter
 
 
 def make_item(qid: int, text: str = "sample", chunk_type: str = "text") -> dict:
@@ -64,3 +64,92 @@ class TestTableQueryDetection:
         assert QueryEngine._is_table_query("Q3各区域销售数据汇总") is True
         assert QueryEngine._is_table_query("这份合同的违约条款是什么") is False
         assert QueryEngine._is_table_query("total sales amount") is True
+
+
+class TestQueryRouter:
+    def test_exact_query_uses_smaller_candidate_set(self):
+        route = QueryRouter.classify('"INV2024" 2024-01 report.pdf')
+
+        assert route["query_type"] == "exact"
+        assert route["top_k_retrieval"] < 20
+        assert route["top_k_rerank"] < 5
+
+    def test_cross_document_query_uses_larger_candidate_set(self):
+        route = QueryRouter.classify("比较多个文件里的 Phase 1 和 Phase 2 差异")
+
+        assert route["query_type"] == "cross_document"
+        assert route["top_k_retrieval"] > 20
+        assert route["top_k_rerank"] > 5
+
+
+class FakeEmbedModel:
+    def encode(self, texts, normalize_embeddings=True, convert_to_numpy=True):
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+
+class FakeDebugRetriever(HybridRetriever):
+    def __init__(self):
+        self.top_k_retrieval = 20
+        self.top_k_rerank = 5
+        self._store = None
+
+    @property
+    def embed_model(self):
+        return FakeEmbedModel()
+
+    def _vector_search(self, query_vec, file_filter, limit=None):
+        return [
+            make_item(1, text="alpha semantic match"),
+            make_item(2, text="beta vector only"),
+        ]
+
+    def _fts_search(self, query, file_filter, limit=None):
+        return [
+            make_item(1, text="alpha keyword match"),
+            make_item(3, text="gamma keyword only"),
+        ]
+
+    def _rerank(self, query, candidates, cancel_event=None, top_k=None):
+        for i, item in enumerate(candidates):
+            item["rerank_score"] = 1.0 - (i * 0.1)
+        return candidates[: (top_k or self.top_k_rerank)]
+
+
+class TestDebugRetrieve:
+    def test_debug_retrieve_returns_all_stages(self):
+        retriever = FakeDebugRetriever()
+        result = retriever.debug_retrieve("alpha question", include_rerank=True)
+
+        assert result["query"] == "alpha question"
+        assert set(result["stages"]) == {
+            "vector",
+            "fts",
+            "fused",
+            "deduped",
+            "reranked",
+            "parent_expanded",
+        }
+        assert result["stages"]["vector"][0]["qdrant_id"] == 1
+        assert result["stages"]["fts"][1]["qdrant_id"] == 3
+        assert result["stages"]["reranked"][0]["rerank_score"] == 1.0
+        assert result["router"]["query_type"] == "balanced"
+        assert "total_ms" in result["timings"]
+
+    def test_debug_item_truncates_text(self):
+        item = make_item(99, text="abcdef")
+        debug_item = HybridRetriever._debug_item(item, max_text_chars=3)
+
+        assert debug_item["text_preview"] == "abc"
+        assert debug_item["text_length"] == 6
+
+    def test_parent_context_expands_answer_text(self):
+        retriever = FakeDebugRetriever()
+        item = make_item(99, text="child hit")
+        item["parent_id"] = 3
+        item["parent_text"] = "child hit plus surrounding context"
+
+        expanded = retriever._expand_parent_context([item])
+
+        assert expanded[0]["text"] == "child hit plus surrounding context"
+        assert expanded[0]["matched_text"] == "child hit"
+        assert expanded[0]["parent_id"] == 3

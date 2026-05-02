@@ -27,9 +27,18 @@ class Chunk:
     page_num: int
     section: str = ""        # 面包屑路径，如 "章节一 > 1.2 背景"
     char_count: int = 0
+    raw_text: str = ""
+    embedding_text: str = ""
+    parent_id: int = 0
+    parent_text: str = ""
+    contextual_prefix: str = ""
 
     def __post_init__(self):
-        self.char_count = len(self.text)
+        if not self.raw_text:
+            self.raw_text = self.text
+        if not self.embedding_text:
+            self.embedding_text = self.text
+        self.char_count = len(self.raw_text)
 
 
 # ---------------------------------------------------------------------------

@@ -45,18 +45,49 @@ class QueryRouter:
         re.compile(r'\.\w{2,4}\b'),          # 文件扩展名 .pdf
         re.compile(r'[A-Z]{2,}\d+'),         # 编号 INV2024
     ]
+    _CROSS_DOC_PATTERNS = [
+        re.compile(r"对比|比较|差异|区别|汇总|总结|跨文档|多个文件"),
+        re.compile(r"\b(compare|comparison|differences?|summari[sz]e|across files?)\b", re.I),
+    ]
 
     @classmethod
     def classify(cls, query: str) -> dict:
         signals = sum(1 for p in cls._KEYWORD_PATTERNS if p.search(query))
+        is_cross_doc = any(p.search(query) for p in cls._CROSS_DOC_PATTERNS)
         if signals >= 2:
-            weights = {"bm25_weight": 2.0, "vec_weight": 0.5}
+            route = {
+                "query_type": "exact",
+                "bm25_weight": 2.0,
+                "vec_weight": 0.5,
+                "top_k_retrieval": 12,
+                "top_k_rerank": 3,
+            }
+        elif is_cross_doc:
+            route = {
+                "query_type": "cross_document",
+                "bm25_weight": 1.0,
+                "vec_weight": 1.5,
+                "top_k_retrieval": 30,
+                "top_k_rerank": 10,
+            }
         elif len(query) > 20 and signals == 0:
-            weights = {"bm25_weight": 0.5, "vec_weight": 2.0}
+            route = {
+                "query_type": "semantic",
+                "bm25_weight": 0.5,
+                "vec_weight": 2.0,
+                "top_k_retrieval": 24,
+                "top_k_rerank": 8,
+            }
         else:
-            weights = {"bm25_weight": 1.0, "vec_weight": 1.0}
-        logger.debug(f"[router] query={query[:40]!r} signals={signals} weights={weights}")
-        return weights
+            route = {
+                "query_type": "balanced",
+                "bm25_weight": 1.0,
+                "vec_weight": 1.0,
+                "top_k_retrieval": 20,
+                "top_k_rerank": 5,
+            }
+        logger.debug(f"[router] query={query[:40]!r} signals={signals} route={route}")
+        return route
 
 
 # ---------------------------------------------------------------------------
@@ -229,24 +260,33 @@ class HybridRetriever:
         if cancel_event is not None and cancel_event.is_set():
             return []
 
+        route = QueryRouter.classify(query)
+        search_limit = route["top_k_retrieval"]
+        rerank_limit = route["top_k_rerank"]
+
         # 2. Vector search
         _t1 = _time.time()
-        vec_results = self._vector_search(query_vec.tolist(), file_filter)
+        vec_results = self._vector_search(query_vec.tolist(), file_filter, limit=search_limit)
         logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
         if cancel_event is not None and cancel_event.is_set():
             return []
 
         # 3. FTS5 keyword search
         _t1 = _time.time()
-        fts_results = self._fts_search(query, file_filter)
+        fts_results = self._fts_search(query, file_filter, limit=search_limit)
         logger.info(f"[perf] fts_search: {_time.time()-_t1:.2f}s ({len(fts_results)} results)")
         if cancel_event is not None and cancel_event.is_set():
             return []
 
         # 4. QueryRouter + RRF fusion
-        weights = QueryRouter.classify(query)
-        fused = self._rrf_fuse(vec_results, fts_results, prefer_tables=prefer_tables, **weights)
-        top_candidates = fused[: self.top_k_retrieval]
+        fused = self._rrf_fuse(
+            vec_results,
+            fts_results,
+            prefer_tables=prefer_tables,
+            vec_weight=route["vec_weight"],
+            bm25_weight=route["bm25_weight"],
+        )
+        top_candidates = fused[:search_limit]
 
         if not top_candidates:
             return []
@@ -258,16 +298,99 @@ class HybridRetriever:
 
         # 6. Rerank
         _t1 = _time.time()
-        result = self._rerank(query, top_candidates, cancel_event=cancel_event)
+        result = self._rerank(query, top_candidates, cancel_event=cancel_event, top_k=rerank_limit)
+        result = self._expand_parent_context(result)
         logger.info(f"[perf] rerank: {_time.time()-_t1:.2f}s ({len(top_candidates)} pairs)")
         logger.info(f"[perf] total_retrieve: {_time.time()-_t0:.2f}s ({len(result)} results)")
         return result
+
+    def debug_retrieve(
+        self,
+        query: str,
+        file_filter: list[str] | None = None,
+        prefer_tables: bool = False,
+        include_rerank: bool = True,
+        max_text_chars: int = 300,
+    ) -> dict:
+        """返回完整检索链路，用于本地调试和评估，不调用回答模型。"""
+        import time as _time
+
+        timings: dict[str, float] = {}
+        t0 = _time.perf_counter()
+
+        instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
+        query_vec = self.embed_model.encode(
+            [instructed_query],
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+        )[0]
+        query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+        timings["embed_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
+
+        route = QueryRouter.classify(query)
+        search_limit = route["top_k_retrieval"]
+        rerank_limit = route["top_k_rerank"]
+
+        t1 = _time.perf_counter()
+        vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
+        timings["vector_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
+
+        t1 = _time.perf_counter()
+        fts_results = self._fts_search(query, file_filter, limit=search_limit)
+        timings["fts_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
+
+        fused = self._rrf_fuse(
+            vec_results,
+            fts_results,
+            prefer_tables=prefer_tables,
+            vec_weight=route["vec_weight"],
+            bm25_weight=route["bm25_weight"],
+        )
+        top_candidates = fused[:search_limit]
+        deduped = self._deduplicate(top_candidates)
+
+        reranked: list[dict] = []
+        parent_expanded: list[dict] = []
+        if include_rerank and deduped:
+            t1 = _time.perf_counter()
+            reranked = self._rerank(query, [dict(item) for item in deduped], top_k=rerank_limit)
+            parent_expanded = self._expand_parent_context([dict(item) for item in reranked])
+            timings["rerank_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
+        else:
+            timings["rerank_ms"] = 0.0
+            parent_expanded = self._expand_parent_context([dict(item) for item in deduped])
+
+        timings["total_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
+        return {
+            "query": query,
+            "file_filter": file_filter or [],
+            "prefer_tables": prefer_tables,
+            "router": route,
+            "top_k_retrieval": search_limit,
+            "top_k_rerank": rerank_limit,
+            "timings": timings,
+            "stages": {
+                "vector": [self._debug_item(item, max_text_chars) for item in vec_results],
+                "fts": [self._debug_item(item, max_text_chars) for item in fts_results],
+                "fused": [self._debug_item(item, max_text_chars) for item in top_candidates],
+                "deduped": [self._debug_item(item, max_text_chars) for item in deduped],
+                "reranked": [self._debug_item(item, max_text_chars) for item in reranked],
+                "parent_expanded": [
+                    self._debug_item(item, max_text_chars) for item in parent_expanded
+                ],
+            },
+        }
 
     # ------------------------------------------------------------------
     # Vector search
     # ------------------------------------------------------------------
 
-    def _vector_search(self, query_vec: list[float], file_filter: list[str] | None) -> list[dict]:
+    def _vector_search(
+        self,
+        query_vec: list[float],
+        file_filter: list[str] | None,
+        limit: int | None = None,
+    ) -> list[dict]:
         from qdrant_client.models import Filter, FieldCondition, MatchAny
 
         search_filter = None
@@ -280,7 +403,7 @@ class HybridRetriever:
             collection_name=COLLECTION_NAME,
             query=query_vec,
             query_filter=search_filter,
-            limit=self.top_k_retrieval,
+            limit=limit or self.top_k_retrieval,
         )
         return [
             {
@@ -295,7 +418,13 @@ class HybridRetriever:
     # FTS5 keyword search (replaces pickle BM25)
     # ------------------------------------------------------------------
 
-    def _fts_search(self, query: str, file_filter: list[str] | None) -> list[dict]:
+    def _fts_search(
+        self,
+        query: str,
+        file_filter: list[str] | None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        limit = limit or self.top_k_retrieval
         tokens = self._tokenize(query)
         rows: list[dict] = []
 
@@ -305,7 +434,7 @@ class HybridRetriever:
             fts_query = " OR ".join(f'"{t}"' for t in escaped if t)
             if fts_query:
                 try:
-                    rows = self._store.search_fts(fts_query, file_filter, limit=self.top_k_retrieval)
+                    rows = self._store.search_fts(fts_query, file_filter, limit=limit)
                 except Exception:
                     logger.warning("[retriever] FTS5 exact search failed", exc_info=True)
 
@@ -313,7 +442,7 @@ class HybridRetriever:
             # Layer 2: trigram 子串匹配（OCR 错字、简繁混用容错）
             logger.debug("[retriever] FTS5 exact empty → trigram fallback")
             try:
-                rows = self._store.search_fts_trigram(query, file_filter, limit=self.top_k_retrieval)
+                rows = self._store.search_fts_trigram(query, file_filter, limit=limit)
             except Exception:
                 logger.warning("[retriever] FTS5 trigram search failed", exc_info=True)
 
@@ -352,6 +481,29 @@ class HybridRetriever:
         chunks = [{"qdrant_id": r.id, **r.payload} for r in records]
         chunks.sort(key=lambda c: (c.get("page_num", 0), c.get("qdrant_id", 0)))
         return chunks[:max_chunks]
+
+    def fetch_chunks_by_ids(self, qdrant_ids: list[int], max_text_chars: int = 500) -> dict[int, dict]:
+        """按 Qdrant id 批量获取 chunk payload，用于调试展示。"""
+        if not qdrant_ids:
+            return {}
+        max_text_chars = max(0, max_text_chars)
+
+        result: dict[int, dict] = {}
+        for i in range(0, len(qdrant_ids), 100):
+            batch = qdrant_ids[i:i + 100]
+            records = self._qdrant.retrieve(
+                collection_name=COLLECTION_NAME,
+                ids=batch,
+                with_payload=True,
+            )
+            for record in records:
+                payload = dict(record.payload or {})
+                text = payload.get("text", "")
+                payload["text_preview"] = text[:max_text_chars]
+                payload["text_length"] = len(text)
+                payload.pop("text", None)
+                result[int(record.id)] = payload
+        return result
 
     # ------------------------------------------------------------------
     # RRF fusion
@@ -407,16 +559,89 @@ class HybridRetriever:
     def _deduplicate(candidates: list[dict]) -> list[dict]:
         seen: dict[tuple, dict] = {}
         for item in candidates:
-            key = (item.get("file_path", ""), item.get("page_num", 0), item.get("text", "")[:128])
+            parent_id = item.get("parent_id", 0)
+            if parent_id:
+                key = (item.get("file_path", ""), parent_id)
+            else:
+                key = (item.get("file_path", ""), item.get("page_num", 0), item.get("text", "")[:128])
             if key not in seen or item.get("rrf_score", 0) > seen[key].get("rrf_score", 0):
                 seen[key] = item
         return list(seen.values())
+
+    def _expand_parent_context(self, candidates: list[dict]) -> list[dict]:
+        if not candidates:
+            return []
+
+        qdrant_ids = [int(item["qdrant_id"]) for item in candidates if item.get("qdrant_id") is not None]
+        try:
+            stored_contexts = self._store.get_chunk_context_by_qdrant_ids(qdrant_ids)
+        except Exception:
+            logger.debug("[retriever] parent context lookup failed", exc_info=True)
+            stored_contexts = {}
+
+        expanded: list[dict] = []
+        seen: set[tuple] = set()
+        for item in candidates:
+            qid = int(item["qdrant_id"]) if item.get("qdrant_id") is not None else 0
+            stored = stored_contexts.get(qid, {})
+            child_text = stored.get("raw_text") or item.get("raw_text") or item.get("child_text") or item.get("text", "")
+            parent_text = stored.get("parent_text") or item.get("parent_text") or child_text
+            parent_id = stored.get("parent_id") or item.get("parent_id", 0)
+            key = (
+                item.get("file_path", ""),
+                parent_id or item.get("page_num", 0),
+                (parent_text or child_text)[:128],
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+
+            expanded_item = dict(item)
+            expanded_item["matched_text"] = child_text
+            expanded_item["child_text"] = child_text
+            expanded_item["text"] = parent_text
+            expanded_item["parent_id"] = parent_id
+            expanded_item["parent_text_length"] = len(parent_text)
+            expanded_item["contextual_prefix"] = (
+                stored.get("contextual_prefix") or item.get("contextual_prefix", "")
+            )
+            expanded.append(expanded_item)
+
+        return expanded
+
+    @staticmethod
+    def _debug_item(item: dict, max_text_chars: int = 300) -> dict:
+        text = item.get("text", "") or ""
+        return {
+            "qdrant_id": item.get("qdrant_id"),
+            "file_name": item.get("file_name", ""),
+            "file_path": item.get("file_path", ""),
+            "page_num": item.get("page_num", 0),
+            "section": item.get("section", ""),
+            "chunk_type": item.get("chunk_type", ""),
+            "score": item.get("score"),
+            "vec_score": item.get("vec_score"),
+            "rrf_score": item.get("rrf_score"),
+            "rerank_score": item.get("rerank_score"),
+            "char_count": item.get("char_count", len(text)),
+            "parent_id": item.get("parent_id", 0),
+            "parent_text_length": item.get("parent_text_length", len(item.get("parent_text", "") or "")),
+            "matched_text_preview": (item.get("matched_text") or item.get("child_text") or "")[:max_text_chars],
+            "text_preview": text[:max_text_chars],
+            "text_length": len(text),
+        }
 
     # ------------------------------------------------------------------
     # Rerank
     # ------------------------------------------------------------------
 
-    def _rerank(self, query: str, candidates: list[dict], cancel_event=None) -> list[dict]:
+    def _rerank(
+        self,
+        query: str,
+        candidates: list[dict],
+        cancel_event=None,
+        top_k: int | None = None,
+    ) -> list[dict]:
         if cancel_event is not None and cancel_event.is_set():
             return []
         pairs = [[query, c["text"]] for c in candidates]
@@ -436,4 +661,4 @@ class HybridRetriever:
         top_score = candidates[0]["rerank_score"] if candidates else 0
         cutoff = top_score * 0.10
         filtered = [c for c in candidates if c["rerank_score"] >= cutoff]
-        return filtered[: self.top_k_rerank]
+        return filtered[: (top_k or self.top_k_rerank)]

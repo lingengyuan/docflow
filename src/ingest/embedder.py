@@ -94,7 +94,7 @@ class Embedder:
         if not chunks:
             return []
 
-        dense_vecs = self.encode_texts([c.text for c in chunks])
+        dense_vecs = self.encode_texts([c.embedding_text or c.raw_text or c.text for c in chunks])
         return self.upsert_embeddings(chunks, dense_vecs)
 
     @property
@@ -185,7 +185,13 @@ class Embedder:
                     "page_num": chunks[j].page_num,
                     "section": chunks[j].section,
                     "chunk_type": chunks[j].chunk_type,
-                    "text": chunks[j].text,
+                    "text": chunks[j].raw_text,
+                    "raw_text": chunks[j].raw_text,
+                    "embedding_text": chunks[j].embedding_text,
+                    "child_text": chunks[j].raw_text,
+                    "parent_id": chunks[j].parent_id,
+                    "parent_text": chunks[j].parent_text,
+                    "contextual_prefix": chunks[j].contextual_prefix,
                     "char_count": chunks[j].char_count,
                 },
             )

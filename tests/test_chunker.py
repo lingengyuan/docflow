@@ -127,3 +127,33 @@ class TestChunkPage:
                                file_path="/docs/doc.pdf", page_num=3)
         assert all(ch.file_name == "doc.pdf" for ch in chunks)
         assert all(ch.page_num == 3 for ch in chunks)
+
+    def test_nested_heading_breadcrumb_attached(self):
+        c = StructuredChunker()
+        text = "# Top\n\n## Middle\n\n### Leaf\n\nDeep content."
+        chunks = c.chunk_page(text, **CTX)
+
+        assert chunks[0].section == "Top > Middle > Leaf"
+
+    def test_empty_parent_heading_kept_for_child_section(self):
+        c = StructuredChunker()
+        text = "# Parent\n\n## Child\n\nBody under child."
+        chunks = c.chunk_page(text, **CTX)
+
+        assert chunks[0].section == "Parent > Child"
+
+    def test_long_section_split_keeps_section(self):
+        c = StructuredChunker(chunk_size=10, chunk_overlap=1)
+        text = "# Long Section\n\n" + ("word " * 100)
+        chunks = c.chunk_page(text, **CTX)
+
+        assert len(chunks) > 1
+        assert all(ch.section == "Long Section" for ch in chunks)
+
+    def test_table_after_heading_keeps_section(self):
+        c = StructuredChunker()
+        text = "# Metrics\n\n| Name | Value |\n|---|---|\n| A | 1 |"
+        chunks = c.chunk_page(text, **CTX)
+
+        assert {ch.chunk_type for ch in chunks} == {"table", "table_summary"}
+        assert all(ch.section == "Metrics" for ch in chunks)

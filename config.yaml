@@ -25,6 +25,10 @@ ingest:
   adaptive_batch_char_budget: 32768
   adaptive_batch_max: 64
   embedding_cache: true
+  parent_context_chars: 2048
+  contextual_prefix: false
+  contextual_prefix_mode: "metadata"  # metadata | ollama
+  contextual_prefix_model: "qwen2.5:7b"
 
 reranker:
   model: "Qwen/Qwen3-Reranker-0.6B"  # 600M 参数，生成式精排
