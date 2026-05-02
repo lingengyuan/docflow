@@ -6,6 +6,10 @@ DocFlow 入口。
   # 启动 Web 服务（含文件夹监控）
   python main.py serve
 
+  # 启动前检查，或检查后启动 Web 服务
+  python main.py doctor [--json] [--strict] [--port 8000]
+  python main.py start [--host 0.0.0.0] [--port 8000] [--check-only] [--json]
+
   # 手动 ingest 单个文件
   python main.py ingest /path/to/file.pdf
 
@@ -45,6 +49,32 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 def serve():
     import uvicorn
     uvicorn.run("src.api.app:app", host="0.0.0.0", port=8000, reload=False)
+
+
+def doctor_command(args: list[str]):
+    from src.maintenance.startup import doctor_command as run_doctor
+
+    port = int(_arg_value(args, "--port", "8000"))
+    return run_doctor(
+        "config.yaml",
+        app_port=port,
+        as_json="--json" in args,
+        strict="--strict" in args,
+    )
+
+
+def start_command(args: list[str]):
+    from src.maintenance.startup import start_command as run_start
+
+    host = _arg_value(args, "--host", "0.0.0.0")
+    port = int(_arg_value(args, "--port", "8000"))
+    return run_start(
+        "config.yaml",
+        host=host,
+        port=port,
+        as_json="--json" in args,
+        check_only="--check-only" in args,
+    )
 
 
 def ingest(path: str):
@@ -157,6 +187,10 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "serve":
         serve()
+    elif cmd == "doctor":
+        sys.exit(doctor_command(sys.argv[2:]))
+    elif cmd == "start":
+        sys.exit(start_command(sys.argv[2:]))
     elif cmd == "ingest":
         if len(sys.argv) < 3:
             print("Usage: python main.py ingest <path>")

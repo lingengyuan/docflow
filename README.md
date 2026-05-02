@@ -27,6 +27,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
+- One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
 - Query history, favorites, file upload, source listing, file preview, and summary export endpoints.
 
 ### Requirements
@@ -38,12 +39,6 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Optional extra packages for DOCX and image ingest: `python-docx`, `mlx-vlm`, `Pillow`, `pillow-heif`.
 
 ### Quick Start
-
-Start Qdrant:
-
-```bash
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
-```
 
 Install Python dependencies:
 
@@ -66,21 +61,29 @@ Pull the OCR model when scanned PDF OCR is needed:
 ollama pull glm-ocr
 ```
 
-Run the app:
+Check local dependencies:
 
 ```bash
-python main.py serve
+python main.py doctor
 ```
 
-Open the UI:
+Start the app:
 
 ```bash
-open http://localhost:8000
+python main.py start
+```
+
+`python main.py start` checks the local setup, tries to start an existing `qdrant` Docker container when Qdrant is down, prints any remaining action items, and then opens the service at `http://localhost:8000`. If the Qdrant container does not exist yet, create it once:
+
+```bash
+docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
 Useful commands:
 
 ```bash
+python main.py doctor --json
+python main.py start --check-only
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
@@ -181,6 +184,8 @@ Run the fixed retrieval evaluation set:
 Check SQLite and Qdrant consistency:
 
 ```bash
+.venv/bin/python main.py doctor
+.venv/bin/python main.py start --check-only
 .venv/bin/python main.py check
 .venv/bin/python main.py check --json
 ```
@@ -219,6 +224,8 @@ docflow/
 ├── README.md
 ├── frontend/
 │   └── index.html
+├── scripts/
+│   └── start.sh
 ├── src/
 │   ├── api/
 │   │   └── app.py
@@ -233,7 +240,8 @@ docflow/
 │   │   └── watcher.py
 │   ├── maintenance/
 │   │   ├── backup.py
-│   │   └── consistency.py
+│   │   ├── consistency.py
+│   │   └── startup.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py
@@ -293,6 +301,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
+- 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
 - 已有接口覆盖查询历史、收藏、上传、来源列表、文件预览和摘要导出。
 
 ### 环境要求
@@ -304,12 +313,6 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - DOCX 和图片入库需要额外安装：`python-docx`、`mlx-vlm`、`Pillow`、`pillow-heif`。
 
 ### 快速开始
-
-启动 Qdrant：
-
-```bash
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
-```
 
 安装 Python 依赖：
 
@@ -332,21 +335,29 @@ pip install python-docx mlx-vlm Pillow pillow-heif
 ollama pull glm-ocr
 ```
 
+检查本机依赖：
+
+```bash
+python main.py doctor
+```
+
 启动应用：
 
 ```bash
-python main.py serve
+python main.py start
 ```
 
-打开界面：
+`python main.py start` 会先检查本机环境；如果 Qdrant 没有运行，会尝试启动已有的 `qdrant` Docker 容器；如果还缺操作，会直接打印出来。服务启动后访问 `http://localhost:8000`。如果还没有创建过 Qdrant 容器，先执行一次：
 
 ```bash
-open http://localhost:8000
+docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
 常用命令：
 
 ```bash
+python main.py doctor --json
+python main.py start --check-only
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
@@ -447,6 +458,8 @@ cd ~/Projects/docflow
 检查 SQLite 和 Qdrant 是否一致：
 
 ```bash
+.venv/bin/python main.py doctor
+.venv/bin/python main.py start --check-only
 .venv/bin/python main.py check
 .venv/bin/python main.py check --json
 ```
@@ -485,6 +498,8 @@ docflow/
 ├── README.md
 ├── frontend/
 │   └── index.html
+├── scripts/
+│   └── start.sh
 ├── src/
 │   ├── api/
 │   │   └── app.py
@@ -499,7 +514,8 @@ docflow/
 │   │   └── watcher.py
 │   ├── maintenance/
 │   │   ├── backup.py
-│   │   └── consistency.py
+│   │   ├── consistency.py
+│   │   └── startup.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py

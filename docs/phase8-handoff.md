@@ -2,6 +2,8 @@
 
 Date: 2026-05-02
 
+Update: Phase 9 is now documented in `docs/phase9-handoff.md`. The "Next Phase" items below describe what was next at the end of Phase 8, not the current next step.
+
 ## Status
 
 Phase 8 is implemented for optimization plan section 2.12: frontend polish.
