@@ -1,321 +1,427 @@
 # DocFlow
 
-> 本地全私有的多格式知识助手 — A fully local, private multi-format RAG assistant
+Local, private document Q&A for PDFs, Markdown notes, Word files, text files, code snippets, and images.
 
-将 PDF、Markdown、Word、TXT、图片放入监控目录，DocFlow 自动解析、分块、向量化，通过 Web 界面流式问答，所有数据不离开本机。支持 Obsidian vault 集成，自动清洗 frontmatter / wikilink / callout 等语法。
+DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Drop PDFs, Markdown, Word docs, TXT files, and images into a watched folder. DocFlow auto-parses, chunks, and indexes them. Ask questions via a streaming web UI — everything stays on your machine. Supports Obsidian vault integration with automatic syntax cleanup.
+## English
 
----
+### Project Description
 
-## 目录 / Contents
+DocFlow is a local-first knowledge assistant. It is designed for personal document collections and Obsidian-style notes: drop files into watched folders, let DocFlow index them, then ask questions with cited answers through the web interface.
 
-- [功能特性](#功能特性--features)
-- [技术栈](#技术栈--tech-stack)
-- [环境要求](#环境要求--requirements)
-- [快速开始](#快速开始--quick-start)
-- [配置说明](#配置说明--configuration)
-- [API 接口](#api-接口--api-reference)
-- [项目结构](#项目结构--project-structure)
-- [开发与测试](#开发与测试--development--testing)
+The current implementation uses FastAPI, SQLite, Qdrant, local embedding and reranking models, and an MLX-backed local LLM by default.
 
----
+### Features
 
-## 功能特性 / Features
+- Multi-format ingest: PDF, Markdown, TXT, DOCX, code-like text files, and optional image formats.
+- Obsidian-friendly Markdown parsing: frontmatter cleanup, wikilink cleanup, callout cleanup, block-id cleanup, and tag extraction.
+- Structured chunking: heading-aware text chunks, table chunks, and table summary chunks.
+- Hybrid retrieval: vector search plus SQLite FTS5 keyword search, with reranking.
+- Streaming answers: citations are sent first, followed by token streaming.
+- Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
+- Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
+- Ingest queue visibility: queue status includes current stage and chunk progress.
+- Query history, favorites, file upload, source listing, file preview, and summary export endpoints.
 
-**中文**
+### Requirements
 
-- **多格式支持**：PDF（含扫描件 OCR）、Markdown、Word（.docx）、TXT、图片（JPG/PNG/WEBP/HEIC）
-- **Obsidian 集成**：自动清洗 YAML frontmatter、`[[wikilinks]]`、callout、`%%注释%%`、`^block-id`，提取 tags 存入索引
-- **混合检索**：向量检索（Qwen3-Embedding）+ SQLite FTS5 全文检索，RRF 融合排序
-- **智能路由**：QueryRouter 自动识别精确查询 vs. 语义查询，动态调整检索权重
-- **生成式精排**：Qwen3-Reranker-0.6B（MLX 运行，比 PyTorch MPS 快 26×）
-- **流式问答**：SSE 协议，引用先返回，逐 token 流式生成答案
-- **本地 LLM**：Qwen3-4B / Qwen3-8B（mlx-lm 进程内运行，TTFT ~2–4s）
-- **图片理解**：Qwen2.5-VL-7B-Instruct（mlx-vlm，VLM 懒加载）
-- **多路径监控**：watchdog 监控多个目录，支持递归扫描，3 秒去抖防止连续保存重复 ingest
-- **自动清理**：启动时自动检测并清除磁盘上已删除文件的 DB 记录和 Qdrant 向量
-- **mtime 快跳**：大 vault 启动加速 — 文件 mtime 未变时跳过 SHA-256 hash 计算
-- **完全本地**：Qdrant 向量库 + SQLite 元数据，数据不出本机
+- Apple Silicon Mac.
+- Python 3.11 or newer.
+- Docker Desktop for Qdrant.
+- Ollama for OCR on scanned PDFs.
+- Optional extra packages for DOCX and image ingest: `python-docx`, `mlx-vlm`, `Pillow`, `pillow-heif`.
 
-**English**
+### Quick Start
 
-- **Multi-format**: PDF (native + OCR), Markdown, Word (.docx), TXT, images (JPG/PNG/WEBP/HEIC)
-- **Obsidian integration**: Auto-cleans YAML frontmatter, `[[wikilinks]]`, callouts, `%%comments%%`, `^block-ids`; extracts tags into the index
-- **Hybrid retrieval**: Dense vector search (Qwen3-Embedding) + SQLite FTS5 full-text search, fused with RRF
-- **Query routing**: QueryRouter auto-detects exact vs. semantic queries and adjusts retrieval weights
-- **Generative reranking**: Qwen3-Reranker-0.6B via MLX — 26× faster than PyTorch MPS
-- **Streaming answers**: SSE protocol — citations first, then token-by-token generation
-- **Local LLM**: Qwen3-4B / Qwen3-8B via mlx-lm (in-process, TTFT ~2–4s)
-- **Image understanding**: Qwen2.5-VL-7B-Instruct via mlx-vlm (lazy-loaded)
-- **Multi-path watching**: watchdog monitors multiple directories with recursion and 3s debounce
-- **Auto-cleanup**: Detects deleted files on startup and removes orphaned DB records + Qdrant vectors
-- **mtime fast-skip**: Speeds up startup for large vaults — skips SHA-256 when file mtime is unchanged
-- **Fully local**: Qdrant + SQLite — nothing leaves the machine
-
----
-
-## 技术栈 / Tech Stack
-
-| 层 / Layer | 技术 / Technology | 说明 / Notes |
-|---|---|---|
-| 后端框架 | FastAPI + Uvicorn | SSE 流式，15 个 API 端点 |
-| 向量数据库 | Qdrant（Docker 本地） | 1024 维，COSINE 距离 |
-| 全文检索 | SQLite FTS5（BM25 + trigram） | 进程内，O(log N) |
-| Embedding | Qwen3-Embedding-0.6B | sentence-transformers，CPU |
-| 精排 | Qwen3-Reranker-0.6B | mlx-lm，Apple Silicon |
-| LLM | Qwen3-4B / 8B-4bit | mlx-lm，进程内 |
-| VLM（图片） | Qwen2.5-VL-7B-Instruct-4bit | mlx-vlm，懒加载 |
-| OCR（扫描 PDF） | glm-ocr | via Ollama |
-| 文件监控 | watchdog | 多目录，递归可选，3s debounce |
-| 前端 | 单文件 HTML（vanilla JS） | SSE 流式，浅色主题 |
-
----
-
-## 环境要求 / Requirements
-
-- **Apple Silicon Mac**（M1/M2/M3/M4/M5），统一内存 ≥ 16 GB（推荐 32 GB）
-- Python 3.11+
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)（运行 Qdrant）
-- [Ollama](https://ollama.com/)（仅 OCR 扫描件时需要）
-
-> **内存参考**：正常使用（无 VLM）约 3.4 GB；启用图片 VLM 后约 7.4 GB。
-
----
-
-## 快速开始 / Quick Start
-
-### 1. 启动依赖 / Start dependencies
+Start Qdrant:
 
 ```bash
-# Qdrant 向量库
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
-
-# （仅扫描件 PDF 需要）OCR 模型
-ollama pull glm-ocr
 ```
 
-### 2. 安装依赖 / Install
+Install Python dependencies:
 
 ```bash
 cd ~/Projects/docflow
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pip install python-docx mlx-vlm Pillow pillow-heif   # 多格式 + 图片支持
 ```
 
-### 3. 下载模型 / Download models
+Install optional format support when needed:
 
-首次启动时自动从 HuggingFace 下载以下模型（共约 6 GB）：
+```bash
+pip install python-docx mlx-vlm Pillow pillow-heif
+```
 
-| 模型 | 大小 | 用途 |
-|------|------|------|
-| Qwen/Qwen3-Embedding-0.6B | 1.1 GB | 向量检索 |
-| Qwen/Qwen3-Reranker-0.6B | 1.1 GB | 精排 |
-| mlx-community/Qwen3-4B-4bit | 2.3 GB | LLM 问答 |
-| mlx-community/Qwen2.5-VL-7B-Instruct-4bit | ~4 GB | 图片理解（可选） |
+Pull the OCR model when scanned PDF OCR is needed:
 
-### 4. 启动服务 / Start server
+```bash
+ollama pull glm-ocr
+```
+
+Run the app:
 
 ```bash
 python main.py serve
-# 或直接
-.venv/bin/uvicorn src.api.app:app --host 0.0.0.0 --port 8000
 ```
 
-### 5. 使用 / Use
+Open the UI:
 
 ```bash
-# 打开 Web 界面
 open http://localhost:8000
+```
 
-# 将文件放入监控目录（自动入库）
-cp mydoc.pdf ~/Documents/DocFlow/
-cp note.md ~/Documents/DocFlow/
-cp report.docx ~/Documents/DocFlow/
-cp diagram.png ~/Documents/DocFlow/
+Useful commands:
 
-# 或手动触发全量扫描
+```bash
 python main.py scan
-
-# 或直接 ingest 单个文件
 python main.py ingest /path/to/file.pdf
-
-# 或对真实语料做 dry-run benchmark（parse / chunk / embed，不写入索引）
 python main.py benchmark README.md docs/HANDOFF-v3.md
 ```
 
----
+### Configuration
 
-## 配置说明 / Configuration
+Configuration lives in `config.yaml`.
 
-所有配置集中在 `config.yaml`：
+Important settings:
+
+- `paths.watch_dirs`: folders DocFlow scans and watches.
+- `paths.supported_extensions`: extensions accepted by the ingest pipeline.
+- `paths.db_path`: SQLite database path.
+- `qdrant.host`, `qdrant.port`, `qdrant.collection`: Qdrant connection and collection.
+- `embedding.model`, `embedding.backend`, `embedding.device`: embedding model and runtime.
+- `chunking.chunk_size`, `chunking.chunk_overlap`: chunk size and overlap.
+- `llm.backend`: answer-generation backend. The current default is `mlx`.
+- `vlm.enabled`: enables or disables image parsing.
+
+Current default watched folders:
 
 ```yaml
 paths:
   watch_dirs:
     - path: "~/Documents/DocFlow"
       recursive: false
-    # Obsidian vault 示例（自动清洗 frontmatter/wikilinks）：
-    - path: "~/MyNotes/MyVault"
+    - path: "~/MyNotes/HughLin"
       recursive: true
       extensions: [".md"]
-  # .obsidian/ .trash/ .git/ 目录自动排除，不会索引
-
-llm:
-  backend: "mlx"                              # local（Ollama）| mlx | claude
-  mlx_model: "mlx-community/Qwen3-4B-4bit"   # 默认 LLM
-  mlx_model_enhanced: "mlx-community/Qwen3-8B-4bit"  # 增强模式
-
-vlm:
-  enabled: true           # 设为 false 可禁用图片支持（模型未下载时）
-  model: "mlx-community/Qwen2.5-VL-7B-Instruct-4bit"
-  max_tokens: 512
-
-embedding:
-  device: "cpu"           # 保持 cpu，避免 MPS + MLX 双 Metal 运行时冲突
-  backend: "torch"        # 可选 "onnx"；当前 M5 + Qwen3 实测本地 ONNX 未跑赢 torch
-  onnx_provider: "CPUExecutionProvider"
-  onnx_cache_dir: "data/embedding_onnx"
-
-ingest:
-  parse_workers: 2
-  microbatch_max_files: 8
-  microbatch_max_chunks: 128
-  adaptive_batch_char_budget: 32768
-  embedding_cache: true
+    - path: "~/Projects/CodeSnippets"
+      recursive: true
+      extensions: [".md", ".py", ".rs", ".ts", ".css", ".sh"]
 ```
 
-> `embedding.backend: "onnx"` 现已支持，并且 ingest/query 共用同一套 backend 配置，避免向量空间漂移。
-> 但在当前 M5 MacBook Air（32 GB）上，用 `Qwen/Qwen3-Embedding-0.6B` 对真实 Markdown chunks 做的本地实测里，
-> `torch CPU` 约 `34.4s / 128 chunks`，而 base `ONNX CPU` 约 `73.9s / 128 chunks`。因此默认仍保持 `torch`，
-> 下一阶段更值得继续验证的是 TEI / Infinity 这类独立 embedding runtime。
+### API Reference
 
-**切换 LLM 模型（运行时）**：
+Main endpoints:
+
+| Endpoint | Method | Purpose |
+|---|---:|---|
+| `/api/query` | POST | Synchronous Q&A |
+| `/api/query/stream` | POST | Streaming Q&A |
+| `/api/ingest` | POST | Trigger scan of watched folders |
+| `/api/queue` | GET | Ingest queue status |
+| `/api/files` | GET | Indexed file list |
+| `/api/upload` | POST | Upload a file into the first watched folder |
+| `/api/file/{id}/preview` | GET | Preview the original file |
+| `/api/history` | GET, DELETE | Query history |
+| `/api/history/search` | GET | Search query history |
+| `/api/favorites` | GET | Favorite files |
+| `/api/favorites/{id}` | POST | Toggle a favorite |
+| `/api/summarize` | POST | Export file summaries as Markdown |
+| `/api/llm` | GET, POST | View or switch the active LLM |
+| `/api/sources` | GET | Watched source folders |
+| `/api/health` | GET | Basic health response |
+
+Note: `/api/health` currently returns a basic status only. Full dependency checks are planned but not implemented yet.
+
+### Development and Testing
+
+Run the test suite:
 
 ```bash
-curl -X POST http://localhost:8000/api/llm \
-  -H "Content-Type: application/json" \
-  -d '{"model": "mlx-community/Qwen3-8B-4bit"}'
-```
-
----
-
-## API 接口 / API Reference
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/query` | POST | 同步查询 |
-| `/api/query/stream` | POST | SSE 流式查询（主用） |
-| `/api/ingest` | POST | 手动触发全量扫描 |
-| `/api/queue` | GET | Ingest 队列状态（含阶段、chunk 进度、最近一次完成结果） |
-| `/api/files` | GET | 文件列表（含状态、tags） |
-| `/api/upload` | POST | 上传文件（支持所有格式） |
-| `/api/file/{id}/preview` | GET | 预览原始文件 |
-| `/api/history` | GET/DELETE | 查询历史 |
-| `/api/history/search` | GET | 全文搜索历史（trigram） |
-| `/api/favorites` | GET | 收藏列表 |
-| `/api/favorites/{id}` | POST | 切换收藏 |
-| `/api/summarize` | POST | 批量摘要生成 |
-| `/api/llm` | GET/POST | 查看/切换 LLM |
-| `/api/sources` | GET | 当前监控目录列表 |
-| `/api/health` | GET | 健康检查 |
-
-**SSE 流式协议示例**：
-
-```bash
-curl -X POST http://localhost:8000/api/query/stream \
-  -H "Content-Type: application/json" \
-  -d '{"question": "合同的主要条款是什么？"}'
-
-# 响应事件流：
-# event: citations
-# data: [{"file_name":"contract.pdf","page_num":3,"snippet":"...","score":0.92}]
-#
-# event: token
-# data: "根据合同第三条..."
-#
-# event: done
-# data: ""
-```
-
----
-
-## 项目结构 / Project Structure
-
-```
-docflow/
-├── config.yaml                  # 全局配置
-├── main.py                      # CLI 入口（serve / ingest / scan）
-├── requirements.txt
-├── docflow.db                   # SQLite（文件状态 + chunk 元数据 + FTS5 + tags）
-├── qdrant_id_counter.txt        # Qdrant 单调 ID 计数器
-│
-├── src/
-│   ├── api/app.py               # FastAPI 路由 + lifespan + SSE + 启动清理
-│   ├── query/
-│   │   ├── engine.py            # QueryEngine（编排）
-│   │   ├── retriever.py         # HybridRetriever + MLXReranker + QueryRouter
-│   │   └── generator.py         # AnswerGenerator（MLX / Ollama / Claude 后端）
-│   └── ingest/
-│       ├── pipeline.py          # IngestPipeline（文件 → chunks → vectors）
-│       ├── parsers/             # FileParser Protocol + Registry
-│       │   ├── pdf_parser.py    # PDF（含 OCR）
-│       │   ├── markdown_parser.py  # Obsidian 语法清洗 + tag 提取
-│       │   ├── docx_parser.py
-│       │   ├── txt_parser.py
-│       │   └── image_parser.py  # 图片 → VLM 描述
-│       ├── pdf_analyzer.py      # PyMuPDF 解析 + GLM-OCR
-│       ├── chunker.py           # 结构化分块（512 tokens，10% overlap）
-│       ├── embedder.py          # Embedding + Qdrant 写入
-│       ├── store.py             # SQLite CRUD + FTS5 + tags + 删除清理
-│       ├── queue.py             # 异步 ingest 队列
-│       └── watcher.py           # 多目录文件监控（watchdog + debounce）
-│
-├── frontend/index.html          # 浅色主题 Web 界面
-├── docs/                        # LESSONS.md 踩坑记录、交接文档
-│   └── LESSONS.md               # 12 条开发踩坑经验
-└── tests/                       # pytest 单元测试
-```
-
----
-
-## 开发与测试 / Development & Testing
-
-```bash
-# 运行单元测试
 cd ~/Projects/docflow
-.venv/bin/pytest tests/ -v
+.venv/bin/python -m pytest
+```
 
-# 检查内存占用
-vmmap $(lsof -ti:8000 | tail -1) | grep "Physical footprint:"
+Run a dry-run ingest benchmark:
 
-# 验证 FTS5 索引
+```bash
+.venv/bin/python main.py benchmark README.md docs/HANDOFF-v3.md
+```
+
+Check the FTS tables:
+
+```bash
 sqlite3 docflow.db "SELECT COUNT(*) FROM chunks_fts;"
 sqlite3 docflow.db "SELECT * FROM chunks_fts WHERE chunks_fts MATCH '机器学习' LIMIT 3;"
-
-# 查看文件 tags
-sqlite3 docflow.db "SELECT file_name, tags FROM files WHERE tags != '[]';"
-
-# 健康检查
-curl http://localhost:8000/api/health
 ```
 
-**关键架构约束**（修改前必读）：
+### Project Structure
 
-1. 所有 MLX 推理（Embedding 除外）必须通过 `ml_executor`（`max_workers=1`）串行执行
-2. Embedding 固定用 CPU，禁止切换到 MPS（PyTorch MPS + MLX 双 Metal 运行时会导致内存爆炸至 21 GB+）
-3. `pipeline.embedder._model` 与 `retriever._embed_model` 共享同一实例，绕过懒加载后须显式调用 `_ensure_collection()`
-4. FTS5 rowid == `chunks.id`，写入由 `store.add_chunks()` 负责，不要绕过
-5. 递归扫描自动排除 `.obsidian/`、`.trash/`、`.git/` 目录
+```text
+docflow/
+├── config.yaml
+├── main.py
+├── requirements.txt
+├── README.md
+├── frontend/
+│   └── index.html
+├── src/
+│   ├── api/
+│   │   └── app.py
+│   ├── ingest/
+│   │   ├── chunker.py
+│   │   ├── embedder.py
+│   │   ├── parsers/
+│   │   ├── pdf_analyzer.py
+│   │   ├── pipeline.py
+│   │   ├── queue.py
+│   │   ├── store.py
+│   │   └── watcher.py
+│   ├── query/
+│   │   ├── engine.py
+│   │   ├── generator.py
+│   │   └── retriever.py
+│   └── embedding_backend.py
+└── tests/
+```
 
----
+### Skill Catalog
 
-## 许可证 / License
+This repository does not define Codex skills. The project is a standalone local application.
 
-MIT
+### Contributing
 
----
+Before changing behavior, read `config.yaml`, the relevant files under `src/`, and the tests that cover the area being changed. Keep README commands aligned with real entry points in `main.py`.
 
-*正常使用内存约 3.4 GB（无 VLM）/ ~7.4 GB（含 VLM），适合 Apple Silicon Mac 16 GB 及以上机型。*
+Run the tests before handing off changes:
+
+```bash
+.venv/bin/python -m pytest
+```
+
+### Maintenance Guide
+
+Keep these constraints in mind when changing the project:
+
+- MLX reranker and MLX LLM work should stay serialized through the shared inference executor.
+- Ingest and query must use the same embedding backend configuration.
+- The ingest pipeline and retriever share one embedding model instance after startup warmup.
+- SQLite FTS row IDs are tied to `chunks.id`; update FTS through the store layer.
+- Recursive scans intentionally skip `.obsidian/`, `.trash/`, and `.git/`.
+
+### License
+
+MIT. Add a standalone `LICENSE` file before publishing the project externally.
+
+## 简体中文
+
+### 项目说明
+
+DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Obsidian 笔记。你把文件放进监控目录，DocFlow 自动解析和索引，然后可以在浏览器里提问，并得到带来源的回答。
+
+当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
+
+### 功能特性
+
+- 多格式入库：PDF、Markdown、TXT、DOCX、代码类文本文件，以及可选图片格式。
+- 适配 Obsidian 笔记：清理 frontmatter、wikilink、callout、block id，并提取标签。
+- 结构化分块：支持按标题分块、表格分块、表格摘要分块。
+- 混合检索：向量检索加 SQLite FTS5 全文检索，再做精排。
+- 流式回答：先返回引用来源，再逐步返回答案内容。
+- 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
+- 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
+- 入库队列可见：可以看到当前阶段和 chunk 处理进度。
+- 已有接口覆盖查询历史、收藏、上传、来源列表、文件预览和摘要导出。
+
+### 环境要求
+
+- Apple Silicon Mac。
+- Python 3.11 或更高版本。
+- Docker Desktop，用于运行 Qdrant。
+- Ollama，用于扫描 PDF 的 OCR。
+- DOCX 和图片入库需要额外安装：`python-docx`、`mlx-vlm`、`Pillow`、`pillow-heif`。
+
+### 快速开始
+
+启动 Qdrant：
+
+```bash
+docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
+```
+
+安装 Python 依赖：
+
+```bash
+cd ~/Projects/docflow
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+按需安装额外格式支持：
+
+```bash
+pip install python-docx mlx-vlm Pillow pillow-heif
+```
+
+如果需要扫描 PDF OCR，拉取 OCR 模型：
+
+```bash
+ollama pull glm-ocr
+```
+
+启动应用：
+
+```bash
+python main.py serve
+```
+
+打开界面：
+
+```bash
+open http://localhost:8000
+```
+
+常用命令：
+
+```bash
+python main.py scan
+python main.py ingest /path/to/file.pdf
+python main.py benchmark README.md docs/HANDOFF-v3.md
+```
+
+### 配置
+
+配置集中在 `config.yaml`。
+
+重点配置：
+
+- `paths.watch_dirs`：DocFlow 会扫描和监控的目录。
+- `paths.supported_extensions`：入库支持的文件扩展名。
+- `paths.db_path`：SQLite 数据库位置。
+- `qdrant.host`、`qdrant.port`、`qdrant.collection`：Qdrant 连接和集合。
+- `embedding.model`、`embedding.backend`、`embedding.device`：向量模型和运行方式。
+- `chunking.chunk_size`、`chunking.chunk_overlap`：分块大小和重叠长度。
+- `llm.backend`：回答生成方式。当前默认是 `mlx`。
+- `vlm.enabled`：是否启用图片解析。
+
+当前默认监控目录：
+
+```yaml
+paths:
+  watch_dirs:
+    - path: "~/Documents/DocFlow"
+      recursive: false
+    - path: "~/MyNotes/HughLin"
+      recursive: true
+      extensions: [".md"]
+    - path: "~/Projects/CodeSnippets"
+      recursive: true
+      extensions: [".md", ".py", ".rs", ".ts", ".css", ".sh"]
+```
+
+### API 接口
+
+主要接口：
+
+| 接口 | 方法 | 用途 |
+|---|---:|---|
+| `/api/query` | POST | 普通问答 |
+| `/api/query/stream` | POST | 流式问答 |
+| `/api/ingest` | POST | 触发监控目录扫描 |
+| `/api/queue` | GET | 入库队列状态 |
+| `/api/files` | GET | 已入库文件列表 |
+| `/api/upload` | POST | 上传文件到第一个监控目录 |
+| `/api/file/{id}/preview` | GET | 预览原始文件 |
+| `/api/history` | GET, DELETE | 查询历史 |
+| `/api/history/search` | GET | 搜索查询历史 |
+| `/api/favorites` | GET | 收藏文件 |
+| `/api/favorites/{id}` | POST | 切换收藏 |
+| `/api/summarize` | POST | 导出文件摘要 |
+| `/api/llm` | GET, POST | 查看或切换当前模型 |
+| `/api/sources` | GET | 查看监控来源目录 |
+| `/api/health` | GET | 基础健康状态 |
+
+注意：`/api/health` 目前只返回基础状态，完整依赖检查还没有实现。
+
+### 开发与测试
+
+运行测试：
+
+```bash
+cd ~/Projects/docflow
+.venv/bin/python -m pytest
+```
+
+运行一次不写入索引的入库测试：
+
+```bash
+.venv/bin/python main.py benchmark README.md docs/HANDOFF-v3.md
+```
+
+检查全文检索表：
+
+```bash
+sqlite3 docflow.db "SELECT COUNT(*) FROM chunks_fts;"
+sqlite3 docflow.db "SELECT * FROM chunks_fts WHERE chunks_fts MATCH '机器学习' LIMIT 3;"
+```
+
+### 项目结构
+
+```text
+docflow/
+├── config.yaml
+├── main.py
+├── requirements.txt
+├── README.md
+├── frontend/
+│   └── index.html
+├── src/
+│   ├── api/
+│   │   └── app.py
+│   ├── ingest/
+│   │   ├── chunker.py
+│   │   ├── embedder.py
+│   │   ├── parsers/
+│   │   ├── pdf_analyzer.py
+│   │   ├── pipeline.py
+│   │   ├── queue.py
+│   │   ├── store.py
+│   │   └── watcher.py
+│   ├── query/
+│   │   ├── engine.py
+│   │   ├── generator.py
+│   │   └── retriever.py
+│   └── embedding_backend.py
+└── tests/
+```
+
+### 技能目录
+
+这个仓库本身没有定义 Codex 技能。它是一个独立运行的本地应用。
+
+### 贡献指南
+
+修改行为前，先阅读 `config.yaml`、`src/` 下相关文件，以及覆盖对应功能的测试。README 里的命令要和 `main.py` 里的真实入口保持一致。
+
+交付前运行测试：
+
+```bash
+.venv/bin/python -m pytest
+```
+
+### 维护指南
+
+修改项目时要注意这些约束：
+
+- MLX 精排和 MLX 回答生成需要通过同一个推理通道串行运行。
+- 入库和查询必须使用同一套向量配置。
+- 启动预热后，入库管线和查询器会共享同一个向量模型实例。
+- SQLite 全文检索表和 `chunks.id` 绑定，更新时要走存储层。
+- 递归扫描会主动跳过 `.obsidian/`、`.trash/` 和 `.git/`。
+
+### 许可证
+
+MIT。公开发布前建议补一个独立的 `LICENSE` 文件。
