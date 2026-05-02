@@ -132,6 +132,7 @@ class QueryEngine:
                 page_num=c["page_num"],
                 snippet=c["text"][:200],
                 score=c.get("rerank_score", c.get("rrf_score", 0.0)),
+                section=c.get("section", ""),
             )
             for c in chunks
         ]

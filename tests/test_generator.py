@@ -91,6 +91,7 @@ class TestOllamaGenerate:
         assert answer.citations[0].file_name == "Q3报告.pdf"
         assert answer.citations[0].file_path == "/docs/Q3报告.pdf"
         assert answer.citations[0].page_num == 12
+        assert answer.citations[0].section == "第三章 > 销售数据"
 
     def test_empty_chunks_returns_no_info(self):
         gen = AnswerGenerator(backend="local")

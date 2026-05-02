@@ -21,6 +21,9 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Hybrid retrieval: vector search plus SQLite FTS5 keyword search, adaptive routing, and reranking.
 - Streaming answers: citations are sent first, followed by token streaming.
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
+- Browser conversation controls: create, switch, and delete conversations from the chat header.
+- Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
+- Daily-use controls: answer copy/export, dependency status panel, query elapsed time, and visible ingest queue progress.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
@@ -284,6 +287,9 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 混合检索：向量检索加 SQLite FTS5 全文检索，自动调整候选数量，再做精排。
 - 流式回答：先返回引用来源，再逐步返回答案内容。
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
+- 页面内对话管理：可以在聊天页新建、切换和删除对话。
+- 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
+- 日用控件：答案复制/导出、依赖状态面板、查询耗时和入库队列进度。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。

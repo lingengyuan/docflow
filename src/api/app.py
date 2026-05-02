@@ -300,6 +300,7 @@ async def query(req: QueryRequest):
                 "file_name": c.file_name,
                 "file_path": c.file_path,
                 "page_num": c.page_num,
+                "section": c.section,
                 "snippet": c.snippet,
                 "score": round(c.score, 4),
             }
@@ -367,6 +368,7 @@ async def query_stream(req: QueryRequest, request: Request):
                         "file_name": c["file_name"],
                         "file_path": c.get("file_path", ""),
                         "page_num": c["page_num"],
+                        "section": c.get("section", ""),
                         "snippet": c["text"][:200],
                         "score": round(score, 4),
                     }

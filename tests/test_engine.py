@@ -8,6 +8,7 @@ CHUNKS = [
         "file_name": "README.md",
         "file_path": "/tmp/README.md",
         "page_num": 1,
+        "section": "Health",
         "rrf_score": 0.5,
     }
 ]
@@ -53,6 +54,7 @@ def test_query_returns_retrieved_snippets_when_llm_fails():
     assert "RuntimeError" in answer.text
     assert len(answer.citations) == 1
     assert answer.citations[0].file_name == "README.md"
+    assert answer.citations[0].section == "Health"
 
 
 def test_query_stream_returns_fallback_message_when_llm_fails():

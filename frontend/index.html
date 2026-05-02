@@ -88,6 +88,7 @@
     @keyframes thinking-pulse { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
   </style>
 </head>
 <body class="bg-surface font-sans text-on-surface overflow-hidden h-screen flex">
@@ -128,8 +129,34 @@
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40 sticky top-0">
       <div class="flex items-center gap-4">
         <h1 class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
+        <div class="relative">
+          <button id="conversation-btn" onclick="toggleConversationMenu(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all text-xs font-medium text-on-surface-variant">
+            <span class="material-symbols-outlined text-primary" style="font-size:15px">forum</span>
+            <span id="conversation-current" class="max-w-[180px] truncate">新对话</span>
+            <span class="material-symbols-outlined" style="font-size:14px">keyboard_arrow_down</span>
+          </button>
+          <div id="conversation-menu" class="hidden absolute left-0 mt-2 w-80 max-h-[520px] overflow-hidden bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50">
+            <div class="p-3 border-b border-outline-variant/10 flex items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">对话</span>
+              <button onclick="createNewConversation()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-on-primary hover:bg-primary-dim transition-all" title="新建对话">
+                <span class="material-symbols-outlined" style="font-size:17px">add</span>
+              </button>
+            </div>
+            <div id="conversation-list" class="max-h-[450px] overflow-y-auto custom-scrollbar p-2"></div>
+          </div>
+        </div>
       </div>
       <div class="flex items-center gap-4">
+        <div class="relative">
+          <button id="health-btn" onclick="toggleHealthPanel(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all text-xs font-medium text-on-surface-variant">
+            <span id="health-icon" class="w-2 h-2 rounded-full bg-tertiary"></span>
+            <span id="health-label">状态</span>
+          </button>
+          <div id="health-panel" class="hidden absolute right-0 mt-2 w-72 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50 p-3">
+            <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">依赖状态</div>
+            <div id="health-details" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+          </div>
+        </div>
         <!-- LLM selector -->
         <div class="relative group">
           <button id="llm-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all cursor-pointer text-xs font-medium text-on-surface-variant">
@@ -277,6 +304,8 @@
 <script>
 const API = '';
 let currentConversationId = null;
+let conversationItems = [];
+let healthSnapshot = null;
 let selectedFileIds = new Set();
 let favoritedIds = new Set();
 let queuePollTimer = null;
@@ -295,6 +324,7 @@ function switchView(view) {
   btn.classList.add('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
   btn.classList.remove('text-on-surface-variant', 'opacity-60');
 
+  if (view === 'chat') loadConversations();
   if (view === 'library') { refreshFiles(); pollQueueOnce(); }
   if (view === 'history') refreshHistory();
 }
@@ -306,16 +336,60 @@ document.getElementById('nav-chat').classList.add('bg-surface-container-lowest',
 async function checkHealth() {
   try {
     const r = await fetch(`${API}/api/health`);
+    healthSnapshot = await r.json();
     const dot = document.getElementById('status-dot');
-    dot.className = r.ok
-      ? 'w-2 h-2 rounded-full bg-tertiary'
-      : 'w-2 h-2 rounded-full bg-error';
+    const ok = r.ok && healthSnapshot.status !== 'unavailable';
+    const degraded = healthSnapshot.status === 'degraded';
+    const cls = ok ? (degraded ? 'bg-primary' : 'bg-tertiary') : 'bg-error';
+    dot.className = `w-2 h-2 rounded-full ${cls}`;
+    document.getElementById('health-icon').className = `w-2 h-2 rounded-full ${cls}`;
+    document.getElementById('health-label').textContent = healthSnapshot.status || '状态';
+    renderHealthPanel();
   } catch {
     document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-error';
+    document.getElementById('health-icon').className = 'w-2 h-2 rounded-full bg-error';
+    document.getElementById('health-label').textContent = 'unavailable';
+    healthSnapshot = null;
+    renderHealthPanel('无法读取健康状态');
   }
 }
 checkHealth();
 setInterval(checkHealth, 15000);
+
+function toggleHealthPanel(e) {
+  e.stopPropagation();
+  renderHealthPanel();
+  document.getElementById('health-panel').classList.toggle('hidden');
+}
+
+function renderHealthPanel(errorText = '') {
+  const el = document.getElementById('health-details');
+  if (!el) return;
+  if (errorText) {
+    el.innerHTML = `<div class="text-error">${escHtml(errorText)}</div>`;
+    return;
+  }
+  if (!healthSnapshot) {
+    el.innerHTML = '<div>正在检查…</div>';
+    return;
+  }
+  const checks = healthSnapshot.checks || {};
+  const rows = Object.entries(checks).map(([name, check]) => {
+    const status = check.status || 'unknown';
+    const color = status === 'ok' ? 'bg-tertiary' : (status === 'degraded' ? 'bg-primary' : 'bg-error');
+    const detail = check.error || check.collection || check.note || '';
+    return `<div class="flex items-start justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="min-w-0">
+        <div class="font-semibold text-on-surface">${escHtml(name)}</div>
+        ${detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-1">${escHtml(detail)}</div>` : ''}
+      </div>
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold">
+        <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${escHtml(status)}
+      </span>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows || '<div>暂无状态</div>';
+}
 
 // ── LLM selector ──
 async function loadLLMOptions() {
@@ -332,12 +406,17 @@ async function loadLLMOptions() {
   } catch {}
 }
 loadLLMOptions();
+loadConversations();
 
 document.getElementById('llm-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('llm-dropdown').classList.toggle('hidden');
 });
-document.addEventListener('click', () => document.getElementById('llm-dropdown').classList.add('hidden'));
+document.addEventListener('click', () => {
+  document.getElementById('llm-dropdown').classList.add('hidden');
+  document.getElementById('conversation-menu').classList.add('hidden');
+  document.getElementById('health-panel').classList.add('hidden');
+});
 
 async function switchLLM(model) {
   try {
@@ -353,6 +432,133 @@ async function switchLLM(model) {
       loadLLMOptions();
     }
   } catch {}
+}
+
+// ── Conversations ──
+document.getElementById('conversation-menu').addEventListener('click', e => e.stopPropagation());
+document.getElementById('health-panel').addEventListener('click', e => e.stopPropagation());
+
+function toggleConversationMenu(e) {
+  e.stopPropagation();
+  loadConversations();
+  document.getElementById('conversation-menu').classList.toggle('hidden');
+}
+
+async function loadConversations() {
+  try {
+    const items = await fetch(`${API}/api/conversations`).then(r => r.json());
+    conversationItems = items;
+    renderConversationList();
+    updateConversationLabel();
+  } catch {
+    document.getElementById('conversation-list').innerHTML =
+      '<div class="px-3 py-8 text-center text-xs text-error">对话加载失败</div>';
+  }
+}
+
+function renderConversationList() {
+  const list = document.getElementById('conversation-list');
+  if (!conversationItems.length) {
+    list.innerHTML = '<div class="px-3 py-8 text-center text-xs text-on-surface-variant/60">暂无对话</div>';
+    return;
+  }
+  list.innerHTML = conversationItems.map(item => {
+    const active = item.id === currentConversationId;
+    return `<div class="group flex items-start gap-2 rounded-lg px-3 py-2 cursor-pointer ${active ? 'bg-primary-container text-on-primary-container' : 'hover:bg-surface-container'}"
+        onclick="switchConversation(${item.id})">
+      <span class="material-symbols-outlined ${active ? 'icon-fill text-primary' : 'text-on-surface-variant/50'}" style="font-size:17px">chat_bubble</span>
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-semibold line-clamp-1">${escHtml(item.title || '未命名对话')}</div>
+        <div class="text-[11px] text-on-surface-variant/60 line-clamp-1">${escHtml(item.last_message || '空对话')}</div>
+        <div class="text-[10px] text-on-surface-variant/45 mt-1">${item.message_count || 0} 条 · ${(item.updated_at || '').slice(0,16)}</div>
+      </div>
+      <button onclick="deleteConversation(event, ${item.id})" class="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-all" title="删除对话">
+        <span class="material-symbols-outlined" style="font-size:15px">delete</span>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function updateConversationLabel() {
+  const current = conversationItems.find(item => item.id === currentConversationId);
+  document.getElementById('conversation-current').textContent = current?.title || '新对话';
+}
+
+async function createNewConversation() {
+  const item = await fetch(`${API}/api/conversations`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ title: '' }),
+  }).then(r => r.json());
+  currentConversationId = item.id;
+  resetChatMessages();
+  await loadConversations();
+  document.getElementById('conversation-menu').classList.add('hidden');
+  document.getElementById('input').focus();
+}
+
+async function switchConversation(id) {
+  currentConversationId = id;
+  await loadConversationMessages(id);
+  updateConversationLabel();
+  document.getElementById('conversation-menu').classList.add('hidden');
+  switchView('chat');
+}
+
+async function deleteConversation(event, id) {
+  event.stopPropagation();
+  if (!confirm('确定删除这个对话吗？')) return;
+  const r = await fetch(`${API}/api/conversations/${id}`, { method: 'DELETE' });
+  if (!r.ok) return;
+  if (currentConversationId === id) {
+    currentConversationId = null;
+    resetChatMessages();
+  }
+  await loadConversations();
+}
+
+async function loadConversationMessages(id) {
+  const messages = await fetch(`${API}/api/conversations/${id}/messages`).then(r => r.json());
+  renderConversationMessages(messages);
+}
+
+function resetChatMessages() {
+  const inner = document.querySelector('#messages .max-w-2xl');
+  inner.innerHTML = welcomeHtml();
+  document.getElementById('messages').scrollTop = 0;
+  updateConversationLabel();
+}
+
+function welcomeHtml() {
+  return `<div class="flex flex-col gap-4">
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary icon-fill" style="font-size:14px">auto_awesome</span>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+    </div>
+    <div class="text-sm text-on-surface leading-relaxed">
+      你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
+      将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Files 页面上传，即可开始提问。
+    </div>
+  </div>`;
+}
+
+function renderConversationMessages(messages) {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  inner.innerHTML = '';
+  if (!messages.length) {
+    inner.innerHTML = welcomeHtml();
+    return;
+  }
+  messages.forEach(message => {
+    if (message.role === 'user') appendUserMessage(message.content, false);
+    if (message.role === 'assistant') appendAssistantMessage(message.content, message.citations || [], {
+      createdAt: message.created_at,
+    });
+  });
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 // ── Chat ──
@@ -384,7 +590,7 @@ function renderMarkdown(text) {
     .replace(/\n/g, '<br>');
 }
 
-function appendUserMessage(question) {
+function appendUserMessage(question, scroll = true) {
   const msgs = document.getElementById('messages');
   const inner = msgs.querySelector('.max-w-2xl');
   const div = document.createElement('div');
@@ -395,7 +601,7 @@ function appendUserMessage(question) {
     </div>
     <span class="text-[10px] font-bold text-on-surface-variant/40 tracking-wider">${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</span>`;
   inner.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  if (scroll) msgs.scrollTop = msgs.scrollHeight;
 }
 
 function appendThinking() {
@@ -434,39 +640,94 @@ function createAIMessageContainer() {
     </div>
     <div id="stream-prose" class="prose text-sm text-on-surface max-w-none"></div>
     <div id="stream-citations" class="flex flex-wrap gap-2"></div>
+    <div id="stream-meta" class="text-[11px] text-on-surface-variant/50 font-medium"></div>
     <div class="flex gap-4 mt-1">
-      <button onclick="copyAnswer(this)" class="text-on-surface-variant/40 hover:text-primary transition-colors">
+      <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+      </button>
+      <button onclick="exportAnswerFromButton(this)" data-answer-text="" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
     </div>`;
   inner.appendChild(div);
   return div;
 }
 
+function citationMarkup(citations) {
+  if (!citations?.length) return '';
+  return citations.map(c => {
+    const label = c.section ? escHtml(c.section) : `p.${c.page_num || '-'}`;
+    const icon = (c.file_name || '').toLowerCase().endsWith('.md') ? 'article' : 'description';
+    return `
+    <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
+         onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})">
+      <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
+      <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
+      <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[150px] truncate">${label}</span>
+      <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
+        ${c.section ? `<p class="text-[10px] font-bold text-primary mb-1">${escHtml(c.section)}</p>` : ''}
+        <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderCitations(citations) {
   const el = document.getElementById('stream-citations');
   if (!el || !citations.length) return;
-  el.innerHTML = citations.map(c => `
-    <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
-         onclick="openPdfByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num})">
-      <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
-      <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
-      <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
-      <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
-        <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
-      </div>
-    </div>`).join('');
+  el.innerHTML = citationMarkup(citations);
 }
 
-let _copyAnswerText = '';
-function copyAnswer(btn) {
-  if (_copyAnswerText) {
-    navigator.clipboard.writeText(_copyAnswerText).then(() => {
+function appendAssistantMessage(answer, citations = [], meta = {}) {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  const div = document.createElement('div');
+  const copyText = escHtml(answer || '');
+  const metaText = meta.elapsedMs ? `耗时 ${(meta.elapsedMs / 1000).toFixed(1)} 秒` : ((meta.createdAt || '').slice(0,16));
+  div.className = 'flex flex-col gap-4';
+  div.innerHTML = `
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary icon-fill" style="font-size:13px">auto_awesome</span>
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+    </div>
+    <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(answer || '')}</div>
+    <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
+    ${metaText ? `<div class="text-[11px] text-on-surface-variant/50 font-medium">${escHtml(metaText)}</div>` : ''}
+    <div class="flex gap-4 mt-1">
+      <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案">
+        <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+      </button>
+      <button onclick="exportAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>
+      </button>
+    </div>`;
+  inner.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function copyTextFromButton(btn) {
+  const text = btn.dataset.copyText || '';
+  if (text) {
+    navigator.clipboard.writeText(text).then(() => {
       const icon = btn.querySelector('.material-symbols-outlined');
       icon.textContent = 'check';
       setTimeout(() => { icon.textContent = 'content_copy'; }, 1500);
     });
   }
+}
+
+function exportAnswerFromButton(btn) {
+  const text = btn.dataset.answerText || '';
+  if (!text) return;
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `docflow-answer-${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function sendMessage() {
@@ -480,6 +741,7 @@ async function sendMessage() {
 
   appendUserMessage(question);
   appendThinking();
+  const startedAt = performance.now();
 
   try {
     const body = { question, conversation_id: currentConversationId };
@@ -496,6 +758,7 @@ async function sendMessage() {
     const msgContainer = createAIMessageContainer();
     const msgs = document.getElementById('messages');
     const prose = document.getElementById('stream-prose');
+    const meta = document.getElementById('stream-meta');
 
     let answerText = '';
     const reader = r.body.getReader();
@@ -535,11 +798,16 @@ async function sendMessage() {
         } else if (eventType === 'done') {
           streamCompleted = true;
           prose.classList.remove('streaming-cursor');
-          _copyAnswerText = answerText;
+          const elapsedMs = performance.now() - startedAt;
+          if (meta) meta.textContent = `耗时 ${(elapsedMs / 1000).toFixed(1)} 秒`;
+          msgContainer.querySelector('.answer-copy').dataset.copyText = answerText;
+          msgContainer.querySelector('.answer-export').dataset.answerText = answerText;
+          loadConversations();
         } else if (eventType === 'error') {
           streamErrored = true;
           prose.classList.remove('streaming-cursor');
           prose.innerHTML = `<span class="text-error">${escHtml(JSON.parse(eventData))}</span>`;
+          if (meta) meta.textContent = '回答失败';
         }
       }
     }
@@ -549,7 +817,9 @@ async function sendMessage() {
       const interrupted = '连接已中断，以上内容可能不完整。';
       answerText = answerText ? `${answerText}\n\n${interrupted}` : interrupted;
       prose.innerHTML = renderMarkdown(answerText);
-      _copyAnswerText = answerText;
+      msgContainer.querySelector('.answer-copy').dataset.copyText = answerText;
+      msgContainer.querySelector('.answer-export').dataset.answerText = answerText;
+      if (meta) meta.textContent = '连接中断';
     }
     prose.removeAttribute('id');
     document.getElementById('stream-citations')?.removeAttribute('id');
@@ -558,7 +828,7 @@ async function sendMessage() {
     const msgs = document.getElementById('messages');
     const inner = msgs.querySelector('.max-w-2xl');
     const div = document.createElement('div');
-    div.className = 'text-sm text-error';
+    div.className = 'rounded-xl bg-surface-container-low border border-error/20 px-4 py-3 text-sm text-error';
     div.textContent = `错误: ${e.message}`;
     inner.appendChild(div);
   } finally {
@@ -567,12 +837,14 @@ async function sendMessage() {
   }
 }
 
-// ── PDF Preview ──
-function openPdfByPath(filePath, pageNum) {
+// ── Source Preview ──
+function openSourceByPath(filePath, pageNum = 1) {
   fetch(`${API}/api/files`).then(r => r.json()).then(files => {
     const f = files.find(f => f.file_path === filePath);
     if (!f) return;
-    window.open(`${API}/api/file/${f.id}/preview#page=${pageNum}`, '_blank');
+    const suffix = (f.file_name || '').split('.').pop().toLowerCase();
+    const hash = suffix === 'pdf' ? `#page=${pageNum || 1}` : '';
+    window.open(`${API}/api/file/${f.id}/preview${hash}`, '_blank');
   });
 }
 
@@ -773,16 +1045,7 @@ function replayHistory(idx) {
   inner.appendChild(userDiv);
 
   // AI answer bubble with citations
-  const citationsHtml = (item.citations || []).map(c => `
-    <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
-         onclick="openPdfByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num})">
-      <span class="material-symbols-outlined text-primary" style="font-size:15px">description</span>
-      <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
-      <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">p.${c.page_num}</span>
-      <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
-        <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
-      </div>
-    </div>`).join('');
+  const citationsHtml = citationMarkup(item.citations || []);
 
   const aiDiv = document.createElement('div');
   aiDiv.className = 'flex flex-col gap-4';
@@ -796,9 +1059,11 @@ function replayHistory(idx) {
     <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(item.answer || '')}</div>
     <div class="flex flex-wrap gap-2">${citationsHtml}</div>
     <div class="flex gap-4 mt-1">
-      <button class="text-on-surface-variant/40 hover:text-primary transition-colors" data-copy-text="${escHtml(item.answer || '')}"
-              onclick="const t=this.dataset.copyText;navigator.clipboard.writeText(t).then(()=>{const i=this.querySelector('.material-symbols-outlined');i.textContent='check';setTimeout(()=>i.textContent='content_copy',1500)})">
+      <button class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" data-copy-text="${escHtml(item.answer || '')}" onclick="copyTextFromButton(this)" title="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+      </button>
+      <button class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" data-answer-text="${escHtml(item.answer || '')}" onclick="exportAnswerFromButton(this)" title="导出 Markdown">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
     </div>`;
   inner.appendChild(aiDiv);
