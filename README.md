@@ -138,9 +138,9 @@ Main endpoints:
 | `/api/debug/retrieve` | POST | Debug retrieval pipeline without answer generation |
 | `/api/llm` | GET, POST | View or switch the active LLM |
 | `/api/sources` | GET | Watched source folders |
-| `/api/health` | GET | Basic health response |
+| `/api/health` | GET | Dependency and capability health |
 
-Note: `/api/health` currently returns a basic status only. Full dependency checks are planned but not implemented yet.
+`/api/health` returns `ok`, `degraded`, or `unavailable`. SQLite and Qdrant are critical checks. Ollama and local model cache checks are reported as optional capabilities, so missing OCR or contextual-prefix support does not hide query/ingest availability. The response also lists whether query, ingest, OCR, and contextual prefix are currently enabled and available.
 
 `/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, and parent-expanded context so retrieval changes can be inspected before answer generation.
 
@@ -364,9 +364,9 @@ paths:
 | `/api/debug/retrieve` | POST | 调试查看检索链路，不生成回答 |
 | `/api/llm` | GET, POST | 查看或切换当前模型 |
 | `/api/sources` | GET | 查看监控来源目录 |
-| `/api/health` | GET | 基础健康状态 |
+| `/api/health` | GET | 依赖和能力健康状态 |
 
-注意：`/api/health` 目前只返回基础状态，完整依赖检查还没有实现。
+`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。SQLite 和 Qdrant 是关键检查；Ollama 和本地模型缓存作为可选能力展示，所以 OCR 或上下文前缀不可用时，不会掩盖查询和入库是否可用。返回结果也会说明查询、入库、OCR、上下文前缀当前是否启用且可用。
 
 `/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果和父级上下文展开结果，方便在生成回答前检查检索效果。
 

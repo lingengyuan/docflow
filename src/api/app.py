@@ -5,9 +5,12 @@ DocFlow FastAPI 后端。
 from __future__ import annotations
 
 import logging
+import os
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
+from time import perf_counter
 
 import yaml
 import json
@@ -30,6 +33,7 @@ logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR
 logging.getLogger("FlagEmbedding").setLevel(logging.WARNING)
 
 CONFIG_PATH = Path(__file__).parent.parent.parent / "config.yaml"
+COLLECTION_NAME = "docflow"
 
 
 # ---------------------------------------------------------------------------
@@ -45,6 +49,18 @@ watch_dirs: list[WatchDir] = []
 llm_options: list[str] = []
 
 ml_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ml-inference")
+
+
+def _timed_check(fn) -> dict:
+    start = perf_counter()
+    try:
+        result = fn()
+        if not isinstance(result, dict):
+            result = {"status": "ok"}
+    except Exception as exc:
+        result = {"status": "unavailable", "error": str(exc)}
+    result["latency_ms"] = round((perf_counter() - start) * 1000, 2)
+    return result
 
 
 def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:
@@ -69,6 +85,42 @@ def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:
                 extensions=entry.get("extensions", []),
             ))
     return result
+
+
+def _configured_model_names(cfg: dict) -> dict[str, str]:
+    ollama_cfg = cfg.get("ollama", {})
+    llm_cfg = cfg.get("llm", {})
+    embedding_cfg = cfg.get("embedding", {})
+    reranker_cfg = cfg.get("reranker", {})
+    vlm_cfg = cfg.get("vlm", {})
+    ingest_cfg = cfg.get("ingest", {})
+    return {
+        "embedding": embedding_cfg.get("model", ""),
+        "reranker": reranker_cfg.get("model", ""),
+        "llm": llm_cfg.get("mlx_model") or llm_cfg.get("ollama_model") or ollama_cfg.get("llm_model", ""),
+        "llm_enhanced": llm_cfg.get("mlx_model_enhanced") or ollama_cfg.get("llm_model_enhanced", ""),
+        "ocr": ollama_cfg.get("ocr_model", ""),
+        "contextual_prefix": ingest_cfg.get("contextual_prefix_model", ""),
+        "vlm": vlm_cfg.get("model", ""),
+    }
+
+
+def _hf_cache_dir() -> Path:
+    hub_cache = os.getenv("HUGGINGFACE_HUB_CACHE")
+    if hub_cache:
+        return Path(hub_cache).expanduser()
+    hf_home = Path(os.getenv("HF_HOME", str(Path.home() / ".cache" / "huggingface"))).expanduser()
+    return hf_home / "hub"
+
+
+def _is_hf_model_cached(model_name: str) -> bool:
+    if not model_name or "/" not in model_name:
+        return False
+    model_dir = _hf_cache_dir() / f"models--{model_name.replace('/', '--')}"
+    snapshots_dir = model_dir / "snapshots"
+    if not snapshots_dir.exists():
+        return False
+    return any(snap.is_dir() for snap in snapshots_dir.iterdir())
 
 
 @asynccontextmanager
@@ -608,7 +660,162 @@ async def list_sources():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f)
+    checks = {
+        "api": {"status": "ok"},
+        "sqlite": _timed_check(lambda: _check_sqlite(cfg)),
+        "qdrant": _timed_check(lambda: _check_qdrant(cfg)),
+        "ollama": _timed_check(lambda: _check_ollama(cfg)),
+        "models": _check_models(cfg),
+    }
+    capabilities = _health_capabilities(cfg, checks)
+    status = _aggregate_health_status(checks)
+    return {
+        "status": status,
+        "checks": checks,
+        "capabilities": capabilities,
+    }
+
+
+def _check_sqlite(cfg: dict) -> dict:
+    active_store = store
+    if active_store is not None:
+        with active_store._conn() as conn:
+            conn.execute("SELECT 1").fetchone()
+            conn.execute("CREATE TEMP TABLE IF NOT EXISTS health_check(value INTEGER)")
+            conn.execute("DELETE FROM health_check")
+            conn.execute("INSERT INTO health_check(value) VALUES (1)")
+            quick_check = conn.execute("PRAGMA quick_check").fetchone()[0]
+    else:
+        db_path = Path(cfg["paths"]["db_path"]).expanduser()
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute("SELECT 1").fetchone()
+            conn.execute("CREATE TEMP TABLE IF NOT EXISTS health_check(value INTEGER)")
+            conn.execute("INSERT INTO health_check(value) VALUES (1)")
+            quick_check = conn.execute("PRAGMA quick_check").fetchone()[0]
+        finally:
+            conn.close()
+
+    status = "ok" if quick_check == "ok" else "unavailable"
+    return {"status": status, "quick_check": quick_check}
+
+
+def _check_qdrant(cfg: dict) -> dict:
+    from qdrant_client import QdrantClient
+
+    client = QdrantClient(host=cfg["qdrant"]["host"], port=cfg["qdrant"]["port"], timeout=2)
+    collection = cfg.get("qdrant", {}).get("collection", COLLECTION_NAME)
+    info = client.get_collection(collection)
+    return {
+        "status": "ok",
+        "collection": collection,
+        "points_count": getattr(info, "points_count", 0),
+        "vectors_count": getattr(info, "vectors_count", None),
+    }
+
+
+def _check_ollama(cfg: dict) -> dict:
+    import requests
+
+    ollama_cfg = cfg.get("ollama", {})
+    ingest_cfg = cfg.get("ingest", {})
+    llm_cfg = cfg.get("llm", {})
+    base_url = ollama_cfg.get("base_url", "http://localhost:11434").rstrip("/")
+    response = requests.get(f"{base_url}/api/tags", timeout=2)
+    response.raise_for_status()
+    data = response.json()
+    installed = set()
+    for item in data.get("models", []):
+        name = item.get("name", "")
+        if not name:
+            continue
+        installed.add(name)
+        installed.add(name.split(":", 1)[0])
+
+    required = {
+        "ocr": ollama_cfg.get("ocr_model", ""),
+        "contextual_prefix": (
+            ingest_cfg.get("contextual_prefix_model", "")
+            if ingest_cfg.get("contextual_prefix_mode") == "ollama"
+            else ""
+        ),
+        "llm": llm_cfg.get("ollama_model", ollama_cfg.get("llm_model", ""))
+        if llm_cfg.get("backend", "local") == "local"
+        else "",
+    }
+    models = {}
+    missing = []
+    for purpose, model in required.items():
+        if not model:
+            continue
+        available = model in installed or model.split(":", 1)[0] in installed
+        models[purpose] = {"model": model, "available": available}
+        if not available:
+            missing.append(model)
+
+    status = "ok" if not missing else "degraded"
+    return {
+        "status": status,
+        "base_url": base_url,
+        "models": models,
+        "missing_models": missing,
+    }
+
+
+def _check_models(cfg: dict) -> dict:
+    names = _configured_model_names(cfg)
+    local_models = {
+        name: {
+            "model": model,
+            "cached": _is_hf_model_cached(model),
+        }
+        for name, model in names.items()
+        if model and "/" in model
+    }
+    missing = [
+        item["model"]
+        for item in local_models.values()
+        if not item["cached"]
+    ]
+    return {
+        "status": "ok" if not missing else "degraded",
+        "local_cache": local_models,
+        "missing_local_cache": missing,
+        "note": "Local model check only inspects cache folders and does not download models.",
+    }
+
+
+def _health_capabilities(cfg: dict, checks: dict) -> dict:
+    ollama_models = checks["ollama"].get("models", {})
+    ingest_cfg = cfg.get("ingest", {})
+    contextual_prefix_enabled = ingest_cfg.get("contextual_prefix", False)
+    contextual_prefix_available = (
+        contextual_prefix_enabled
+        and (
+            ingest_cfg.get("contextual_prefix_mode") != "ollama"
+            or ollama_models.get("contextual_prefix", {}).get("available", False)
+        )
+    )
+    return {
+        "query": checks["sqlite"]["status"] == "ok" and checks["qdrant"]["status"] == "ok",
+        "ingest": checks["sqlite"]["status"] == "ok" and checks["qdrant"]["status"] == "ok",
+        "ocr": ollama_models.get("ocr", {}).get("available", False),
+        "contextual_prefix": contextual_prefix_available,
+        "contextual_prefix_enabled": contextual_prefix_enabled,
+        "contextual_prefix_mode": ingest_cfg.get("contextual_prefix_mode", "metadata"),
+    }
+
+
+def _aggregate_health_status(checks: dict) -> str:
+    critical = [checks["sqlite"]["status"], checks["qdrant"]["status"]]
+    if any(status != "ok" for status in critical):
+        return "unavailable"
+    optional = [checks["ollama"]["status"], checks["models"]["status"]]
+    if any(status != "ok" for status in optional):
+        return "degraded"
+    return "ok"
 
 
 # ---------------------------------------------------------------------------

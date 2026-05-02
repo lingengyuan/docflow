@@ -2,6 +2,8 @@
 
 Date: 2026-05-02
 
+Update: Phase 3 is now documented in `docs/phase3-handoff.md`. The "Next Phase" items below describe what was next at the end of Phase 2, not the current next step.
+
 ## Status
 
 Phase 2 retrieval-quality scope is implemented for sections 2.3 through 2.6 of the optimization plan.
