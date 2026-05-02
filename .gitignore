@@ -13,6 +13,9 @@ bm25_index.pkl
 qdrant_id_counter.txt
 qdrant_storage/
 data/
+backups/
+/docflow-backup-*.tar.gz
+/chunks*.jsonl
 
 # 日志
 *.log

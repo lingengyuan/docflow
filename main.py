@@ -21,6 +21,11 @@ DocFlow 入口。
   # 从原始文件重建索引，或只重建 Qdrant
   python main.py rebuild [--qdrant-only] [--dry-run]
 
+  # 备份、导出 chunk，或查看恢复步骤
+  python main.py backup [--dry-run] [--output backups] [--keep 5]
+  python main.py export-chunks [--output backups/chunks.jsonl]
+  python main.py restore-plan <backup.tar.gz>
+
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan
 """
@@ -104,6 +109,50 @@ def rebuild_command(args: list[str]):
     return 0
 
 
+def backup_command(args: list[str]):
+    from src.maintenance.backup import create_backup
+
+    dry_run = "--dry-run" in args
+    output = _arg_value(args, "--output", "backups")
+    keep = int(_arg_value(args, "--keep", "5"))
+    result = create_backup("config.yaml", output_dir=output, keep=keep, dry_run=dry_run)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def export_chunks_command(args: list[str]):
+    from src.maintenance.backup import export_chunks_jsonl
+
+    output = _arg_value(args, "--output")
+    result = export_chunks_jsonl("config.yaml", output_path=output)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def restore_plan_command(args: list[str]):
+    from src.maintenance.backup import restore_plan
+
+    archive_args = [arg for arg in args if not arg.startswith("--")]
+    if not archive_args:
+        print("Usage: python main.py restore-plan <backup.tar.gz>")
+        return 1
+    result = restore_plan(archive_args[0])
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in {"ok", "incomplete"} else 1
+
+
+def _arg_value(args: list[str], name: str, default: str | None = None) -> str | None:
+    prefix = f"{name}="
+    for arg in args:
+        if arg.startswith(prefix):
+            return arg[len(prefix):]
+    if name in args:
+        index = args.index(name)
+        if index + 1 < len(args):
+            return args[index + 1]
+    return default
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "serve":
@@ -126,6 +175,12 @@ if __name__ == "__main__":
         sys.exit(check_index(sys.argv[2:]))
     elif cmd == "rebuild":
         sys.exit(rebuild_command(sys.argv[2:]))
+    elif cmd == "backup":
+        sys.exit(backup_command(sys.argv[2:]))
+    elif cmd == "export-chunks":
+        sys.exit(export_chunks_command(sys.argv[2:]))
+    elif cmd == "restore-plan":
+        sys.exit(restore_plan_command(sys.argv[2:]))
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

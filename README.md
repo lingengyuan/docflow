@@ -84,6 +84,9 @@ python main.py eval
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
+python main.py backup --dry-run
+python main.py export-chunks --output backups/chunks.jsonl
+python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
 ```
 
 ### Configuration
@@ -184,6 +187,14 @@ Plan or run index rebuilds:
 .venv/bin/python main.py rebuild --qdrant-only
 ```
 
+Create a backup archive, export chunks, or inspect a restore plan:
+
+```bash
+.venv/bin/python main.py backup --output backups --keep 5
+.venv/bin/python main.py export-chunks --output backups/chunks.jsonl
+.venv/bin/python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
+```
+
 Check the FTS tables:
 
 ```bash
@@ -214,6 +225,7 @@ docflow/
 │   │   ├── store.py
 │   │   └── watcher.py
 │   ├── maintenance/
+│   │   ├── backup.py
 │   │   └── consistency.py
 │   ├── query/
 │   │   ├── engine.py
@@ -331,6 +343,9 @@ python main.py eval
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
+python main.py backup --dry-run
+python main.py export-chunks --output backups/chunks.jsonl
+python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
 ```
 
 ### 配置
@@ -431,6 +446,14 @@ cd ~/Projects/docflow
 .venv/bin/python main.py rebuild --qdrant-only
 ```
 
+创建备份归档、导出 chunk，或查看恢复步骤：
+
+```bash
+.venv/bin/python main.py backup --output backups --keep 5
+.venv/bin/python main.py export-chunks --output backups/chunks.jsonl
+.venv/bin/python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
+```
+
 检查全文检索表：
 
 ```bash
@@ -461,6 +484,7 @@ docflow/
 │   │   ├── store.py
 │   │   └── watcher.py
 │   ├── maintenance/
+│   │   ├── backup.py
 │   │   └── consistency.py
 │   ├── query/
 │   │   ├── engine.py
