@@ -2,6 +2,8 @@
 
 Date: 2026-05-02
 
+Update: Phase 4 is now documented in `docs/phase4-handoff.md`. The "Next Phase" items below describe what was next at the end of Phase 3, not the current next step.
+
 ## Status
 
 Phase 3 is implemented for optimization plan section 2.7: real health checks.

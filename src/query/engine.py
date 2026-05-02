@@ -4,19 +4,22 @@ QueryEngine — 串联 HybridRetriever + AnswerGenerator。
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
 import yaml
 
 from src.embedding_backend import embedding_backend_config_from_dict
-from src.query.generator import Answer, AnswerGenerator
+from src.query.generator import Answer, AnswerGenerator, Citation
 from src.query.retriever import HybridRetriever
 from src.ingest.store import DocStore
 
 
 TABLE_KEYWORDS = {"表格", "数据", "统计", "总计", "合计", "金额", "数量", "比例",
                   "table", "data", "total", "sum", "amount", "count", "ratio", "percent"}
+
+logger = logging.getLogger(__name__)
 
 
 class QueryEngine:
@@ -64,7 +67,11 @@ class QueryEngine:
             file_filter=file_filter,
             prefer_tables=prefer_tables,
         )
-        return self.generator.generate(question, chunks)
+        try:
+            return self.generator.generate(question, chunks)
+        except Exception as exc:
+            logger.warning("[query] answer generation failed; returning retrieved snippets", exc_info=True)
+            return self._fallback_answer(chunks, exc)
 
     def query_stream(
         self,
@@ -80,11 +87,7 @@ class QueryEngine:
             prefer_tables=prefer_tables,
             cancel_event=cancel_event,
         )
-        token_gen = self.generator.generate_stream(
-            question,
-            chunks,
-            cancel_event=cancel_event,
-        )
+        token_gen = self._safe_generate_stream(question, chunks, cancel_event=cancel_event)
         return chunks, token_gen
 
     def summarize_file(self, file_name: str, qdrant_ids: list[int]) -> str:
@@ -96,3 +99,38 @@ class QueryEngine:
     def _is_table_query(question: str) -> bool:
         q_lower = question.lower()
         return any(kw in q_lower for kw in TABLE_KEYWORDS)
+
+    @staticmethod
+    def _fallback_answer(chunks: list[dict], exc: Exception) -> Answer:
+        if not chunks:
+            return Answer(text="在现有文档中未找到相关信息。", citations=[])
+
+        text = (
+            "已找到相关文档片段，但回答模型暂时不可用。"
+            "请先查看下方引用片段；稍后可重试完整回答。"
+            f"\n\n错误类型：{exc.__class__.__name__}"
+        )
+        citations = [
+            Citation(
+                file_name=c["file_name"],
+                file_path=c.get("file_path", ""),
+                page_num=c["page_num"],
+                snippet=c["text"][:200],
+                score=c.get("rerank_score", c.get("rrf_score", 0.0)),
+            )
+            for c in chunks
+        ]
+        return Answer(text=text, citations=citations)
+
+    def _safe_generate_stream(self, question: str, chunks: list[dict], cancel_event=None):
+        try:
+            yield from self.generator.generate_stream(
+                question,
+                chunks,
+                cancel_event=cancel_event,
+            )
+        except Exception as exc:
+            if cancel_event is not None and cancel_event.is_set():
+                return
+            logger.warning("[query] stream generation failed; returning fallback message", exc_info=True)
+            yield self._fallback_answer(chunks, exc).text

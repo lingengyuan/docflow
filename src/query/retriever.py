@@ -249,31 +249,48 @@ class HybridRetriever:
         import time as _time
         _t0 = _time.time()
 
-        # 1. Encode query
-        instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
-        query_vec = self.embed_model.encode(
-            [instructed_query],
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        )[0]
-        logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
-        if cancel_event is not None and cancel_event.is_set():
-            return []
-
         route = QueryRouter.classify(query)
         search_limit = route["top_k_retrieval"]
         rerank_limit = route["top_k_rerank"]
+        degradations: list[dict] = []
 
-        # 2. Vector search
-        _t1 = _time.time()
-        vec_results = self._vector_search(query_vec.tolist(), file_filter, limit=search_limit)
-        logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
+        # 1-2. Encode query + vector search. If this path is unavailable, keep FTS alive.
+        vec_results: list[dict] = []
+        try:
+            instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
+            query_vec = self.embed_model.encode(
+                [instructed_query],
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+            )[0]
+            query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+            logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
+            if cancel_event is not None and cancel_event.is_set():
+                return []
+
+            _t1 = _time.time()
+            vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
+            logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
+        except Exception as exc:
+            logger.warning("[retriever] vector path unavailable; falling back to FTS", exc_info=True)
+            degradations.append(self._degradation("vector", exc))
+
         if cancel_event is not None and cancel_event.is_set():
             return []
 
         # 3. FTS5 keyword search
+        fts_results: list[dict] = []
         _t1 = _time.time()
-        fts_results = self._fts_search(query, file_filter, limit=search_limit)
+        try:
+            fts_results = self._fts_search(
+                query,
+                file_filter,
+                limit=search_limit,
+                degradations=degradations,
+            )
+        except Exception as exc:
+            logger.warning("[retriever] FTS path unavailable", exc_info=True)
+            degradations.append(self._degradation("fts", exc))
         logger.info(f"[perf] fts_search: {_time.time()-_t1:.2f}s ({len(fts_results)} results)")
         if cancel_event is not None and cancel_event.is_set():
             return []
@@ -298,8 +315,15 @@ class HybridRetriever:
 
         # 6. Rerank
         _t1 = _time.time()
-        result = self._rerank(query, top_candidates, cancel_event=cancel_event, top_k=rerank_limit)
+        result = self._rerank_or_fallback(
+            query,
+            top_candidates,
+            rerank_limit,
+            degradations,
+            cancel_event=cancel_event,
+        )
         result = self._expand_parent_context(result)
+        self._attach_degradations(result, degradations)
         logger.info(f"[perf] rerank: {_time.time()-_t1:.2f}s ({len(top_candidates)} pairs)")
         logger.info(f"[perf] total_retrieve: {_time.time()-_t0:.2f}s ({len(result)} results)")
         return result
@@ -316,27 +340,49 @@ class HybridRetriever:
         import time as _time
 
         timings: dict[str, float] = {}
+        degradations: list[dict] = []
         t0 = _time.perf_counter()
-
-        instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
-        query_vec = self.embed_model.encode(
-            [instructed_query],
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        )[0]
-        query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
-        timings["embed_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
 
         route = QueryRouter.classify(query)
         search_limit = route["top_k_retrieval"]
         rerank_limit = route["top_k_rerank"]
 
+        query_vec_list: list[float] | None = None
+        instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
+        try:
+            query_vec = self.embed_model.encode(
+                [instructed_query],
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+            )[0]
+            query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+        except Exception as exc:
+            logger.warning("[retriever] debug vector encode failed", exc_info=True)
+            degradations.append(self._degradation("vector", exc))
+        timings["embed_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
+
         t1 = _time.perf_counter()
-        vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
+        vec_results: list[dict] = []
+        if query_vec_list is not None:
+            try:
+                vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
+            except Exception as exc:
+                logger.warning("[retriever] debug vector search failed", exc_info=True)
+                degradations.append(self._degradation("vector", exc))
         timings["vector_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
 
         t1 = _time.perf_counter()
-        fts_results = self._fts_search(query, file_filter, limit=search_limit)
+        fts_results: list[dict] = []
+        try:
+            fts_results = self._fts_search(
+                query,
+                file_filter,
+                limit=search_limit,
+                degradations=degradations,
+            )
+        except Exception as exc:
+            logger.warning("[retriever] debug FTS search failed", exc_info=True)
+            degradations.append(self._degradation("fts", exc))
         timings["fts_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
 
         fused = self._rrf_fuse(
@@ -353,12 +399,18 @@ class HybridRetriever:
         parent_expanded: list[dict] = []
         if include_rerank and deduped:
             t1 = _time.perf_counter()
-            reranked = self._rerank(query, [dict(item) for item in deduped], top_k=rerank_limit)
+            reranked = self._rerank_or_fallback(
+                query,
+                [dict(item) for item in deduped],
+                rerank_limit,
+                degradations,
+            )
             parent_expanded = self._expand_parent_context([dict(item) for item in reranked])
             timings["rerank_ms"] = round((_time.perf_counter() - t1) * 1000, 2)
         else:
             timings["rerank_ms"] = 0.0
             parent_expanded = self._expand_parent_context([dict(item) for item in deduped])
+        self._attach_degradations(parent_expanded, degradations)
 
         timings["total_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
         return {
@@ -368,6 +420,8 @@ class HybridRetriever:
             "router": route,
             "top_k_retrieval": search_limit,
             "top_k_rerank": rerank_limit,
+            "status": "degraded" if degradations else "ok",
+            "degradations": degradations,
             "timings": timings,
             "stages": {
                 "vector": [self._debug_item(item, max_text_chars) for item in vec_results],
@@ -423,6 +477,7 @@ class HybridRetriever:
         query: str,
         file_filter: list[str] | None,
         limit: int | None = None,
+        degradations: list[dict] | None = None,
     ) -> list[dict]:
         limit = limit or self.top_k_retrieval
         tokens = self._tokenize(query)
@@ -451,22 +506,46 @@ class HybridRetriever:
 
         top_ids = [r["qdrant_id"] for r in rows]
         score_map = {r["qdrant_id"]: r["score"] for r in rows}
+        row_payloads = {r["qdrant_id"]: self._fts_row_item(r) for r in rows}
 
-        # Fetch text from Qdrant (text lives in Qdrant payload for now)
-        fetched = self._qdrant.retrieve(
-            collection_name=COLLECTION_NAME,
-            ids=top_ids,
-            with_payload=True,
-        )
-        id_to_payload = {p.id: p.payload for p in fetched}
+        try:
+            fetched = self._qdrant.retrieve(
+                collection_name=COLLECTION_NAME,
+                ids=top_ids,
+                with_payload=True,
+            )
+            id_to_payload = {p.id: p.payload for p in fetched}
+        except Exception as exc:
+            logger.warning("[retriever] Qdrant payload fetch failed; using SQLite FTS payloads", exc_info=True)
+            if degradations is not None:
+                degradations.append(self._degradation("fts_payload", exc))
+            id_to_payload = {}
 
         results = []
         for qid in top_ids:
-            payload = id_to_payload.get(qid)
-            if payload is None:
+            payload = {**row_payloads.get(qid, {}), **(id_to_payload.get(qid) or {})}
+            if not payload:
                 continue
             results.append({"qdrant_id": qid, "score": score_map[qid], **payload})
         return results
+
+    @staticmethod
+    def _fts_row_item(row: dict) -> dict:
+        raw_text = row.get("raw_text", "") or ""
+        return {
+            "file_name": row.get("file_name", ""),
+            "file_path": row.get("file_path", ""),
+            "page_num": row.get("page_num", 0),
+            "section": row.get("section", ""),
+            "chunk_type": row.get("chunk_type", ""),
+            "text": raw_text,
+            "raw_text": raw_text,
+            "child_text": raw_text,
+            "parent_id": row.get("parent_id", 0),
+            "parent_text": row.get("parent_text", ""),
+            "contextual_prefix": row.get("contextual_prefix", ""),
+            "char_count": row.get("char_count", len(raw_text)),
+        }
 
     def fetch_file_chunks(self, qdrant_ids: list[int], max_chunks: int = 15) -> list[dict]:
         """按 page_num 顺序获取文件的前 N 个 chunk，用于摘要生成。"""
@@ -610,6 +689,59 @@ class HybridRetriever:
         return expanded
 
     @staticmethod
+    def _degradation(stage: str, exc: Exception) -> dict:
+        return {
+            "stage": stage,
+            "status": "degraded",
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+        }
+
+    @staticmethod
+    def _attach_degradations(results: list[dict], degradations: list[dict]) -> None:
+        if not degradations:
+            return
+        for item in results:
+            item["retrieval_status"] = "degraded"
+            item["degradations"] = degradations
+
+    def _rerank_or_fallback(
+        self,
+        query: str,
+        candidates: list[dict],
+        top_k: int,
+        degradations: list[dict],
+        cancel_event=None,
+    ) -> list[dict]:
+        if cancel_event is not None and cancel_event.is_set():
+            return []
+        try:
+            reranked = self._rerank(
+                query,
+                candidates,
+                cancel_event=cancel_event,
+                top_k=top_k,
+            )
+            if reranked:
+                return reranked
+            if cancel_event is not None and cancel_event.is_set():
+                return []
+            degradations.append({
+                "stage": "reranker",
+                "status": "degraded",
+                "error_type": "EmptyRerankResult",
+                "message": "Reranker returned no results; using fused candidates.",
+            })
+        except Exception as exc:
+            logger.warning("[retriever] reranker failed; using fused candidates", exc_info=True)
+            degradations.append(self._degradation("reranker", exc))
+
+        fallback = [dict(item) for item in candidates[:top_k]]
+        for item in fallback:
+            item["rerank_fallback"] = True
+        return fallback
+
+    @staticmethod
     def _debug_item(item: dict, max_text_chars: int = 300) -> dict:
         text = item.get("text", "") or ""
         return {
@@ -626,6 +758,8 @@ class HybridRetriever:
             "char_count": item.get("char_count", len(text)),
             "parent_id": item.get("parent_id", 0),
             "parent_text_length": item.get("parent_text_length", len(item.get("parent_text", "") or "")),
+            "retrieval_status": item.get("retrieval_status", "ok"),
+            "rerank_fallback": item.get("rerank_fallback", False),
             "matched_text_preview": (item.get("matched_text") or item.get("child_text") or "")[:max_text_chars],
             "text_preview": text[:max_text_chars],
             "text_length": len(text),

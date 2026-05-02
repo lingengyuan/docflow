@@ -142,7 +142,7 @@ Main endpoints:
 
 `/api/health` returns `ok`, `degraded`, or `unavailable`. SQLite and Qdrant are critical checks. Ollama and local model cache checks are reported as optional capabilities, so missing OCR or contextual-prefix support does not hide query/ingest availability. The response also lists whether query, ingest, OCR, and contextual prefix are currently enabled and available.
 
-`/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, and parent-expanded context so retrieval changes can be inspected before answer generation.
+`/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, parent-expanded context, and any degraded retrieval stages. If vector search is unavailable, DocFlow can still return FTS results from SQLite. If reranking fails, it returns the fused candidates instead of dropping all results. If answer generation fails after retrieval succeeds, the query response keeps the retrieved snippets and clearly says the answer model is unavailable.
 
 ### Development and Testing
 
@@ -368,7 +368,7 @@ paths:
 
 `/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。SQLite 和 Qdrant 是关键检查；Ollama 和本地模型缓存作为可选能力展示，所以 OCR 或上下文前缀不可用时，不会掩盖查询和入库是否可用。返回结果也会说明查询、入库、OCR、上下文前缀当前是否启用且可用。
 
-`/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果和父级上下文展开结果，方便在生成回答前检查检索效果。
+`/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果、父级上下文展开结果，以及是否发生检索降级。向量检索不可用时，DocFlow 仍可从 SQLite 全文检索返回结果；精排失败时，会返回融合后的候选结果，而不是直接丢掉全部结果。如果检索成功但回答模型失败，查询接口会保留已找到的片段，并明确提示回答模型暂时不可用。
 
 ### 开发与测试
 

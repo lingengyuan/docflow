@@ -500,6 +500,8 @@ async function sendMessage() {
     const reader = r.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let streamCompleted = false;
+    let streamErrored = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -527,9 +529,11 @@ async function sendMessage() {
           prose.innerHTML = renderMarkdown(answerText);
           msgs.scrollTop = msgs.scrollHeight;
         } else if (eventType === 'done') {
+          streamCompleted = true;
           prose.classList.remove('streaming-cursor');
           _copyAnswerText = answerText;
         } else if (eventType === 'error') {
+          streamErrored = true;
           prose.classList.remove('streaming-cursor');
           prose.innerHTML = `<span class="text-error">${escHtml(JSON.parse(eventData))}</span>`;
         }
@@ -537,6 +541,12 @@ async function sendMessage() {
     }
 
     prose.classList.remove('streaming-cursor');
+    if (!streamCompleted && !streamErrored) {
+      const interrupted = '连接已中断，以上内容可能不完整。';
+      answerText = answerText ? `${answerText}\n\n${interrupted}` : interrupted;
+      prose.innerHTML = renderMarkdown(answerText);
+      _copyAnswerText = answerText;
+    }
     prose.removeAttribute('id');
     document.getElementById('stream-citations')?.removeAttribute('id');
   } catch (e) {

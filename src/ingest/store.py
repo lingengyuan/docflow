@@ -596,7 +596,8 @@ class DocStore:
         """
         subq_limit = limit * 3 if file_filter else limit
         sql = """
-            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type,
+            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type, c.char_count,
+                   c.parent_id, c.raw_text, c.parent_text, c.contextual_prefix,
                    fi.file_name, fi.file_path, fts.score
             FROM (
                 SELECT rowid, -rank AS score
@@ -694,7 +695,8 @@ class DocStore:
         # 子查询先在 FTS5 内排序，再 JOIN 元数据表（FTS5 rank 在子查询中更稳定）
         subq_limit = limit * 3 if file_filter else limit
         sql = """
-            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type,
+            SELECT c.qdrant_id, c.page_num, c.section, c.chunk_type, c.char_count,
+                   c.parent_id, c.raw_text, c.parent_text, c.contextual_prefix,
                    fi.file_name, fi.file_path, fts.score
             FROM (
                 SELECT rowid, -rank AS score
