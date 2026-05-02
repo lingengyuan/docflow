@@ -28,6 +28,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
+- Optional macOS background service: generate, install, inspect, or remove a launchd service that runs the same checked startup command.
 - Query history, favorites, file upload, source listing, file preview, and summary export endpoints.
 
 ### Requirements
@@ -79,11 +80,24 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
+Optional macOS background service:
+
+```bash
+python main.py service install --dry-run
+python main.py service install
+python main.py service status
+python main.py service uninstall
+```
+
+The service uses launchd and runs `python main.py start` from this project. Use `--dry-run` first to inspect the planned plist and launchctl commands before changing local login services.
+
 Useful commands:
 
 ```bash
 python main.py doctor --json
 python main.py start --check-only
+python main.py service install --dry-run
+python main.py service status
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
@@ -156,7 +170,7 @@ Main endpoints:
 | `/api/sources` | GET | Watched source folders |
 | `/api/health` | GET | Dependency and capability health |
 
-`/api/health` returns `ok`, `degraded`, or `unavailable`. SQLite and Qdrant are critical checks. Ollama and local model cache checks are reported as optional capabilities, so missing OCR or contextual-prefix support does not hide query/ingest availability. The response also lists whether query, ingest, OCR, and contextual prefix are currently enabled and available.
+`/api/health` returns `ok`, `degraded`, or `unavailable`. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama and local model cache checks are reported as optional capabilities, so missing OCR or contextual-prefix support does not hide query/ingest availability. The response also lists whether query, ingest, OCR, and contextual prefix are currently enabled and available.
 
 `/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, parent-expanded context, and any degraded retrieval stages. If vector search is unavailable, DocFlow can still return FTS results from SQLite. If reranking fails, it returns the fused candidates instead of dropping all results. If answer generation fails after retrieval succeeds, the query response keeps the retrieved snippets and clearly says the answer model is unavailable.
 
@@ -186,6 +200,7 @@ Check SQLite and Qdrant consistency:
 ```bash
 .venv/bin/python main.py doctor
 .venv/bin/python main.py start --check-only
+.venv/bin/python main.py service install --dry-run
 .venv/bin/python main.py check
 .venv/bin/python main.py check --json
 ```
@@ -223,8 +238,10 @@ docflow/
 ├── requirements.txt
 ├── README.md
 ├── frontend/
+│   ├── favicon.svg
 │   └── index.html
 ├── scripts/
+│   ├── service.sh
 │   └── start.sh
 ├── src/
 │   ├── api/
@@ -241,6 +258,7 @@ docflow/
 │   ├── maintenance/
 │   │   ├── backup.py
 │   │   ├── consistency.py
+│   │   ├── launchd.py
 │   │   └── startup.py
 │   ├── query/
 │   │   ├── engine.py
@@ -302,6 +320,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
+- 可选 macOS 后台服务：可以生成、安装、查看或移除基于 launchd 的后台服务，底层仍使用同一套启动检查。
 - 已有接口覆盖查询历史、收藏、上传、来源列表、文件预览和摘要导出。
 
 ### 环境要求
@@ -353,11 +372,24 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
+可选 macOS 后台服务：
+
+```bash
+python main.py service install --dry-run
+python main.py service install
+python main.py service status
+python main.py service uninstall
+```
+
+后台服务使用 launchd，实际运行的仍然是当前项目里的 `python main.py start`。建议先用 `--dry-run` 查看将要写入的 plist 和将要执行的 launchctl 命令，再决定是否安装。
+
 常用命令：
 
 ```bash
 python main.py doctor --json
 python main.py start --check-only
+python main.py service install --dry-run
+python main.py service status
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
@@ -430,7 +462,7 @@ paths:
 | `/api/sources` | GET | 查看监控来源目录 |
 | `/api/health` | GET | 依赖和能力健康状态 |
 
-`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。SQLite 和 Qdrant 是关键检查；Ollama 和本地模型缓存作为可选能力展示，所以 OCR 或上下文前缀不可用时，不会掩盖查询和入库是否可用。返回结果也会说明查询、入库、OCR、上下文前缀当前是否启用且可用。
+`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama 和本地模型缓存作为可选能力展示，所以 OCR 或上下文前缀不可用时，不会掩盖查询和入库是否可用。返回结果也会说明查询、入库、OCR、上下文前缀当前是否启用且可用。
 
 `/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果、父级上下文展开结果，以及是否发生检索降级。向量检索不可用时，DocFlow 仍可从 SQLite 全文检索返回结果；精排失败时，会返回融合后的候选结果，而不是直接丢掉全部结果。如果检索成功但回答模型失败，查询接口会保留已找到的片段，并明确提示回答模型暂时不可用。
 
@@ -460,6 +492,7 @@ cd ~/Projects/docflow
 ```bash
 .venv/bin/python main.py doctor
 .venv/bin/python main.py start --check-only
+.venv/bin/python main.py service install --dry-run
 .venv/bin/python main.py check
 .venv/bin/python main.py check --json
 ```
@@ -497,8 +530,10 @@ docflow/
 ├── requirements.txt
 ├── README.md
 ├── frontend/
+│   ├── favicon.svg
 │   └── index.html
 ├── scripts/
+│   ├── service.sh
 │   └── start.sh
 ├── src/
 │   ├── api/
@@ -515,6 +550,7 @@ docflow/
 │   ├── maintenance/
 │   │   ├── backup.py
 │   │   ├── consistency.py
+│   │   ├── launchd.py
 │   │   └── startup.py
 │   ├── query/
 │   │   ├── engine.py

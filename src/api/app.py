@@ -824,7 +824,28 @@ def _check_sqlite(cfg: dict) -> dict:
             conn.execute("CREATE TEMP TABLE IF NOT EXISTS health_check(value INTEGER)")
             conn.execute("DELETE FROM health_check")
             conn.execute("INSERT INTO health_check(value) VALUES (1)")
-            quick_check = conn.execute("PRAGMA quick_check").fetchone()[0]
+            fts_tables = [
+                row["name"]
+                for row in conn.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type = 'table'
+                      AND name IN ('chunks_fts', 'chunks_fts_trigram', 'history_fts')
+                    ORDER BY name
+                    """
+                ).fetchall()
+            ]
+        required_fts_tables = {"chunks_fts", "chunks_fts_trigram", "history_fts"}
+        missing_fts_tables = sorted(required_fts_tables - set(fts_tables))
+        return {
+            "status": "ok" if not missing_fts_tables else "unavailable",
+            "mode": "runtime",
+            "write_check": "ok",
+            "fts_tables": fts_tables,
+            "missing_fts_tables": missing_fts_tables,
+            "quick_check": "skipped during app runtime",
+            "note": "Use `python main.py doctor --strict` for a full SQLite integrity check.",
+        }
     else:
         db_path = Path(cfg["paths"]["db_path"]).expanduser()
         conn = sqlite3.connect(db_path)
@@ -837,7 +858,7 @@ def _check_sqlite(cfg: dict) -> dict:
             conn.close()
 
     status = "ok" if quick_check == "ok" else "unavailable"
-    return {"status": status, "quick_check": quick_check}
+    return {"status": status, "mode": "offline", "quick_check": quick_check}
 
 
 def _check_qdrant(cfg: dict) -> dict:

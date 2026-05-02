@@ -2,6 +2,8 @@
 
 Date: 2026-05-03
 
+Update: Phase 9 follow-up work is now documented in `docs/phase9-followup-handoff.md`. It covers the runtime health check fix, launchd service commands, favicon, and final browser validation.
+
 ## Status
 
 Phase 9 is implemented for optimization plan section 2.13: one-command startup and background service foundation.

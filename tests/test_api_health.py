@@ -103,3 +103,55 @@ def test_health_catches_check_exceptions(monkeypatch):
     assert body["status"] == "unavailable"
     assert body["checks"]["sqlite"]["status"] == "unavailable"
     assert "database locked" in body["checks"]["sqlite"]["error"]
+
+
+def test_runtime_sqlite_health_skips_deep_quick_check(monkeypatch):
+    statements = []
+
+    class FakeCursor:
+        def __init__(self, rows=None):
+            self.rows = rows or []
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else {"value": 1}
+
+        def fetchall(self):
+            return self.rows
+
+    class FakeConn:
+        def execute(self, sql, params=()):
+            statements.append(sql)
+            if "sqlite_master" in sql:
+                return FakeCursor([
+                    {"name": "chunks_fts"},
+                    {"name": "chunks_fts_trigram"},
+                    {"name": "history_fts"},
+                ])
+            return FakeCursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+    class FakeStore:
+        def _conn(self):
+            class ConnContext:
+                def __enter__(self):
+                    return FakeConn()
+
+                def __exit__(self, exc_type, exc, tb):
+                    return False
+
+            return ConnContext()
+
+    monkeypatch.setattr(api_app, "store", FakeStore())
+
+    result = api_app._check_sqlite({"paths": {"db_path": "unused.db"}})
+
+    assert result["status"] == "ok"
+    assert result["mode"] == "runtime"
+    assert result["missing_fts_tables"] == []
+    assert result["quick_check"] == "skipped during app runtime"
+    assert not any("PRAGMA quick_check" in statement for statement in statements)
