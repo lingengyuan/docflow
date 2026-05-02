@@ -81,6 +81,9 @@ python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
+python main.py check
+python main.py rebuild --dry-run
+python main.py rebuild --qdrant-only --dry-run
 ```
 
 ### Configuration
@@ -165,6 +168,22 @@ Run the fixed retrieval evaluation set:
 .venv/bin/python main.py eval
 ```
 
+Check SQLite and Qdrant consistency:
+
+```bash
+.venv/bin/python main.py check
+.venv/bin/python main.py check --json
+```
+
+Plan or run index rebuilds:
+
+```bash
+.venv/bin/python main.py rebuild --dry-run
+.venv/bin/python main.py rebuild
+.venv/bin/python main.py rebuild --qdrant-only --dry-run
+.venv/bin/python main.py rebuild --qdrant-only
+```
+
 Check the FTS tables:
 
 ```bash
@@ -194,6 +213,8 @@ docflow/
 │   │   ├── queue.py
 │   │   ├── store.py
 │   │   └── watcher.py
+│   ├── maintenance/
+│   │   └── consistency.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py
@@ -307,6 +328,9 @@ python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
+python main.py check
+python main.py rebuild --dry-run
+python main.py rebuild --qdrant-only --dry-run
 ```
 
 ### 配置
@@ -391,6 +415,22 @@ cd ~/Projects/docflow
 .venv/bin/python main.py eval
 ```
 
+检查 SQLite 和 Qdrant 是否一致：
+
+```bash
+.venv/bin/python main.py check
+.venv/bin/python main.py check --json
+```
+
+预览或执行索引重建：
+
+```bash
+.venv/bin/python main.py rebuild --dry-run
+.venv/bin/python main.py rebuild
+.venv/bin/python main.py rebuild --qdrant-only --dry-run
+.venv/bin/python main.py rebuild --qdrant-only
+```
+
 检查全文检索表：
 
 ```bash
@@ -420,6 +460,8 @@ docflow/
 │   │   ├── queue.py
 │   │   ├── store.py
 │   │   └── watcher.py
+│   ├── maintenance/
+│   │   └── consistency.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py

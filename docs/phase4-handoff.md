@@ -2,6 +2,8 @@
 
 Date: 2026-05-02
 
+Update: Phase 5 is now documented in `docs/phase5-handoff.md`. The "Next Phase" items below describe what was next at the end of Phase 4, not the current next step.
+
 ## Status
 
 Phase 4 is implemented for optimization plan section 2.8: query path degradation.

@@ -403,6 +403,45 @@ class DocStore:
             ).fetchall()
         return [r["qdrant_id"] for r in rows]
 
+    def list_chunk_index(self) -> list[dict]:
+        """Return all chunk rows needed for consistency checks and Qdrant-only rebuilds."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT c.id, c.file_id, c.qdrant_id, c.chunk_type, c.page_num, c.section,
+                       c.char_count, c.parent_id, c.raw_text, c.embedding_text, c.parent_text,
+                       c.contextual_prefix, f.file_name, f.file_path
+                FROM chunks c
+                JOIN files f ON f.id = c.file_id
+                ORDER BY c.id
+                """
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def list_file_chunk_counts(self) -> list[dict]:
+        """Return declared and actual chunk counts for every file record."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT f.id, f.file_name, f.file_path, f.status, f.chunk_count,
+                       COUNT(c.id) AS actual_chunk_count
+                FROM files f
+                LEFT JOIN chunks c ON c.file_id = f.id
+                GROUP BY f.id
+                ORDER BY f.id
+                """
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def clear_index(self) -> None:
+        """Clear indexed files and chunks while preserving history and embedding cache."""
+        with self._conn() as conn:
+            conn.execute("DELETE FROM chunks_fts")
+            conn.execute("DELETE FROM chunks_fts_trigram")
+            conn.execute("DELETE FROM chunks")
+            conn.execute("DELETE FROM favorites")
+            conn.execute("DELETE FROM files")
+
     def list_file_chunks(self, file_id: int) -> list[dict]:
         """返回某文件所有 chunk 元数据，按 SQLite chunk id 排序。"""
         with self._conn() as conn:

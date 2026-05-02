@@ -15,6 +15,12 @@ DocFlow 入口。
   # 运行固定检索评估集（不调用回答 LLM）
   python main.py eval
 
+  # 检查 SQLite 与 Qdrant 是否一致
+  python main.py check
+
+  # 从原始文件重建索引，或只重建 Qdrant
+  python main.py rebuild [--qdrant-only] [--dry-run]
+
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan
 """
@@ -28,6 +34,7 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
     datefmt="%H:%M:%S",
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def serve():
@@ -75,6 +82,28 @@ def eval_retrieval(args: list[str]):
     return run_eval_main()
 
 
+def check_index(args: list[str]):
+    from src.maintenance.consistency import check_consistency, print_report
+
+    as_json = "--json" in args
+    report = check_consistency("config.yaml")
+    print_report(report, as_json=as_json)
+    return 0 if report.ok else 1
+
+
+def rebuild_command(args: list[str]):
+    from src.maintenance.consistency import rebuild_index, rebuild_qdrant_only
+
+    dry_run = "--dry-run" in args
+    qdrant_only = "--qdrant-only" in args
+    if qdrant_only:
+        result = rebuild_qdrant_only("config.yaml", dry_run=dry_run)
+    else:
+        result = rebuild_index("config.yaml", dry_run=dry_run)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "serve":
@@ -93,6 +122,10 @@ if __name__ == "__main__":
         benchmark(sys.argv[2:])
     elif cmd == "eval":
         sys.exit(eval_retrieval(sys.argv[2:]))
+    elif cmd == "check":
+        sys.exit(check_index(sys.argv[2:]))
+    elif cmd == "rebuild":
+        sys.exit(rebuild_command(sys.argv[2:]))
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)
