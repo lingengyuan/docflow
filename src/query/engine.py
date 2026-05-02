@@ -60,15 +60,22 @@ class QueryEngine:
         self,
         question: str,
         file_filter: list[str] | None = None,
+        conversation_context: list[dict] | None = None,
+        retrieval_query: str | None = None,
     ) -> Answer:
-        prefer_tables = self._is_table_query(question)
+        effective_query = retrieval_query or question
+        prefer_tables = self._is_table_query(effective_query)
         chunks = self.retriever.retrieve(
-            query=question,
+            query=effective_query,
             file_filter=file_filter,
             prefer_tables=prefer_tables,
         )
         try:
-            return self.generator.generate(question, chunks)
+            return self.generator.generate(
+                question,
+                chunks,
+                conversation_context=conversation_context,
+            )
         except Exception as exc:
             logger.warning("[query] answer generation failed; returning retrieved snippets", exc_info=True)
             return self._fallback_answer(chunks, exc)
@@ -78,16 +85,24 @@ class QueryEngine:
         question: str,
         file_filter: list[str] | None = None,
         cancel_event=None,
+        conversation_context: list[dict] | None = None,
+        retrieval_query: str | None = None,
     ):
         """返回 (chunks, token_generator)，先做检索再流式生成。"""
-        prefer_tables = self._is_table_query(question)
+        effective_query = retrieval_query or question
+        prefer_tables = self._is_table_query(effective_query)
         chunks = self.retriever.retrieve(
-            query=question,
+            query=effective_query,
             file_filter=file_filter,
             prefer_tables=prefer_tables,
             cancel_event=cancel_event,
         )
-        token_gen = self._safe_generate_stream(question, chunks, cancel_event=cancel_event)
+        token_gen = self._safe_generate_stream(
+            question,
+            chunks,
+            cancel_event=cancel_event,
+            conversation_context=conversation_context,
+        )
         return chunks, token_gen
 
     def summarize_file(self, file_name: str, qdrant_ids: list[int]) -> str:
@@ -122,12 +137,19 @@ class QueryEngine:
         ]
         return Answer(text=text, citations=citations)
 
-    def _safe_generate_stream(self, question: str, chunks: list[dict], cancel_event=None):
+    def _safe_generate_stream(
+        self,
+        question: str,
+        chunks: list[dict],
+        cancel_event=None,
+        conversation_context: list[dict] | None = None,
+    ):
         try:
             yield from self.generator.generate_stream(
                 question,
                 chunks,
                 cancel_event=cancel_event,
+                conversation_context=conversation_context,
             )
         except Exception as exc:
             if cancel_event is not None and cancel_event.is_set():

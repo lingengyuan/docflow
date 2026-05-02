@@ -20,6 +20,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Parent context retrieval: small chunks are used for matching, while larger parent context is returned for answer generation.
 - Hybrid retrieval: vector search plus SQLite FTS5 keyword search, adaptive routing, and reranking.
 - Streaming answers: citations are sent first, followed by token streaming.
+- Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
@@ -130,6 +131,9 @@ Main endpoints:
 |---|---:|---|
 | `/api/query` | POST | Synchronous Q&A |
 | `/api/query/stream` | POST | Streaming Q&A |
+| `/api/conversations` | GET, POST | List or create conversations |
+| `/api/conversations/{id}/messages` | GET | List conversation messages |
+| `/api/conversations/{id}` | DELETE | Delete a conversation |
 | `/api/ingest` | POST | Trigger scan of watched folders |
 | `/api/queue` | GET | Ingest queue status |
 | `/api/files` | GET | Indexed file list |
@@ -279,6 +283,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 父级上下文检索：用小块命中问题，再把更完整的上下文交给回答模型。
 - 混合检索：向量检索加 SQLite FTS5 全文检索，自动调整候选数量，再做精排。
 - 流式回答：先返回引用来源，再逐步返回答案内容。
+- 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
@@ -389,6 +394,9 @@ paths:
 |---|---:|---|
 | `/api/query` | POST | 普通问答 |
 | `/api/query/stream` | POST | 流式问答 |
+| `/api/conversations` | GET, POST | 查看或新建对话 |
+| `/api/conversations/{id}/messages` | GET | 查看对话消息 |
+| `/api/conversations/{id}` | DELETE | 删除对话 |
 | `/api/ingest` | POST | 触发监控目录扫描 |
 | `/api/queue` | GET | 入库队列状态 |
 | `/api/files` | GET | 已入库文件列表 |

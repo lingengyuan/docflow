@@ -18,7 +18,8 @@ SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提�
 1. 每个关键事实必须附带引用：[来源: 文件名, 第N页]
 2. 若文档中未找到答案，明确回答"在现有文档中未找到相关信息"，不要编造
 3. 回答使用中文，简洁专业
-4. 若多个文档有相关信息，综合后回答并分别标注来源"""
+4. 若多个文档有相关信息，综合后回答并分别标注来源
+5. 最近对话只用于理解追问语境，事实依据仍必须来自文档片段"""
 
 SUMMARIZE_PROMPT = """你是一个专业的文档摘要助手。请基于提供的文档片段生成结构化摘要。
 
@@ -91,7 +92,12 @@ class AnswerGenerator:
             text = self._call_ollama_with_system(SUMMARIZE_PROMPT, user_msg)
         return f"## {file_name}\n\n{text}"
 
-    def generate(self, query: str, chunks: list[dict]) -> Answer:
+    def generate(
+        self,
+        query: str,
+        chunks: list[dict],
+        conversation_context: list[dict] | None = None,
+    ) -> Answer:
         """
         chunks: list of retriever result dicts with keys:
             text, file_name, page_num, rerank_score
@@ -100,7 +106,7 @@ class AnswerGenerator:
             return Answer(text="在现有文档中未找到相关信息。", citations=[])
 
         context = self._build_context(chunks)
-        user_msg = f"问题：{query}\n\n文档片段：\n{context}"
+        user_msg = self._build_user_message(query, context, conversation_context)
 
         if self.backend == "claude":
             answer_text = self._call_with_system(SYSTEM_PROMPT, user_msg)
@@ -134,6 +140,30 @@ class AnswerGenerator:
                 f"[片段{i}] 来源: {c['file_name']}, 第{c['page_num']}页{section}\n{c['text']}"
             )
         return "\n\n---\n\n".join(parts)
+
+    @classmethod
+    def _build_user_message(
+        cls,
+        query: str,
+        context: str,
+        conversation_context: list[dict] | None = None,
+    ) -> str:
+        conversation = cls._build_conversation_context(conversation_context or [])
+        if conversation:
+            return f"最近对话：\n{conversation}\n\n当前问题：{query}\n\n文档片段：\n{context}"
+        return f"问题：{query}\n\n文档片段：\n{context}"
+
+    @staticmethod
+    def _build_conversation_context(messages: list[dict]) -> str:
+        parts = []
+        labels = {"user": "用户", "assistant": "DocFlow"}
+        for message in messages:
+            role = labels.get(message.get("role", ""), message.get("role", ""))
+            content = " ".join(str(message.get("content", "")).split())
+            if not role or not content:
+                continue
+            parts.append(f"{role}：{content}")
+        return "\n".join(parts)
 
     # ------------------------------------------------------------------
     # Ollama (local)
@@ -185,7 +215,13 @@ class AnswerGenerator:
                 if token:
                     yield token
 
-    def generate_stream(self, query: str, chunks: list[dict], cancel_event=None):
+    def generate_stream(
+        self,
+        query: str,
+        chunks: list[dict],
+        cancel_event=None,
+        conversation_context: list[dict] | None = None,
+    ):
         """Yield token strings; caller is responsible for building Answer."""
         if cancel_event is not None and cancel_event.is_set():
             return
@@ -193,7 +229,7 @@ class AnswerGenerator:
             yield "在现有文档中未找到相关信息。"
             return
         context = self._build_context(chunks)
-        user_msg = f"问题：{query}\n\n文档片段：\n{context}"
+        user_msg = self._build_user_message(query, context, conversation_context)
         if self.backend == "mlx":
             yield from self._stream_mlx(SYSTEM_PROMPT, user_msg, cancel_event=cancel_event)
         elif self.backend == "claude":

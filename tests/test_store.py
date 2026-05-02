@@ -170,6 +170,33 @@ class TestDocStore:
         assert set(cached) == {"hash-a"}
         np.testing.assert_allclose(cached["hash-a"], vector)
 
+    def test_conversation_messages_persist_and_delete(self, tmp_path):
+        db_path = tmp_path / "conversation.db"
+        db = DocStore(db_path)
+        conversation_id = db.create_conversation()
+
+        db.add_message(conversation_id, "user", "请总结第一点")
+        db.add_message(
+            conversation_id,
+            "assistant",
+            "第一点是本地优先。",
+            citations_json='[{"file_name":"README.md"}]',
+        )
+
+        reopened = DocStore(db_path)
+        conversation = reopened.get_conversation(conversation_id)
+        messages = reopened.list_messages(conversation_id)
+        conversations = reopened.list_conversations()
+
+        assert conversation["title"] == "请总结第一点"
+        assert [message["role"] for message in messages] == ["user", "assistant"]
+        assert conversations[0]["message_count"] == 2
+        assert conversations[0]["last_message"] == "第一点是本地优先。"
+
+        assert reopened.delete_conversation(conversation_id) is True
+        assert reopened.get_conversation(conversation_id) is None
+        assert reopened.list_messages(conversation_id) == []
+
     def test_migrates_existing_chunks_table_before_parent_index(self, tmp_path):
         db_path = tmp_path / "old.db"
         conn = sqlite3.connect(db_path)

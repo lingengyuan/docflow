@@ -91,7 +91,25 @@ class DocStore:
                     answer      TEXT    NOT NULL,
                     citations   TEXT    NOT NULL DEFAULT '[]',
                     file_filter TEXT    NOT NULL DEFAULT '[]',
+                    conversation_id INTEGER NOT NULL DEFAULT 0,
                     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS conversations (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title      TEXT    NOT NULL DEFAULT '',
+                    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id INTEGER NOT NULL REFERENCES conversations(id),
+                    role            TEXT    NOT NULL,
+                    content         TEXT    NOT NULL,
+                    citations       TEXT    NOT NULL DEFAULT '[]',
+                    file_filter     TEXT    NOT NULL DEFAULT '[]',
+                    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
                 );
 
                 CREATE TABLE IF NOT EXISTS favorites (
@@ -103,6 +121,7 @@ class DocStore:
                 CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
                 CREATE INDEX IF NOT EXISTS idx_files_hash     ON files(file_hash);
                 CREATE INDEX IF NOT EXISTS idx_files_status   ON files(status);
+                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id, id);
 
                 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
                     tokenized_text,
@@ -138,6 +157,7 @@ class DocStore:
             "ALTER TABLE chunks ADD COLUMN embedding_text TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE chunks ADD COLUMN parent_text TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE chunks ADD COLUMN contextual_prefix TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE history ADD COLUMN conversation_id INTEGER NOT NULL DEFAULT 0",
         ]
         with self._conn() as conn:
             for sql in migrations:
@@ -538,12 +558,20 @@ class DocStore:
     # ------------------------------------------------------------------
 
     def add_history(
-        self, question: str, answer: str, citations_json: str, file_filter_json: str = "[]"
+        self,
+        question: str,
+        answer: str,
+        citations_json: str,
+        file_filter_json: str = "[]",
+        conversation_id: int = 0,
     ) -> int:
         with self._conn() as conn:
             conn.execute(
-                "INSERT INTO history (question, answer, citations, file_filter) VALUES (?, ?, ?, ?)",
-                (question, answer, citations_json, file_filter_json),
+                """
+                INSERT INTO history (question, answer, citations, file_filter, conversation_id)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (question, answer, citations_json, file_filter_json, conversation_id),
             )
             row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
             conn.execute(
@@ -556,7 +584,8 @@ class DocStore:
         """全文搜索历史问题，返回匹配的历史记录（含 answer、citations）。"""
         try:
             sql = """
-                SELECT h.id, h.question, h.answer, h.citations, h.file_filter, h.created_at
+                SELECT h.id, h.question, h.answer, h.citations, h.file_filter,
+                       h.conversation_id, h.created_at
                 FROM (
                     SELECT rowid, -rank AS score
                     FROM history_fts
@@ -584,6 +613,128 @@ class DocStore:
         with self._conn() as conn:
             conn.execute("DELETE FROM history_fts")
             conn.execute("DELETE FROM history")
+
+    # ------------------------------------------------------------------
+    # Conversations
+    # ------------------------------------------------------------------
+
+    def create_conversation(self, title: str = "") -> int:
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT INTO conversations (title) VALUES (?)",
+                (title.strip(),),
+            )
+            return conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    def get_conversation(self, conversation_id: int) -> dict | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM conversations WHERE id = ?",
+                (conversation_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def list_conversations(self, limit: int = 50) -> list[dict]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT c.*,
+                       (
+                           SELECT COUNT(*)
+                           FROM messages m
+                           WHERE m.conversation_id = c.id
+                       ) AS message_count,
+                       (
+                           SELECT m.content
+                           FROM messages m
+                           WHERE m.conversation_id = c.id
+                           ORDER BY m.id DESC
+                           LIMIT 1
+                       ) AS last_message
+                FROM conversations c
+                ORDER BY c.updated_at DESC, c.id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_conversation(self, conversation_id: int) -> bool:
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT id FROM conversations WHERE id = ?",
+                (conversation_id,),
+            ).fetchone()
+            if existing is None:
+                return False
+            conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
+            conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+            return True
+
+    def add_message(
+        self,
+        conversation_id: int,
+        role: str,
+        content: str,
+        citations_json: str = "[]",
+        file_filter_json: str = "[]",
+    ) -> int:
+        if role not in {"user", "assistant"}:
+            raise ValueError(f"Unsupported message role: {role}")
+        with self._conn() as conn:
+            conversation = conn.execute(
+                "SELECT title FROM conversations WHERE id = ?",
+                (conversation_id,),
+            ).fetchone()
+            if conversation is None:
+                raise ValueError(f"Conversation not found: {conversation_id}")
+            conn.execute(
+                """
+                INSERT INTO messages (conversation_id, role, content, citations, file_filter)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (conversation_id, role, content, citations_json, file_filter_json),
+            )
+            message_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            title_update = ""
+            if role == "user" and not conversation["title"].strip():
+                title_update = ", title = ?"
+                params = [self._conversation_title(content), conversation_id]
+            else:
+                params = [conversation_id]
+            conn.execute(
+                f"UPDATE conversations SET updated_at = datetime('now'){title_update} WHERE id = ?",
+                params,
+            )
+            return message_id
+
+    def list_messages(self, conversation_id: int, limit: int | None = None) -> list[dict]:
+        if limit is None:
+            query = "SELECT * FROM messages WHERE conversation_id = ? ORDER BY id"
+            params = (conversation_id,)
+        else:
+            query = """
+                SELECT *
+                FROM (
+                    SELECT *
+                    FROM messages
+                    WHERE conversation_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                )
+                ORDER BY id
+            """
+            params = (conversation_id, limit)
+        with self._conn() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(row) for row in rows]
+
+    @staticmethod
+    def _conversation_title(text: str, max_chars: int = 40) -> str:
+        title = " ".join(text.strip().split())
+        if len(title) <= max_chars:
+            return title
+        return title[:max_chars - 1] + "..."
 
     # ------------------------------------------------------------------
     # Favorites

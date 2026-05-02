@@ -276,6 +276,7 @@
 
 <script>
 const API = '';
+let currentConversationId = null;
 let selectedFileIds = new Set();
 let favoritedIds = new Set();
 let queuePollTimer = null;
@@ -481,7 +482,7 @@ async function sendMessage() {
   appendThinking();
 
   try {
-    const body = { question };
+    const body = { question, conversation_id: currentConversationId };
     const r = await fetch(`${API}/api/query/stream`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -520,7 +521,10 @@ async function sendMessage() {
         }
         if (!eventType) continue;
 
-        if (eventType === 'citations') {
+        if (eventType === 'conversation') {
+          const payload = JSON.parse(eventData);
+          currentConversationId = payload.conversation_id;
+        } else if (eventType === 'citations') {
           renderCitations(JSON.parse(eventData));
         } else if (eventType === 'token') {
           const token = JSON.parse(eventData);
@@ -744,6 +748,7 @@ async function refreshHistory() {
 function replayHistory(idx) {
   const item = historyItems[idx];
   if (!item) return;
+  currentConversationId = item.conversation_id || null;
 
   switchView('chat');
 

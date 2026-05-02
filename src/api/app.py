@@ -247,6 +247,7 @@ app = FastAPI(title="DocFlow", lifespan=lifespan)
 class QueryRequest(BaseModel):
     question: str
     file_filter: list[str] | None = None
+    conversation_id: int | None = None
 
 
 class DebugRetrieveRequest(BaseModel):
@@ -259,16 +260,37 @@ class DebugRetrieveRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
+    conversation_id: int | None = None
+
+
+class ConversationCreateRequest(BaseModel):
+    title: str = ""
 
 
 @app.post("/api/query", response_model=QueryResponse)
 async def query(req: QueryRequest):
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
+    conversation_id = _resolve_conversation_id(req.conversation_id)
+    conversation_context = _conversation_context(conversation_id)
+    retrieval_query = _build_retrieval_query(req.question, conversation_context)
+    if store is not None and conversation_id is not None:
+        store.add_message(
+            conversation_id=conversation_id,
+            role="user",
+            content=req.question,
+            file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+        )
     import asyncio
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        ml_executor, lambda: query_engine.query(req.question, file_filter=req.file_filter)
+        ml_executor,
+        lambda: query_engine.query(
+            req.question,
+            file_filter=req.file_filter,
+            conversation_context=conversation_context,
+            retrieval_query=retrieval_query,
+        ),
     )
     seen_files: dict[str, dict] = {}
     for c in result.citations:
@@ -288,8 +310,17 @@ async def query(req: QueryRequest):
             answer=result.text,
             citations_json=json.dumps(citations_data, ensure_ascii=False),
             file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+            conversation_id=conversation_id or 0,
         )
-    return QueryResponse(answer=result.text, citations=citations_data)
+        if conversation_id is not None:
+            store.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=result.text,
+                citations_json=json.dumps(citations_data, ensure_ascii=False),
+                file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+            )
+    return QueryResponse(answer=result.text, citations=citations_data, conversation_id=conversation_id)
 
 
 @app.post("/api/query/stream")
@@ -299,16 +330,31 @@ async def query_stream(req: QueryRequest, request: Request):
         raise HTTPException(503, "Query engine not ready")
     import asyncio, queue, threading
 
+    conversation_id = _resolve_conversation_id(req.conversation_id)
+    conversation_context = _conversation_context(conversation_id)
+    retrieval_query = _build_retrieval_query(req.question, conversation_context)
+    if store is not None and conversation_id is not None:
+        store.add_message(
+            conversation_id=conversation_id,
+            role="user",
+            content=req.question,
+            file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+        )
+
     loop = asyncio.get_event_loop()
     q: queue.Queue = queue.Queue()
     cancel = threading.Event()
 
     def _run():
         try:
+            if conversation_id is not None:
+                q.put(("conversation", {"conversation_id": conversation_id}))
             chunks, token_gen = query_engine.query_stream(
                 req.question,
                 file_filter=req.file_filter,
                 cancel_event=cancel,
+                conversation_context=conversation_context,
+                retrieval_query=retrieval_query,
             )
             if cancel.is_set():
                 return
@@ -341,7 +387,16 @@ async def query_stream(req: QueryRequest, request: Request):
                     answer=answer_text,
                     citations_json=json.dumps(citations_data, ensure_ascii=False),
                     file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+                    conversation_id=conversation_id or 0,
                 )
+                if conversation_id is not None:
+                    store.add_message(
+                        conversation_id=conversation_id,
+                        role="assistant",
+                        content=answer_text,
+                        citations_json=json.dumps(citations_data, ensure_ascii=False),
+                        file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+                    )
             if not cancel.is_set():
                 q.put(("done", ""))
         except Exception as e:
@@ -364,6 +419,87 @@ async def query_stream(req: QueryRequest, request: Request):
                 break
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+def _resolve_conversation_id(conversation_id: int | None) -> int | None:
+    if store is None:
+        return None
+    if conversation_id is None:
+        return store.create_conversation()
+    if store.get_conversation(conversation_id) is None:
+        raise HTTPException(404, "Conversation not found")
+    return conversation_id
+
+
+def _conversation_context(conversation_id: int | None, limit: int = 6) -> list[dict]:
+    if store is None or conversation_id is None:
+        return []
+    return store.list_messages(conversation_id, limit=limit)
+
+
+def _build_retrieval_query(question: str, conversation_context: list[dict]) -> str:
+    if not _looks_like_followup(question):
+        return question
+    previous_user_questions = [
+        message["content"]
+        for message in conversation_context
+        if message.get("role") == "user" and message.get("content")
+    ]
+    if not previous_user_questions:
+        return question
+    return f"{previous_user_questions[-1]}\n{question}"
+
+
+def _looks_like_followup(question: str) -> bool:
+    q = question.strip().lower()
+    markers = (
+        "展开", "继续", "上面", "刚才", "前面", "这个", "那个", "这点", "第二点",
+        "第三点", "第一点", "it", "that", "this", "above", "previous",
+    )
+    return any(marker in q for marker in markers)
+
+
+@app.get("/api/conversations")
+async def list_conversations(limit: int = 50):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    return store.list_conversations(limit=limit)
+
+
+@app.post("/api/conversations")
+async def create_conversation(req: ConversationCreateRequest):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    conversation_id = store.create_conversation(req.title)
+    return store.get_conversation(conversation_id)
+
+
+@app.get("/api/conversations/{conversation_id}/messages")
+async def list_conversation_messages(conversation_id: int, limit: int = 100):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    if store.get_conversation(conversation_id) is None:
+        raise HTTPException(404, "Conversation not found")
+    items = store.list_messages(conversation_id, limit=limit)
+    for item in items:
+        try:
+            item["citations"] = json.loads(item["citations"])
+        except Exception:
+            item["citations"] = []
+        try:
+            item["file_filter"] = json.loads(item["file_filter"])
+        except Exception:
+            item["file_filter"] = []
+    return items
+
+
+@app.delete("/api/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: int):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    if not store.delete_conversation(conversation_id):
+        raise HTTPException(404, "Conversation not found")
+    return {"ok": True}
 
 
 @app.post("/api/ingest")

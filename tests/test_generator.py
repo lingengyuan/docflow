@@ -53,6 +53,21 @@ class TestContextBuilder:
         ctx = AnswerGenerator._build_context([])
         assert ctx == ""
 
+    def test_builds_conversation_context(self):
+        user_msg = AnswerGenerator._build_user_message(
+            "展开第二点",
+            "文档内容",
+            [
+                {"role": "user", "content": "总结这份文档"},
+                {"role": "assistant", "content": "第一点是本地优先。第二点是可验证。"},
+            ],
+        )
+
+        assert "最近对话" in user_msg
+        assert "用户：总结这份文档" in user_msg
+        assert "DocFlow：第一点是本地优先。第二点是可验证。" in user_msg
+        assert "当前问题：展开第二点" in user_msg
+
 
 class TestOllamaGenerate:
     def _mock_ollama_response(self, text: str):
@@ -92,7 +107,11 @@ class TestOllamaGenerate:
         mock_resp.__exit__ = MagicMock(return_value=False)
 
         with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
-            gen.generate("test question", CHUNKS)
+            gen.generate(
+                "test question",
+                CHUNKS,
+                conversation_context=[{"role": "user", "content": "previous question"}],
+            )
 
         req = mock_url.call_args[0][0]
         payload = json.loads(req.data.decode())
@@ -101,6 +120,7 @@ class TestOllamaGenerate:
         assert payload["messages"][0]["role"] == "system"
         assert payload["messages"][1]["role"] == "user"
         assert "test question" in payload["messages"][1]["content"]
+        assert "previous question" in payload["messages"][1]["content"]
 
     def test_claude_stream_falls_back_to_single_chunk(self):
         gen = AnswerGenerator(backend="claude", claude_api_key="test-key")
