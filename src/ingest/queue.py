@@ -13,6 +13,7 @@ import time
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
+from typing import Callable
 
 from src.ingest.pipeline import PreparedIngestFile
 
@@ -37,6 +38,8 @@ class IngestQueue:
         microbatch_max_files: int = 8,
         microbatch_max_chunks: int = 128,
         microbatch_linger_ms: int = 75,
+        should_pause_background: Callable[[], bool] | None = None,
+        pause_check_interval_ms: int = 500,
     ):
         from src.ingest.pipeline import IngestPipeline
 
@@ -60,6 +63,10 @@ class IngestQueue:
         self._microbatch_max_files = max(1, microbatch_max_files)
         self._microbatch_max_chunks = max(1, microbatch_max_chunks)
         self._microbatch_linger_s = max(0.0, microbatch_linger_ms / 1000.0)
+        self._should_pause_background = should_pause_background
+        self._pause_check_s = max(0.05, pause_check_interval_ms / 1000.0)
+        self._paused_reason: str | None = None
+        self._paused_since: float | None = None
 
         self._prepare_executor = (
             ThreadPoolExecutor(
@@ -145,6 +152,9 @@ class IngestQueue:
                 "pending_files": [p.name for p in self._pending_paths_locked()],
                 "progress": dict(self._progress) if self._progress else None,
                 "last_completed": dict(self._last_completed) if self._last_completed else None,
+                "paused": self._paused_reason is not None,
+                "pause_reason": self._paused_reason,
+                "paused_since": self._paused_since,
             }
 
     # ------------------------------------------------------------------
@@ -159,11 +169,16 @@ class IngestQueue:
                 did_work = self._drain_legacy()
             if did_work:
                 continue
-            self._event.wait(timeout=0.1)
+            timeout = self._pause_check_s if self._is_marked_paused() else 0.1
+            self._event.wait(timeout=timeout)
             self._event.clear()
 
     def _drain_legacy(self) -> bool:
         while True:
+            if self._is_background_paused():
+                self._mark_paused("foreground_active")
+                return False
+            self._clear_pause()
             with self._lock:
                 if not self._queue:
                     self._current = None
@@ -208,6 +223,10 @@ class IngestQueue:
             return True
 
         if self._should_process_batch():
+            if self._is_background_paused():
+                self._mark_paused("foreground_active")
+                return False
+            self._clear_pause()
             batch = self._pop_prepared_batch()
             if batch:
                 self._process_prepared_batch(batch)
@@ -217,6 +236,10 @@ class IngestQueue:
             if self._collect_prepare_results(timeout=self._microbatch_linger_s):
                 return True
             if self._should_process_batch():
+                if self._is_background_paused():
+                    self._mark_paused("foreground_active")
+                    return False
+                self._clear_pause()
                 batch = self._pop_prepared_batch()
                 if batch:
                     self._process_prepared_batch(batch)
@@ -231,6 +254,8 @@ class IngestQueue:
         with self._lock:
             if not self._tracked_paths:
                 self._progress = None
+                self._paused_reason = None
+                self._paused_since = None
         return False
 
     # ------------------------------------------------------------------
@@ -420,6 +445,38 @@ class IngestQueue:
             len(self._prepared) >= self._microbatch_max_files
             or chunk_total >= self._microbatch_max_chunks
         )
+
+    def _is_background_paused(self) -> bool:
+        if self._should_pause_background is None:
+            return False
+        try:
+            return bool(self._should_pause_background())
+        except Exception:
+            logger.exception("[queue] Foreground pause check failed")
+            return False
+
+    def _mark_paused(self, reason: str):
+        with self._lock:
+            if self._paused_reason is None:
+                self._paused_since = time.time()
+                logger.info("[queue] Paused background ingest: %s", reason)
+            self._paused_reason = reason
+            self._refresh_progress_locked()
+            if self._progress is not None:
+                self._progress["stage"] = "paused"
+                self._progress["pause_reason"] = reason
+                self._progress["paused_since"] = self._paused_since
+
+    def _clear_pause(self):
+        with self._lock:
+            if self._paused_reason is not None:
+                logger.info("[queue] Resumed background ingest")
+            self._paused_reason = None
+            self._paused_since = None
+
+    def _is_marked_paused(self) -> bool:
+        with self._lock:
+            return self._paused_reason is not None
 
     # ------------------------------------------------------------------
     # Status helpers

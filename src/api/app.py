@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import logging
 import os
+import asyncio
+import queue
 import sqlite3
-from concurrent.futures import ThreadPoolExecutor
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, time
 
 import yaml
 import json
@@ -24,6 +26,7 @@ from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.store import DocStore
 from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
+from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
 from src.query.engine import QueryEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +37,13 @@ logging.getLogger("FlagEmbedding").setLevel(logging.WARNING)
 
 CONFIG_PATH = Path(__file__).parent.parent.parent / "config.yaml"
 COLLECTION_NAME = "docflow"
+MODEL_TASK_TIMEOUT_S = float(os.getenv("DOCFLOW_MODEL_TASK_TIMEOUT_S", "90"))
+STREAM_FIRST_CONTENT_TIMEOUT_S = float(os.getenv("DOCFLOW_STREAM_FIRST_CONTENT_TIMEOUT_S", "60"))
+STREAM_IDLE_TIMEOUT_S = float(os.getenv("DOCFLOW_STREAM_IDLE_TIMEOUT_S", "60"))
+STREAM_QUEUE_POLL_S = 0.25
+FOREGROUND_PAUSE_GRACE_S = float(os.getenv("DOCFLOW_FOREGROUND_PAUSE_GRACE_S", "5"))
+INGEST_PAUSE_CHECK_INTERVAL_MS = int(os.getenv("DOCFLOW_INGEST_PAUSE_CHECK_INTERVAL_MS", "500"))
+MODEL_TIMEOUT_MESSAGE = "模型任务超时，请稍后重试；系统已释放后续请求。"
 
 
 # ---------------------------------------------------------------------------
@@ -47,8 +57,15 @@ store: DocStore | None = None
 watcher: FolderWatcher | None = None
 watch_dirs: list[WatchDir] = []
 llm_options: list[str] = []
+llm_switch_state: dict = {
+    "state": "idle",
+    "model": None,
+    "message": "",
+    "started_at": None,
+    "finished_at": None,
+}
 
-ml_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ml-inference")
+model_tasks = ModelTaskController(thread_name_prefix="ml-inference", logger=logger)
 
 
 def _timed_check(fn) -> dict:
@@ -123,6 +140,33 @@ def _is_hf_model_cached(model_name: str) -> bool:
     return any(snap.is_dir() for snap in snapshots_dir.iterdir())
 
 
+def _llm_model_status(model_name: str) -> dict:
+    cached = _is_hf_model_cached(model_name) if "/" in model_name else True
+    return {
+        "model": model_name,
+        "cached": cached,
+        "available": cached,
+        "current": bool(query_engine and query_engine.generator.current_model == model_name),
+    }
+
+
+def _set_llm_switch_state(state: str, *, model: str | None = None, message: str = ""):
+    now = time()
+    llm_switch_state.update({
+        "state": state,
+        "model": model,
+        "message": message,
+        "started_at": now if state == "switching" else llm_switch_state.get("started_at"),
+        "finished_at": None if state == "switching" else now,
+    })
+
+
+def _load_mlx_model_candidate(model_name: str):
+    from mlx_lm import load
+
+    return load(model_name)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global pipeline, ingest_queue, query_engine, store, watcher, watch_dirs, llm_options
@@ -162,8 +206,8 @@ async def lifespan(app: FastAPI):
     pipeline = IngestPipeline.from_config(CONFIG_PATH, store=store)
     query_engine = QueryEngine.from_config(CONFIG_PATH, store=store)
 
-    # CPU embedding 不需要走 MLX Metal 执行器，直接在 ingest worker 线程里跑
-    # ml_executor 只保留给 MLX 推理（reranker、LLM）
+    # CPU embedding 不需要走前台模型任务控制器，直接在 ingest worker 线程里跑
+    # 前台模型任务控制器只保留给 MLX 推理（reranker、LLM）
     ingest_queue = IngestQueue(
         pipeline,
         on_done=None,
@@ -172,16 +216,19 @@ async def lifespan(app: FastAPI):
         microbatch_max_files=ingest_cfg.get("microbatch_max_files", 8),
         microbatch_max_chunks=ingest_cfg.get("microbatch_max_chunks", 128),
         microbatch_linger_ms=ingest_cfg.get("microbatch_linger_ms", 75),
+        should_pause_background=lambda: model_tasks.is_foreground_active(grace_s=FOREGROUND_PAUSE_GRACE_S),
+        pause_check_interval_ms=ingest_cfg.get("pause_check_interval_ms", INGEST_PAUSE_CHECK_INTERVAL_MS),
     )
     ingest_queue.start()
 
     watcher = FolderWatcher(pipeline, watch_dirs, ingest_queue=ingest_queue)
     watcher.start()
 
-    import asyncio
-    loop = asyncio.get_event_loop()
     logger.info("Warming up embedding and reranker models...")
-    await loop.run_in_executor(ml_executor, _warmup_models)
+    try:
+        await model_tasks.run("warmup", _warmup_models, timeout_s=max(MODEL_TASK_TIMEOUT_S, 180))
+    except ModelTaskTimeout as exc:
+        logger.warning("[warmup] Timed out: %s", exc)
     logger.info("Models ready.")
 
     # 共享 embedding model 实例
@@ -231,6 +278,7 @@ async def lifespan(app: FastAPI):
         watcher.stop()
     if ingest_queue:
         ingest_queue.stop()
+    model_tasks.shutdown()
 
 
 # ---------------------------------------------------------------------------
@@ -281,17 +329,20 @@ async def query(req: QueryRequest):
             content=req.question,
             file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
         )
-    import asyncio
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        ml_executor,
-        lambda: query_engine.query(
-            req.question,
-            file_filter=req.file_filter,
-            conversation_context=conversation_context,
-            retrieval_query=retrieval_query,
-        ),
-    )
+    try:
+        result = await model_tasks.run(
+            "query",
+            lambda: query_engine.query(
+                req.question,
+                file_filter=req.file_filter,
+                conversation_context=conversation_context,
+                retrieval_query=retrieval_query,
+            ),
+            timeout_s=MODEL_TASK_TIMEOUT_S,
+        )
+    except ModelTaskTimeout as exc:
+        logger.warning("[api/query] timeout id=%s question=%r", exc.task_id, req.question[:80])
+        raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
     seen_files: dict[str, dict] = {}
     for c in result.citations:
         key = c.file_path or c.file_name
@@ -329,7 +380,6 @@ async def query_stream(req: QueryRequest, request: Request):
     """SSE 流式查询：先返回 citations，再逐 token 返回答案。"""
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
-    import asyncio, queue, threading
 
     conversation_id = _resolve_conversation_id(req.conversation_id)
     conversation_context = _conversation_context(conversation_id)
@@ -405,17 +455,49 @@ async def query_stream(req: QueryRequest, request: Request):
             if not cancel.is_set():
                 q.put(("error", str(e)))
 
-    ml_executor.submit(_run)
+    task = model_tasks.submit("query_stream", _run)
 
     async def event_stream():
+        first_content_at: float | None = None
+        last_content_at = perf_counter()
         while True:
             if await request.is_disconnected():
                 cancel.set()
+                model_tasks.cancel_and_retire(task, reason="client disconnected")
                 break
             try:
-                event, data = await loop.run_in_executor(None, q.get, True, 1)
+                event, data = await loop.run_in_executor(None, q.get, True, STREAM_QUEUE_POLL_S)
             except queue.Empty:
+                now = perf_counter()
+                if first_content_at is None and now - task.started_at > STREAM_FIRST_CONTENT_TIMEOUT_S:
+                    cancel.set()
+                    model_tasks.cancel_and_retire(
+                        task,
+                        reason=f"stream first content timeout after {STREAM_FIRST_CONTENT_TIMEOUT_S:.1f}s",
+                    )
+                    yield (
+                        "event: error\n"
+                        f"data: {json.dumps(MODEL_TIMEOUT_MESSAGE, ensure_ascii=False)}\n\n"
+                    )
+                    break
+                if first_content_at is not None and now - last_content_at > STREAM_IDLE_TIMEOUT_S:
+                    cancel.set()
+                    model_tasks.cancel_and_retire(
+                        task,
+                        reason=f"stream idle timeout after {STREAM_IDLE_TIMEOUT_S:.1f}s",
+                    )
+                    yield (
+                        "event: error\n"
+                        f"data: {json.dumps(MODEL_TIMEOUT_MESSAGE, ensure_ascii=False)}\n\n"
+                    )
+                    break
+                if task.future.done() and q.empty():
+                    break
                 continue
+            if event in ("citations", "token", "done", "error"):
+                if first_content_at is None:
+                    first_content_at = perf_counter()
+                last_content_at = perf_counter()
             yield f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
             if event in ("done", "error"):
                 break
@@ -529,8 +611,12 @@ async def queue_status():
             "pending_files": [],
             "progress": None,
             "last_completed": None,
+            "paused": False,
+            "pause_reason": None,
+            "paused_since": None,
+            "foreground": model_tasks.status(),
         }
-    return ingest_queue.status()
+    return {**ingest_queue.status(), "foreground": model_tasks.status()}
 
 
 def _warmup_models():
@@ -590,6 +676,23 @@ async def upload_file(file: UploadFile):
 
 @app.get("/api/file/{file_id}/preview")
 async def preview_file(file_id: int):
+    file_path, media_type = _resolve_preview_file(file_id)
+    return FileResponse(str(file_path), media_type=media_type)
+
+
+@app.head("/api/file/{file_id}/preview")
+async def preview_file_head(file_id: int):
+    file_path, media_type = _resolve_preview_file(file_id)
+    return Response(
+        status_code=200,
+        headers={
+            "content-length": str(file_path.stat().st_size),
+            "content-type": media_type,
+        },
+    )
+
+
+def _resolve_preview_file(file_id: int) -> tuple[Path, str]:
     if store is None:
         raise HTTPException(503, "Store not ready")
     record = store.get_file_by_id(file_id)
@@ -607,7 +710,7 @@ async def preview_file(file_id: int):
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }
     media_type = media_types.get(suffix, "application/octet-stream")
-    return FileResponse(str(file_path), media_type=media_type)
+    return file_path, media_type
 
 
 @app.get("/api/file/{file_id}/chunks")
@@ -704,18 +807,24 @@ async def summarize_files(req: SummarizeRequest):
     if not req.file_ids:
         raise HTTPException(400, "No file IDs provided")
 
-    import asyncio
-    loop = asyncio.get_event_loop()
-
     summaries: list[str] = []
     for fid in req.file_ids:
         record = store.get_file_by_id(fid)
         if not record or record["status"] != "done":
             continue
         qdrant_ids = store.get_file_qdrant_ids(fid)
-        md = await loop.run_in_executor(
-            ml_executor, query_engine.summarize_file, record["file_name"], qdrant_ids
-        )
+        try:
+            md = await model_tasks.run(
+                "summarize",
+                lambda record=record, qdrant_ids=qdrant_ids: query_engine.summarize_file(
+                    record["file_name"],
+                    qdrant_ids,
+                ),
+                timeout_s=MODEL_TASK_TIMEOUT_S,
+            )
+        except ModelTaskTimeout as exc:
+            logger.warning("[api/summarize] timeout id=%s file_id=%s", exc.task_id, fid)
+            raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
         summaries.append(md)
 
     if not summaries:
@@ -734,19 +843,22 @@ async def debug_retrieve(req: DebugRetrieveRequest):
     """本地调试：返回向量、全文、融合、去重、精排的完整检索链路。"""
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
-    import asyncio
-    loop = asyncio.get_event_loop()
     prefer_tables = query_engine._is_table_query(req.question)
-    return await loop.run_in_executor(
-        ml_executor,
-        lambda: query_engine.retriever.debug_retrieve(
-            req.question,
-            file_filter=req.file_filter,
-            prefer_tables=prefer_tables,
-            include_rerank=req.include_rerank,
-            max_text_chars=max(0, min(req.max_text_chars, 2000)),
-        ),
-    )
+    try:
+        return await model_tasks.run(
+            "debug_retrieve",
+            lambda: query_engine.retriever.debug_retrieve(
+                req.question,
+                file_filter=req.file_filter,
+                prefer_tables=prefer_tables,
+                include_rerank=req.include_rerank,
+                max_text_chars=max(0, min(req.max_text_chars, 2000)),
+            ),
+            timeout_s=MODEL_TASK_TIMEOUT_S,
+        )
+    except ModelTaskTimeout as exc:
+        logger.warning("[api/debug/retrieve] timeout id=%s question=%r", exc.task_id, req.question[:80])
+        raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
 
 
 @app.get("/api/llm")
@@ -756,7 +868,9 @@ async def get_llm():
     return {
         "current": query_engine.generator.current_model,
         "options": llm_options,
+        "models": [_llm_model_status(model) for model in llm_options],
         "backend": query_engine.generator.backend,
+        "switch": dict(llm_switch_state),
     }
 
 
@@ -771,14 +885,39 @@ async def set_llm(req: LLMSwitchRequest):
     if req.model not in llm_options:
         raise HTTPException(400, f"Unknown model: {req.model}. Available: {llm_options}")
     gen = query_engine.generator
+    if req.model == gen.current_model:
+        _set_llm_switch_state("idle", model=req.model, message="Already using this model")
+        return {"ok": True, "model": req.model, "unchanged": True}
+    model_status = _llm_model_status(req.model)
+    if gen.backend == "mlx" and not model_status["available"]:
+        message = f"Model is not cached locally: {req.model}"
+        _set_llm_switch_state("error", model=req.model, message=message)
+        raise HTTPException(409, message)
+    _set_llm_switch_state("switching", model=req.model)
     if gen.backend == "mlx":
-        import asyncio
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(ml_executor, gen._load_mlx_model, req.model)
+        try:
+            loaded_model, loaded_tokenizer = await model_tasks.run(
+                "llm_switch",
+                lambda: _load_mlx_model_candidate(req.model),
+                timeout_s=MODEL_TASK_TIMEOUT_S,
+            )
+            gen._mlx_model = loaded_model
+            gen._mlx_tokenizer = loaded_tokenizer
+            gen.mlx_model_name = req.model
+        except ModelTaskTimeout as exc:
+            logger.warning("[api/llm] switch timeout id=%s model=%s", exc.task_id, req.model)
+            _set_llm_switch_state("error", model=req.model, message=MODEL_TIMEOUT_MESSAGE)
+            raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
+        except Exception as exc:
+            message = str(exc) or "Model switch failed"
+            logger.exception("[api/llm] switch failed model=%s", req.model)
+            _set_llm_switch_state("error", model=req.model, message=message)
+            raise HTTPException(500, message) from exc
     elif gen.backend == "claude":
         gen.claude_model = req.model
     else:
         gen.ollama_model = req.model
+    _set_llm_switch_state("idle", model=req.model, message="Switched")
     logger.info(f"[llm] Switched to {req.model}")
     return {"ok": True, "model": req.model}
 
@@ -813,6 +952,7 @@ async def health():
         "status": status,
         "checks": checks,
         "capabilities": capabilities,
+        "groups": _health_groups(cfg, checks, capabilities),
     }
 
 
@@ -948,7 +1088,9 @@ def _check_models(cfg: dict) -> dict:
 
 def _health_capabilities(cfg: dict, checks: dict) -> dict:
     ollama_models = checks["ollama"].get("models", {})
+    local_models = checks["models"].get("local_cache", {})
     ingest_cfg = cfg.get("ingest", {})
+    vlm_cfg = cfg.get("vlm", {})
     contextual_prefix_enabled = ingest_cfg.get("contextual_prefix", False)
     contextual_prefix_available = (
         contextual_prefix_enabled
@@ -957,13 +1099,124 @@ def _health_capabilities(cfg: dict, checks: dict) -> dict:
             or ollama_models.get("contextual_prefix", {}).get("available", False)
         )
     )
+    vlm_enabled = vlm_cfg.get("enabled", True)
     return {
         "query": checks["sqlite"]["status"] == "ok" and checks["qdrant"]["status"] == "ok",
         "ingest": checks["sqlite"]["status"] == "ok" and checks["qdrant"]["status"] == "ok",
         "ocr": ollama_models.get("ocr", {}).get("available", False),
+        "enhanced_llm": local_models.get("llm_enhanced", {}).get("cached", False),
+        "vlm": vlm_enabled and local_models.get("vlm", {}).get("cached", False),
+        "vlm_enabled": vlm_enabled,
         "contextual_prefix": contextual_prefix_available,
         "contextual_prefix_enabled": contextual_prefix_enabled,
         "contextual_prefix_mode": ingest_cfg.get("contextual_prefix_mode", "metadata"),
+    }
+
+
+def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
+    local_models = checks["models"].get("local_cache", {})
+    missing_local_cache = set(checks["models"].get("missing_local_cache", []))
+    vlm_cfg = cfg.get("vlm", {})
+    ingest_cfg = cfg.get("ingest", {})
+
+    def core_item(key: str, label: str, ok: bool, detail_ok: str, detail_bad: str) -> dict:
+        return {
+            "key": key,
+            "label": label,
+            "status": "ok" if ok else "unavailable",
+            "detail": detail_ok if ok else detail_bad,
+        }
+
+    def check_item(key: str, label: str, check: dict, fallback_detail: str) -> dict:
+        detail = check.get("error") or check.get("note") or check.get("collection") or fallback_detail
+        return {
+            "key": key,
+            "label": label,
+            "status": check.get("status", "unknown"),
+            "detail": str(detail),
+        }
+
+    def optional_item(key: str, label: str, enabled: bool, available: bool, detail_ok: str, detail_bad: str) -> dict:
+        if not enabled:
+            return {
+                "key": key,
+                "label": label,
+                "status": "off",
+                "detail": "未启用，不影响问答和入库核心流程。",
+            }
+        return {
+            "key": key,
+            "label": label,
+            "status": "ok" if available else "optional_unavailable",
+            "detail": detail_ok if available else detail_bad,
+        }
+
+    enhanced_model = local_models.get("llm_enhanced", {}).get("model", "")
+    vlm_model = local_models.get("vlm", {}).get("model") or vlm_cfg.get("model", "")
+    contextual_prefix_enabled = capabilities.get("contextual_prefix_enabled", False)
+    contextual_prefix_mode = capabilities.get("contextual_prefix_mode", "metadata")
+    ocr_missing = ", ".join(checks["ollama"].get("missing_models", []))
+    missing_model_text = ", ".join(sorted(missing_local_cache))
+
+    return {
+        "core": {
+            "label": "核心功能",
+            "items": [
+                core_item(
+                    "query",
+                    "问答",
+                    capabilities.get("query", False),
+                    "可以检索文档并回答问题。",
+                    "SQLite 或 Qdrant 不可用，问答不可用。",
+                ),
+                core_item(
+                    "ingest",
+                    "入库",
+                    capabilities.get("ingest", False),
+                    "可以解析文件并写入索引。",
+                    "SQLite 或 Qdrant 不可用，入库不可用。",
+                ),
+                check_item("sqlite", "SQLite", checks["sqlite"], "本地记录库可用。"),
+                check_item("qdrant", "Qdrant", checks["qdrant"], "向量库可用。"),
+            ],
+        },
+        "optional": {
+            "label": "可选能力",
+            "items": [
+                optional_item(
+                    "ocr",
+                    "OCR",
+                    bool(checks["ollama"].get("models", {}).get("ocr")),
+                    capabilities.get("ocr", False),
+                    "扫描 PDF 识别可用。",
+                    f"只影响扫描 PDF 识别；缺失：{ocr_missing or 'OCR 模型或 Ollama'}。",
+                ),
+                optional_item(
+                    "enhanced_llm",
+                    "增强模型",
+                    bool(enhanced_model),
+                    capabilities.get("enhanced_llm", False),
+                    "增强问答模型已缓存。",
+                    f"只影响增强模型切换；缺失：{enhanced_model or missing_model_text or '增强模型缓存'}。",
+                ),
+                optional_item(
+                    "vlm",
+                    "图片理解",
+                    bool(vlm_cfg.get("enabled", True)),
+                    capabilities.get("vlm", False),
+                    "图片入库解析可用。",
+                    f"只影响图片入库；缺失：{vlm_model or missing_model_text or 'VLM 模型缓存'}。",
+                ),
+                optional_item(
+                    "contextual_prefix",
+                    "上下文前缀",
+                    contextual_prefix_enabled,
+                    capabilities.get("contextual_prefix", False),
+                    f"{contextual_prefix_mode} 模式可用。",
+                    "只影响检索上下文增强，不影响基础问答。",
+                ),
+            ],
+        },
     }
 
 
@@ -983,4 +1236,8 @@ def _aggregate_health_status(checks: dict) -> str:
 
 STATIC_DIR = Path(__file__).parent.parent.parent / "frontend"
 if STATIC_DIR.exists():
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def favicon_ico():
+        return FileResponse(str(STATIC_DIR / "favicon.svg"), media_type="image/svg+xml")
+
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")

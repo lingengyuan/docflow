@@ -20,6 +20,8 @@ backups/
 # 日志
 *.log
 /tmp/docflow.log
+.playwright-cli/
+output/
 
 # macOS
 .DS_Store

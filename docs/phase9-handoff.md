@@ -98,10 +98,10 @@ Results:
 
 ## Next Phase
 
-The original optimization plan's Phase 9 scope is complete. There is no numbered Phase 10 in the current plan.
+The original optimization plan's Phase 9 scope is complete. A new Phase 10 stability plan was added after full-product validation.
 
 Recommended next tasks:
 
-1. Use `docs/phase9-followup-handoff.md` as the current source of truth.
-2. After the next login, verify the installed background service again with `python main.py service status` and the service logs.
-3. If background scans feel too heavy after login, improve queue pacing and startup scan behavior next.
+1. Use `docs/phase9-followup-handoff.md` as the Phase 9 source of truth.
+2. Use `docs/phase10-validation-issues.md` for the latest validation results.
+3. Use `docs/phase10-optimization-plan.md` for the next implementation plan.

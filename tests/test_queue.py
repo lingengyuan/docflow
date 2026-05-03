@@ -148,3 +148,44 @@ def test_queue_batches_files_and_exposes_chunk_progress():
         queue.stop()
 
     assert pipeline.batch_sizes == [2]
+
+
+def test_queue_pauses_prepared_batch_while_foreground_active():
+    pipeline = BatchingPipeline()
+    foreground_active = True
+    queue = IngestQueue(
+        pipeline,
+        parse_workers=1,
+        microbatch_max_files=8,
+        microbatch_max_chunks=128,
+        microbatch_linger_ms=0,
+        should_pause_background=lambda: foreground_active,
+        pause_check_interval_ms=50,
+    )
+
+    path = Path("/tmp/source-a/report-a.pdf")
+
+    queue.start()
+    try:
+        queue.submit(path)
+
+        deadline = threading.Event()
+        paused = False
+        for _ in range(20):
+            status = queue.status()
+            if status["paused"]:
+                paused = True
+                break
+            deadline.wait(timeout=0.05)
+
+        assert paused is True
+        assert pipeline.started.is_set() is False
+        status = queue.status()
+        assert status["pause_reason"] == "foreground_active"
+        assert status["progress"]["stage"] == "paused"
+
+        foreground_active = False
+        assert pipeline.started.wait(timeout=1)
+        pipeline.release.set()
+    finally:
+        queue.stop()

@@ -153,8 +153,8 @@
             <span id="health-icon" class="w-2 h-2 rounded-full bg-tertiary"></span>
             <span id="health-label">状态</span>
           </button>
-          <div id="health-panel" class="hidden absolute right-0 mt-2 w-72 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50 p-3">
-            <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">依赖状态</div>
+          <div id="health-panel" class="hidden absolute right-0 mt-2 w-80 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50 p-3">
+            <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">系统状态</div>
             <div id="health-details" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
           </div>
         </div>
@@ -170,7 +170,7 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
-          <span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Local LLM</span>
+          <span id="llm-status" class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Local LLM</span>
         </div>
       </div>
     </header>
@@ -291,7 +291,7 @@
   <div id="view-history" class="view hidden flex flex-col h-full overflow-hidden">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
       <h1 class="text-base font-semibold text-on-surface tracking-tight">搜索历史</h1>
-      <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-error bg-surface-container hover:bg-surface-container-high transition-all">
+      <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 transition-all">
         <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>
         清空历史
       </button>
@@ -302,6 +302,24 @@
 
 </main>
 
+<div id="confirm-modal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/35 backdrop-blur-sm px-4" onclick="if(event.target===this) closeConfirmDialog(false)">
+  <div role="dialog" aria-modal="true" aria-labelledby="confirm-title" class="w-full max-w-sm rounded-xl bg-surface-container-lowest shadow-2xl border border-outline-variant/20 p-5">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-lg bg-error/10 text-error flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined" style="font-size:20px">warning</span>
+      </div>
+      <div class="min-w-0">
+        <h2 id="confirm-title" class="text-sm font-semibold text-on-surface"></h2>
+        <p id="confirm-message" class="mt-1 text-xs leading-relaxed text-on-surface-variant"></p>
+      </div>
+    </div>
+    <div class="mt-5 flex justify-end gap-2">
+      <button id="confirm-cancel" onclick="closeConfirmDialog(false)" class="px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">取消</button>
+      <button id="confirm-action" onclick="closeConfirmDialog(true)" class="px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 transition-all">确认</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = '';
 let currentConversationId = null;
@@ -311,6 +329,34 @@ let selectedFileIds = new Set();
 let favoritedIds = new Set();
 let queuePollTimer = null;
 let llmOptions = [];
+let pendingConfirmResolve = null;
+
+function showConfirmDialog({ title, message, confirmText = '确认' }) {
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-action').textContent = confirmText;
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  return new Promise(resolve => {
+    pendingConfirmResolve = resolve;
+  });
+}
+
+function closeConfirmDialog(confirmed) {
+  const modal = document.getElementById('confirm-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  const resolve = pendingConfirmResolve;
+  pendingConfirmResolve = null;
+  if (resolve) resolve(Boolean(confirmed));
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && pendingConfirmResolve) {
+    closeConfirmDialog(false);
+  }
+});
 
 // ── View switching ──
 function switchView(view) {
@@ -344,12 +390,12 @@ async function checkHealth() {
     const cls = ok ? (degraded ? 'bg-primary' : 'bg-tertiary') : 'bg-error';
     dot.className = `w-2 h-2 rounded-full ${cls}`;
     document.getElementById('health-icon').className = `w-2 h-2 rounded-full ${cls}`;
-    document.getElementById('health-label').textContent = healthSnapshot.status || '状态';
+    document.getElementById('health-label').textContent = healthStatusLabel(healthSnapshot.status);
     renderHealthPanel();
   } catch {
     document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-error';
     document.getElementById('health-icon').className = 'w-2 h-2 rounded-full bg-error';
-    document.getElementById('health-label').textContent = 'unavailable';
+    document.getElementById('health-label').textContent = '不可用';
     healthSnapshot = null;
     renderHealthPanel('无法读取健康状态');
   }
@@ -374,37 +420,77 @@ function renderHealthPanel(errorText = '') {
     el.innerHTML = '<div>正在检查…</div>';
     return;
   }
-  const checks = healthSnapshot.checks || {};
-  const rows = Object.entries(checks).map(([name, check]) => {
-    const status = check.status || 'unknown';
-    const color = status === 'ok' ? 'bg-tertiary' : (status === 'degraded' ? 'bg-primary' : 'bg-error');
-    const detail = check.error || check.collection || check.note || '';
+  const groups = healthSnapshot.groups || null;
+  if (!groups) {
+    el.innerHTML = '<div>暂无状态</div>';
+    return;
+  }
+  el.innerHTML = ['core', 'optional'].map(key => renderHealthGroup(groups[key])).join('');
+}
+
+function healthStatusLabel(status) {
+  if (status === 'ok') return '正常';
+  if (status === 'degraded') return '核心可用';
+  if (status === 'unavailable') return '不可用';
+  return status || '状态';
+}
+
+function renderHealthGroup(group) {
+  if (!group?.items?.length) return '';
+  const rows = group.items.map(item => {
+    const color = healthItemColor(item.status);
+    const label = healthItemLabel(item.status);
     return `<div class="flex items-start justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
       <div class="min-w-0">
-        <div class="font-semibold text-on-surface">${escHtml(name)}</div>
-        ${detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-1">${escHtml(detail)}</div>` : ''}
+        <div class="font-semibold text-on-surface">${escHtml(item.label || item.key)}</div>
+        ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(item.detail)}</div>` : ''}
       </div>
-      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold">
-        <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${escHtml(status)}
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
+        <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
       </span>
     </div>`;
   }).join('');
-  el.innerHTML = rows || '<div>暂无状态</div>';
+  return `<section>
+    <div class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 mt-1">${escHtml(group.label)}</div>
+    <div class="flex flex-col gap-2">${rows}</div>
+  </section>`;
+}
+
+function healthItemColor(status) {
+  if (status === 'ok') return 'bg-tertiary';
+  if (status === 'off') return 'bg-on-surface-variant/30';
+  if (status === 'optional_unavailable') return 'bg-primary';
+  if (status === 'degraded') return 'bg-primary';
+  return 'bg-error';
+}
+
+function healthItemLabel(status) {
+  if (status === 'ok') return '可用';
+  if (status === 'off') return '未启用';
+  if (status === 'optional_unavailable') return '未安装';
+  if (status === 'degraded') return '降级';
+  return '不可用';
 }
 
 // ── LLM selector ──
 async function loadLLMOptions() {
   try {
     const d = await fetch(`${API}/api/llm`).then(r => r.json());
-    llmOptions = d.options || [];
+    const models = d.models || (d.options || []).map(m => ({ model: m, available: true, cached: true, current: m === d.current }));
+    llmOptions = models.map(m => m.model);
     document.getElementById('llm-current').textContent = d.current || 'LLM';
+    renderLLMStatus(d.switch);
 
     const dropdown = document.getElementById('llm-dropdown');
-    dropdown.innerHTML = llmOptions.map(m => `
-      <button onclick="switchLLM('${m}')" class="w-full text-left px-4 py-2.5 text-xs font-medium text-on-surface hover:bg-surface-container transition-all ${m === d.current ? 'text-primary font-bold' : ''}">
-        ${m}
+    dropdown.innerHTML = models.map(item => `
+      <button data-model="${escHtml(item.model)}" onclick="switchLLM(this.dataset.model)" ${item.available ? '' : 'disabled'}
+        class="w-full text-left px-4 py-2.5 text-xs font-medium transition-all ${item.current ? 'text-primary font-bold' : 'text-on-surface'} ${item.available ? 'hover:bg-surface-container' : 'opacity-45 cursor-not-allowed'}">
+        <span class="block">${escHtml(item.model)}</span>
+        <span class="block text-[10px] font-normal text-on-surface-variant/60">${item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')}</span>
       </button>`).join('');
-  } catch {}
+  } catch {
+    renderLLMStatus({ state: 'error', message: '模型状态读取失败' });
+  }
 }
 loadLLMOptions();
 loadConversations();
@@ -420,19 +506,53 @@ document.addEventListener('click', () => {
 });
 
 async function switchLLM(model) {
+  const current = document.getElementById('llm-current').textContent;
+  if (model === current) {
+    document.getElementById('llm-dropdown').classList.add('hidden');
+    renderLLMStatus({ state: 'idle', message: '当前模型' });
+    return;
+  }
   try {
     document.getElementById('llm-dropdown').classList.add('hidden');
+    document.getElementById('llm-btn').disabled = true;
+    document.getElementById('llm-current').textContent = '切换中…';
+    renderLLMStatus({ state: 'switching', model });
     const r = await fetch(`${API}/api/llm`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ model }),
     });
     const d = await r.json();
+    if (!r.ok || !d.ok) {
+      throw new Error(d.detail || '模型切换失败');
+    }
     if (d.ok) {
       document.getElementById('llm-current').textContent = model;
+      renderLLMStatus({ state: 'idle', message: 'Local LLM' });
       loadLLMOptions();
     }
-  } catch {}
+  } catch (e) {
+    renderLLMStatus({ state: 'error', message: e.message });
+    loadLLMOptions();
+  } finally {
+    document.getElementById('llm-btn').disabled = false;
+  }
+}
+
+function renderLLMStatus(state) {
+  const el = document.getElementById('llm-status');
+  if (!el) return;
+  el.classList.remove('text-error', 'text-primary', 'text-on-surface-variant');
+  if (state?.state === 'switching') {
+    el.textContent = '切换中';
+    el.classList.add('text-primary');
+  } else if (state?.state === 'error') {
+    el.textContent = state.message || '切换失败';
+    el.classList.add('text-error');
+  } else {
+    el.textContent = 'Local LLM';
+    el.classList.add('text-on-surface-variant');
+  }
 }
 
 // ── Conversations ──
@@ -473,7 +593,7 @@ function renderConversationList() {
         <div class="text-[11px] text-on-surface-variant/60 line-clamp-1">${escHtml(item.last_message || '空对话')}</div>
         <div class="text-[10px] text-on-surface-variant/45 mt-1">${item.message_count || 0} 条 · ${(item.updated_at || '').slice(0,16)}</div>
       </div>
-      <button onclick="deleteConversation(event, ${item.id})" class="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-all" title="删除对话">
+      <button onclick="deleteConversation(event, ${item.id})" class="opacity-70 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg bg-error/5 text-error hover:bg-error hover:text-on-error transition-all" title="删除对话">
         <span class="material-symbols-outlined" style="font-size:15px">delete</span>
       </button>
     </div>`;
@@ -508,7 +628,14 @@ async function switchConversation(id) {
 
 async function deleteConversation(event, id) {
   event.stopPropagation();
-  if (!confirm('确定删除这个对话吗？')) return;
+  const item = conversationItems.find(conversation => conversation.id === id);
+  const title = item?.title || '未命名对话';
+  const confirmed = await showConfirmDialog({
+    title: '删除这个对话？',
+    message: `这会删除“${title}”以及其中的消息。`,
+    confirmText: '删除对话',
+  });
+  if (!confirmed) return;
   const r = await fetch(`${API}/api/conversations/${id}`, { method: 'DELETE' });
   if (!r.ok) return;
   if (currentConversationId === id) {
@@ -1079,7 +1206,12 @@ function replayHistory(idx) {
 }
 
 async function clearHistory() {
-  if (!confirm('确定要清空所有历史记录吗？')) return;
+  const confirmed = await showConfirmDialog({
+    title: '清空所有历史记录？',
+    message: '这会删除历史页里的所有问答记录。对话列表不会被清空。',
+    confirmText: '清空历史',
+  });
+  if (!confirmed) return;
   await fetch(`${API}/api/history`, { method: 'DELETE' });
   refreshHistory();
 }
@@ -1102,7 +1234,7 @@ async function pollQueueOnce() {
     const q = await fetch(`${API}/api/queue`).then(r => r.json());
     const banner = document.getElementById('queue-banner');
     const textEl = document.getElementById('queue-text');
-    if (q.queue_size > 0 || q.processing) {
+    if (q.queue_size > 0 || q.processing || q.paused) {
       banner.classList.remove('hidden');
       banner.classList.add('flex');
       const parts = [];
@@ -1112,7 +1244,9 @@ async function pollQueueOnce() {
         embedding: '向量化',
         storing: '写入索引',
         processing: '处理中',
+        paused: '前台问答中，后台让路',
       };
+      if (q.paused) parts.push('前台问答中，后台索引暂停');
       if (q.processing) parts.push(`处理：${q.processing}`);
       if (q.progress?.stage) parts.push(`阶段：${stageLabels[q.progress.stage] || q.progress.stage}`);
       if (q.progress?.total_chunks > 0) {

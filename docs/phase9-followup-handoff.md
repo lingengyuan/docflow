@@ -132,6 +132,7 @@ Results:
 
 ## Next Tasks
 
-1. After the next login, run `python main.py service status` and inspect `~/Library/Logs/docflow/docflow.out.log` plus `docflow.err.log`.
-2. If background startup is no longer wanted, run `python main.py service uninstall`.
-3. If background scans feel too heavy after login, improve queue pacing and startup scan behavior next.
+1. Use `docs/phase10-validation-issues.md` for the latest full-product validation results.
+2. Use `docs/phase10-optimization-plan.md` for the next stability optimization plan.
+3. After the next login, run `python main.py service status` and inspect `~/Library/Logs/docflow/docflow.out.log` plus `docflow.err.log`.
+4. If background startup is no longer wanted, run `python main.py service uninstall`.

@@ -59,6 +59,14 @@ def test_health_returns_ok_when_all_checks_pass(monkeypatch):
     assert body["capabilities"]["query"] is True
     assert body["capabilities"]["contextual_prefix"] is False
     assert body["capabilities"]["contextual_prefix_enabled"] is False
+    assert body["groups"]["core"]["label"] == "核心功能"
+    assert [item["key"] for item in body["groups"]["core"]["items"]] == [
+        "query",
+        "ingest",
+        "sqlite",
+        "qdrant",
+    ]
+    assert body["groups"]["optional"]["label"] == "可选能力"
 
 
 def test_health_is_unavailable_when_critical_dependency_fails(monkeypatch):
@@ -85,6 +93,9 @@ def test_health_is_degraded_when_optional_dependency_fails(monkeypatch):
     assert body["status"] == "degraded"
     assert body["capabilities"]["query"] is True
     assert body["capabilities"]["ocr"] is False
+    ocr_item = next(item for item in body["groups"]["optional"]["items"] if item["key"] == "ocr")
+    assert ocr_item["status"] == "optional_unavailable"
+    assert "只影响扫描 PDF" in ocr_item["detail"]
 
 
 def test_health_catches_check_exceptions(monkeypatch):
