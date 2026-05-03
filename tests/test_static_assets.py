@@ -64,3 +64,19 @@ def test_files_actions_have_clear_feedback():
     assert "已加入队列" in html
     assert "setRefreshButtonLoading" in html
     assert "setScanButtonState" in html
+
+
+def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'aria-label="添加文件"' in html
+    assert 'aria-label="发送问题"' in html
+    assert 'aria-label="上传文件"' in html
+    assert 'aria-label="复制答案"' in html
+    assert 'aria-label="导出 Markdown"' in html
+    assert 'aria-label="${escHtml(favoriteLabel)}"' in html
+    assert 'role="button" tabindex="0"' in html
+    assert "handleUploadZoneKey" in html
+    assert "handleConversationKey" in html
+    assert "handleSourceKey" in html
+    assert "handleHistoryKey" in html

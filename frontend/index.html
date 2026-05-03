@@ -198,7 +198,7 @@
     <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pt-12 pb-8 px-6">
       <div class="max-w-2xl mx-auto">
         <div class="relative flex items-end bg-surface-container-lowest border border-outline-variant/15 rounded-2xl shadow-sm focus-within:shadow-md focus-within:border-primary/40 transition-all p-1.5 gap-1">
-          <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()">
+          <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()" title="添加文件" aria-label="添加文件">
             <span class="material-symbols-outlined">add_circle</span>
           </button>
           <input type="file" id="file-input-chat" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
@@ -208,7 +208,7 @@
             style="max-height:120px"
             onkeydown="handleKey(event)"
             oninput="autoResize(this)"></textarea>
-          <button id="send-btn" onclick="sendMessage()"
+          <button id="send-btn" onclick="sendMessage()" title="发送问题" aria-label="发送问题"
             class="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center bg-primary text-on-primary hover:bg-primary-dim active:scale-95 transition-all">
             <span class="material-symbols-outlined" style="font-size:18px">arrow_upward</span>
           </button>
@@ -235,7 +235,7 @@
           <span id="scan-folders-icon" class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
           <span id="scan-folders-label">扫描文件夹</span>
         </button>
-        <button onclick="document.getElementById('file-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
+        <button onclick="document.getElementById('file-input').click()" title="上传文件" aria-label="上传文件" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
           <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
           上传文件
         </button>
@@ -246,8 +246,12 @@
     <!-- Upload zone -->
     <div class="px-8 py-4 flex-shrink-0">
       <div id="upload-zone"
+        role="button"
+        tabindex="0"
+        aria-label="拖拽文件至此或点击上传"
         class="border-2 border-dashed border-outline-variant/40 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-primary/40 hover:bg-surface-container/50 transition-all text-center"
         onclick="document.getElementById('file-input').click()"
+        onkeydown="handleUploadZoneKey(event)"
         ondragover="event.preventDefault();this.classList.add('border-primary/60','bg-surface-container')"
         ondragleave="this.classList.remove('border-primary/60','bg-surface-container')"
         ondrop="handleDrop(event)">
@@ -585,15 +589,18 @@ function renderConversationList() {
   }
   list.innerHTML = conversationItems.map(item => {
     const active = item.id === currentConversationId;
+    const title = escHtml(item.title || '未命名对话');
     return `<div class="group flex items-start gap-2 rounded-lg px-3 py-2 cursor-pointer ${active ? 'bg-primary-container text-on-primary-container' : 'hover:bg-surface-container'}"
-        onclick="switchConversation(${item.id})">
+        role="button" tabindex="0" aria-label="打开对话：${title}"
+        onclick="switchConversation(${item.id})"
+        onkeydown="handleConversationKey(event, ${item.id})">
       <span class="material-symbols-outlined ${active ? 'icon-fill text-primary' : 'text-on-surface-variant/50'}" style="font-size:17px">chat_bubble</span>
       <div class="min-w-0 flex-1">
-        <div class="text-xs font-semibold line-clamp-1">${escHtml(item.title || '未命名对话')}</div>
+        <div class="text-xs font-semibold line-clamp-1">${title}</div>
         <div class="text-[11px] text-on-surface-variant/60 line-clamp-1">${escHtml(item.last_message || '空对话')}</div>
         <div class="text-[10px] text-on-surface-variant/45 mt-1">${item.message_count || 0} 条 · ${(item.updated_at || '').slice(0,16)}</div>
       </div>
-      <button onclick="deleteConversation(event, ${item.id})" class="opacity-70 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg bg-error/5 text-error hover:bg-error hover:text-on-error transition-all" title="删除对话">
+      <button onclick="deleteConversation(event, ${item.id})" class="opacity-70 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg bg-error/5 text-error hover:bg-error hover:text-on-error transition-all" title="删除对话" aria-label="删除对话">
         <span class="material-symbols-outlined" style="font-size:15px">delete</span>
       </button>
     </div>`;
@@ -699,6 +706,28 @@ function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
+function activateByKeyboard(event, action) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  action();
+}
+
+function handleUploadZoneKey(event) {
+  activateByKeyboard(event, () => document.getElementById('file-input').click());
+}
+
+function handleConversationKey(event, id) {
+  activateByKeyboard(event, () => switchConversation(id));
+}
+
+function handleSourceKey(event, filePath, pageNum) {
+  activateByKeyboard(event, () => openSourceByPath(filePath, pageNum));
+}
+
+function handleHistoryKey(event, idx) {
+  activateByKeyboard(event, () => replayHistory(idx));
+}
+
 function escHtml(s) {
   if (!s) return '';
   return String(s)
@@ -770,10 +799,10 @@ function createAIMessageContainer() {
     <div id="stream-citations" class="flex flex-wrap gap-2"></div>
     <div id="stream-meta" class="text-[11px] text-on-surface-variant/50 font-medium"></div>
     <div class="flex gap-4 mt-1">
-      <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案">
+      <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
-      <button onclick="exportAnswerFromButton(this)" data-answer-text="" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown">
+      <button onclick="exportAnswerFromButton(this)" data-answer-text="" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
     </div>`;
@@ -788,7 +817,9 @@ function citationMarkup(citations) {
     const icon = (c.file_name || '').toLowerCase().endsWith('.md') ? 'article' : 'description';
     return `
     <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
-         onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})">
+         role="button" tabindex="0" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}"
+         onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})"
+         onkeydown="handleSourceKey(event, decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})">
       <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
       <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[150px] truncate">${label}</span>
@@ -824,10 +855,10 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
     <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
     ${metaText ? `<div class="text-[11px] text-on-surface-variant/50 font-medium">${escHtml(metaText)}</div>` : ''}
     <div class="flex gap-4 mt-1">
-      <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案">
+      <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
-      <button onclick="exportAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown">
+      <button onclick="exportAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
     </div>`;
@@ -1037,6 +1068,7 @@ async function refreshFiles(options = {}) {
     }
     tbody.innerHTML = files.map(f => {
       const isStarred = favoritedIds.has(f.id);
+      const favoriteLabel = isStarred ? `取消收藏 ${f.file_name}` : `收藏 ${f.file_name}`;
       return `<tr class="hover:bg-surface-container/50 transition-all">
         <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" class="rounded"></td>
         <td class="py-3 pr-4 text-sm font-medium">${escHtml(f.file_name)}</td>
@@ -1046,7 +1078,7 @@ async function refreshFiles(options = {}) {
         <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.chunk_count}</td>
         <td class="py-3 pr-4 text-xs text-on-surface-variant/60">${(f.updated_at || '').slice(0,16) || '-'}</td>
         <td class="py-3">
-          <button onclick="toggleFavorite(${f.id}, this)" class="text-on-surface-variant/30 hover:text-primary transition-colors">
+          <button onclick="toggleFavorite(${f.id}, this)" class="text-on-surface-variant/30 hover:text-primary transition-colors" title="${escHtml(favoriteLabel)}" aria-label="${escHtml(favoriteLabel)}">
             <span class="material-symbols-outlined ${isStarred ? 'icon-fill text-primary' : ''}" style="font-size:18px">star</span>
           </button>
         </td>
@@ -1119,9 +1151,13 @@ async function toggleFavorite(fileId, btn) {
     if (data.favorited) {
       icon.classList.add('icon-fill', 'text-primary');
       favoritedIds.add(fileId);
+      btn.title = '取消收藏';
+      btn.setAttribute('aria-label', '取消收藏');
     } else {
       icon.classList.remove('icon-fill', 'text-primary');
       favoritedIds.delete(fileId);
+      btn.title = '收藏';
+      btn.setAttribute('aria-label', '收藏');
     }
   } catch {}
 }
@@ -1166,7 +1202,9 @@ async function refreshHistory() {
     }
     listEl.innerHTML = items.map((item, idx) => `
       <div class="bg-surface-container-lowest rounded-xl p-4 cursor-pointer hover:bg-surface-container transition-all shadow-sm"
-           onclick="replayHistory(${idx})">
+           role="button" tabindex="0" aria-label="打开历史记录：${escHtml(item.question || '未命名问题')}"
+           onclick="replayHistory(${idx})"
+           onkeydown="handleHistoryKey(event, ${idx})">
         <div class="text-sm font-semibold text-on-surface mb-2">${escHtml(item.question)}</div>
         <div class="text-xs text-on-surface-variant leading-relaxed mb-3 line-clamp-2">${escHtml(item.answer?.slice(0,150))}…</div>
         <div class="flex gap-4 text-[11px] text-on-surface-variant/60 font-medium">
@@ -1222,10 +1260,10 @@ function replayHistory(idx) {
     <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(item.answer || '')}</div>
     <div class="flex flex-wrap gap-2">${citationsHtml}</div>
     <div class="flex gap-4 mt-1">
-      <button class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" data-copy-text="${escHtml(item.answer || '')}" onclick="copyTextFromButton(this)" title="复制答案">
+      <button class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" data-copy-text="${escHtml(item.answer || '')}" onclick="copyTextFromButton(this)" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
-      <button class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" data-answer-text="${escHtml(item.answer || '')}" onclick="exportAnswerFromButton(this)" title="导出 Markdown">
+      <button class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" data-answer-text="${escHtml(item.answer || '')}" onclick="exportAnswerFromButton(this)" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
     </div>`;
