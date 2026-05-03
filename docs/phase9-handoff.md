@@ -2,7 +2,7 @@
 
 Date: 2026-05-03
 
-Update: Phase 9 follow-up work is now documented in `docs/phase9-followup-handoff.md`. It covers the runtime health check fix, launchd service commands, favicon, and final browser validation.
+Update: Phase 9 follow-up work is now documented in `docs/phase9-followup-handoff.md`. It covers the runtime health check fix, launchd service commands, the installed background service validation, favicon, and final browser validation.
 
 ## Status
 
@@ -18,7 +18,7 @@ scripts/start.sh
 
 `doctor` checks the local machine without starting the service. `start` runs the same startup checks, tries to start an existing `qdrant` Docker container when Qdrant is down, prints the local URL, and then starts the FastAPI service.
 
-Launchd/background auto-start is intentionally not implemented yet. The one-command path is now in place and should be used for a few normal sessions before adding OS-level background service behavior.
+Launchd/background auto-start was completed in the Phase 9 follow-up. The one-command path still remains the underlying service command, and `docs/phase9-followup-handoff.md` is now the source of truth for daily background-service usage.
 
 ## Completed Scope
 
@@ -90,12 +90,11 @@ Results:
 
 ## Known Limitations
 
-- During the real startup smoke test, background scanning began indexing changed files. While that was running, `/api/health` and the UI dependency panel reported SQLite as `unavailable` with `malformed inverted index for FTS5 table main.chunks_fts`.
-- After the service was stopped, `.venv/bin/python main.py doctor --json --port 8011` returned SQLite `quick_check: ok` again.
-- This means the one-command startup path is working, but the runtime health check can still show SQLite unavailable while indexing is active. Treat this as a runtime index/health issue for a later phase, not a startup-command blocker.
-- Browser verification produced only the existing Tailwind CDN warning and a missing `favicon.ico` 404. Neither blocked the tested page flow.
+- The runtime SQLite health false positive found during Phase 9 was fixed in the follow-up handoff.
+- The missing favicon found during Phase 9 was fixed in the follow-up handoff.
+- Browser verification still produced the existing Tailwind CDN warning. It does not block the tested page flow.
 - `start` can only auto-start Qdrant when a Docker container named `qdrant` already exists. If it does not exist, the command prints the exact `docker run` command instead of creating the container automatically.
-- `launchd` or menu-bar style background startup is still deferred.
+- Launchd background startup was added and verified in the follow-up handoff.
 
 ## Next Phase
 
@@ -103,8 +102,6 @@ The original optimization plan's Phase 9 scope is complete. There is no numbered
 
 Recommended next tasks:
 
-1. Decide whether to add `launchd` auto-start now that `main.py start` is stable.
-2. Investigate the runtime SQLite FTS5 health behavior during background indexing, especially why API health can report malformed FTS while standalone `doctor` reports ok after shutdown.
-3. Consider adding a tiny favicon or suppressing the harmless browser 404.
-4. If background service behavior is added, keep `main.py start` as the underlying command and add tests around the generated plist or install instructions.
-5. Run `.venv/bin/python -m pytest`, `main.py start --check-only`, a real browser startup check, README parity check, `git diff --check`, and a new handoff before reporting completion.
+1. Use `docs/phase9-followup-handoff.md` as the current source of truth.
+2. After the next login, verify the installed background service again with `python main.py service status` and the service logs.
+3. If background scans feel too heavy after login, improve queue pacing and startup scan behavior next.

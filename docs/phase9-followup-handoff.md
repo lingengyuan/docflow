@@ -10,6 +10,7 @@ The follow-up plan after Phase 9 is implemented in the requested order:
 2. macOS background service commands added.
 3. Favicon added.
 4. Real startup and browser validation completed.
+5. Background service installed and verified on this machine.
 
 ## Completed Scope
 
@@ -21,6 +22,7 @@ The follow-up plan after Phase 9 is implemented in the requested order:
 - Added a local SVG favicon and linked it from the frontend.
 - Updated README English and Chinese sections for runtime health behavior, service commands, and project structure.
 - Added tests for runtime SQLite health, launchd plist/service dry-runs, and favicon serving.
+- Installed and verified the launchd background service on this machine.
 
 ## Changed Files
 
@@ -59,6 +61,11 @@ Commands run:
 .venv/bin/python -m pytest tests/test_static_assets.py
 .venv/bin/python main.py service install --dry-run --port 8011
 scripts/service.sh install --dry-run --port 8011
+.venv/bin/python main.py service install
+.venv/bin/python main.py service status
+lsof -nP -iTCP:8000 -sTCP:LISTEN
+tail -80 ~/Library/Logs/docflow/docflow.out.log
+tail -80 ~/Library/Logs/docflow/docflow.err.log
 /Users/hughlin/.codex/skills/readme-maintainer/scripts/check_bilingual_readme.sh README.md
 .venv/bin/python -m pytest
 .venv/bin/python main.py start --check-only --port 8011
@@ -74,7 +81,11 @@ NODE
 curl -s http://127.0.0.1:8011/api/health
 curl -I -s http://127.0.0.1:8011/favicon.svg
 curl -s -X POST http://127.0.0.1:8011/api/query -H 'Content-Type: application/json' -d '{"question":"DocFlow 是什么？"}'
+curl -s http://127.0.0.1:8000/api/health
+curl -I -s http://127.0.0.1:8000/favicon.svg
+curl -s -X POST http://127.0.0.1:8000/api/query -H 'Content-Type: application/json' -d '{"question":"DocFlow 当前后台服务是否可用？"}'
 browser open http://127.0.0.1:8011
+browser open http://localhost:8000
 browser click health panel, Files, and History
 ```
 
@@ -86,6 +97,10 @@ Results:
 - Full test suite: 116 passed, 5 warnings.
 - Startup check: returned all startup checks ok on port 8011.
 - Service dry-run: printed the expected launchd plist and launchctl commands without writing the plist.
+- Service install: wrote `~/Library/LaunchAgents/com.docflow.local.plist`; `launchctl bootstrap` and `launchctl kickstart` returned success. The initial `bootout` returned code 5 only because there was no old service to unload.
+- Service status: loaded and running under launchd with PID 9109.
+- Port 8000: listening on `127.0.0.1` from the launchd-managed Python process.
+- Service logs: startup check completed, Uvicorn started, and no fatal startup error was present in `~/Library/Logs/docflow/docflow.out.log` or `docflow.err.log`.
 - README bilingual parity check: passed.
 - Real app startup: reached `Application startup complete` and served `http://0.0.0.0:8011`.
 - Runtime `/api/health` during background indexing:
@@ -93,6 +108,10 @@ Results:
   - SQLite `status: ok`.
   - Query and ingest capabilities were both `true`.
 - `favicon.svg`: returned HTTP 200 with `content-type: image/svg+xml`.
+- Background service `/api/health` on port 8000:
+  - Overall `status: degraded` because optional enhanced/VLM model caches are missing.
+  - SQLite, Qdrant, and Ollama were all `ok`.
+  - Query and ingest capabilities were both `true`.
 - Browser validation:
   - Page opened with title `DocFlow`.
   - Health panel showed SQLite ok, Qdrant ok, Ollama ok, and models degraded.
@@ -100,18 +119,19 @@ Results:
   - History view rendered the new `DocFlow 是什么？` query.
   - Console had 0 errors and 1 existing Tailwind CDN warning.
 - Real query:
-  - `POST /api/query` returned an answer with citations and conversation id 5.
+  - `POST /api/query` returned an answer with citations.
+- Background service real query:
+  - `POST /api/query` on port 8000 returned an answer with citations.
 - Post-shutdown `main.py doctor --json --port 8011`: returned `status: ok` and SQLite `quick_check: ok`.
 
 ## Known Limitations
 
-- Service installation was verified with `--dry-run` only. This is intentional because installing a launchd service changes the user's login services.
-- `python main.py service install` will write `~/Library/LaunchAgents/com.docflow.local.plist` and then call `launchctl`.
+- The launchd service is currently installed and running on this machine. Use `python main.py service uninstall` if it should be removed.
 - The service expects Docker/Qdrant and optional Ollama to be available in the user session. The underlying command is still `python main.py start`, so startup checks remain visible in logs.
 - Runtime health is still `degraded` on this machine because optional enhanced/VLM model caches are missing. Core query and ingest capabilities are available.
 
 ## Next Tasks
 
-1. If the user wants background launch at login, run `python main.py service install` and verify `python main.py service status`.
-2. If the service is installed, inspect `~/Library/Logs/docflow/docflow.out.log` and `docflow.err.log` after login.
-3. Continue improving day-to-day product behavior only after the startup path remains stable in normal use.
+1. After the next login, run `python main.py service status` and inspect `~/Library/Logs/docflow/docflow.out.log` plus `docflow.err.log`.
+2. If background startup is no longer wanted, run `python main.py service uninstall`.
+3. If background scans feel too heavy after login, improve queue pacing and startup scan behavior next.

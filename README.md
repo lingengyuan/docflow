@@ -28,7 +28,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
-- Optional macOS background service: generate, install, inspect, or remove a launchd service that runs the same checked startup command.
+- macOS background service: run DocFlow after login through launchd, with commands to install, inspect, or remove the service.
 - Query history, favorites, file upload, source listing, file preview, and summary export endpoints.
 
 ### Requirements
@@ -80,24 +80,31 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
-Optional macOS background service:
+Recommended daily use on macOS:
+
+```bash
+python main.py service status
+```
+
+On this machine, DocFlow has been installed as a launchd background service. It runs `python main.py start` from this project and serves `http://localhost:8000` after login. Use `python main.py service status` to check it, and `python main.py service uninstall` if you want to remove it.
+
+Manual service setup commands:
 
 ```bash
 python main.py service install --dry-run
 python main.py service install
-python main.py service status
 python main.py service uninstall
 ```
 
-The service uses launchd and runs `python main.py start` from this project. Use `--dry-run` first to inspect the planned plist and launchctl commands before changing local login services.
+Use `--dry-run` first on a new machine to inspect the planned plist and launchctl commands before changing local login services.
 
 Useful commands:
 
 ```bash
 python main.py doctor --json
 python main.py start --check-only
-python main.py service install --dry-run
 python main.py service status
+python main.py service install --dry-run
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
@@ -320,7 +327,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
-- 可选 macOS 后台服务：可以生成、安装、查看或移除基于 launchd 的后台服务，底层仍使用同一套启动检查。
+- macOS 后台服务：通过 launchd 登录后自动运行 DocFlow，并提供安装、查看和移除命令。
 - 已有接口覆盖查询历史、收藏、上传、来源列表、文件预览和摘要导出。
 
 ### 环境要求
@@ -372,24 +379,31 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
-可选 macOS 后台服务：
+macOS 日常推荐用法：
+
+```bash
+python main.py service status
+```
+
+这台机器已经把 DocFlow 安装为 launchd 后台服务。它会从当前项目运行 `python main.py start`，登录后提供 `http://localhost:8000`。平时用 `python main.py service status` 查看状态；如果想移除，用 `python main.py service uninstall`。
+
+手动安装后台服务命令：
 
 ```bash
 python main.py service install --dry-run
 python main.py service install
-python main.py service status
 python main.py service uninstall
 ```
 
-后台服务使用 launchd，实际运行的仍然是当前项目里的 `python main.py start`。建议先用 `--dry-run` 查看将要写入的 plist 和将要执行的 launchctl 命令，再决定是否安装。
+在新机器上建议先用 `--dry-run` 查看将要写入的 plist 和将要执行的 launchctl 命令，再决定是否安装。
 
 常用命令：
 
 ```bash
 python main.py doctor --json
 python main.py start --check-only
-python main.py service install --dry-run
 python main.py service status
+python main.py service install --dry-run
 python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
