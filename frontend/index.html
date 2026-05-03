@@ -227,13 +227,13 @@
           <span class="spinner"></span>
           <span id="queue-text">处理中…</span>
         </div>
-        <button onclick="refreshFiles()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
-          刷新
+        <button id="refresh-files-btn" onclick="refreshFiles({ showLoading: true })" title="重新加载文件列表" aria-label="重新加载文件列表" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all disabled:opacity-60">
+          <span id="refresh-files-icon" class="material-symbols-outlined" style="font-size:16px">refresh</span>
+          <span id="refresh-files-label">刷新列表</span>
         </button>
-        <button onclick="triggerIngest()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
-          <span class="material-symbols-outlined" style="font-size:16px">folder_search</span>
-          扫描文件夹
+        <button id="scan-folders-btn" onclick="triggerIngest()" title="扫描监控文件夹，把新文件加入队列" aria-label="扫描监控文件夹，把新文件加入队列" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all disabled:opacity-70">
+          <span id="scan-folders-icon" class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
+          <span id="scan-folders-label">扫描文件夹</span>
         </button>
         <button onclick="document.getElementById('file-input').click()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
           <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
@@ -987,7 +987,40 @@ function fileTypeLabel(fileName, isScanned) {
   return ext.toUpperCase() || '未知';
 }
 
-async function refreshFiles() {
+function setRefreshButtonLoading(loading) {
+  const btn = document.getElementById('refresh-files-btn');
+  const icon = document.getElementById('refresh-files-icon');
+  const label = document.getElementById('refresh-files-label');
+  if (!btn || !icon || !label) return;
+  btn.disabled = loading;
+  icon.textContent = loading ? 'autorenew' : 'refresh';
+  icon.classList.toggle('animate-spin', loading);
+  label.textContent = loading ? '刷新中…' : '刷新列表';
+}
+
+function setScanButtonState(state) {
+  const btn = document.getElementById('scan-folders-btn');
+  const icon = document.getElementById('scan-folders-icon');
+  const label = document.getElementById('scan-folders-label');
+  if (!btn || !icon || !label) return;
+  const loading = state === 'loading';
+  btn.disabled = loading;
+  icon.classList.toggle('animate-spin', loading);
+  if (state === 'loading') {
+    icon.textContent = 'sync';
+    label.textContent = '扫描中…';
+  } else if (state === 'queued') {
+    icon.textContent = 'task_alt';
+    label.textContent = '已加入队列';
+  } else {
+    icon.textContent = 'folder_sync';
+    label.textContent = '扫描文件夹';
+  }
+}
+
+async function refreshFiles(options = {}) {
+  const showLoading = Boolean(options.showLoading);
+  if (showLoading) setRefreshButtonLoading(true);
   try {
     const [files, favs] = await Promise.all([
       fetch(`${API}/api/files`).then(r => r.json()),
@@ -1023,6 +1056,8 @@ async function refreshFiles() {
   } catch (e) {
     document.getElementById('file-tbody').innerHTML =
       `<tr><td colspan="8" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
+  } finally {
+    if (showLoading) setRefreshButtonLoading(false);
   }
 }
 
@@ -1266,11 +1301,17 @@ async function pollQueueOnce() {
 }
 
 async function triggerIngest() {
+  setScanButtonState('loading');
   try {
-    await fetch(`${API}/api/ingest`, { method: 'POST' });
+    const r = await fetch(`${API}/api/ingest`, { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
+    setScanButtonState('queued');
     startQueuePolling();
     setTimeout(refreshFiles, 500);
-  } catch {}
+    setTimeout(() => setScanButtonState('idle'), 1200);
+  } catch {
+    setScanButtonState('idle');
+  }
 }
 
 async function handleFileSelect(e) {

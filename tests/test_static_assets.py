@@ -50,3 +50,17 @@ def test_health_panel_shows_core_and_optional_groups():
     assert "optional_unavailable" in html
     assert "未安装" in html
     assert "renderHealthGroup" in html
+
+
+def test_files_actions_have_clear_feedback():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'id="refresh-files-btn"' in html
+    assert "刷新列表" in html
+    assert "刷新中…" in html
+    assert 'id="scan-folders-btn"' in html
+    assert "folder_sync" in html
+    assert "扫描中…" in html
+    assert "已加入队列" in html
+    assert "setRefreshButtonLoading" in html
+    assert "setScanButtonState" in html

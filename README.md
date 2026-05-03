@@ -22,8 +22,10 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Streaming answers: citations are sent first, followed by token streaming.
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
+- Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
+- Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
-- Daily-use controls: answer copy/export, dependency status panel, query elapsed time, and visible ingest queue progress.
+- Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
@@ -36,7 +38,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Apple Silicon Mac.
 - Python 3.11 or newer.
 - Docker Desktop for Qdrant.
-- Ollama for OCR on scanned PDFs.
+- Optional Ollama for OCR on scanned PDFs and contextual-prefix generation.
 - Optional extra packages for DOCX and image ingest: `python-docx`, `mlx-vlm`, `Pillow`, `pillow-heif`.
 
 ### Quick Start
@@ -166,6 +168,7 @@ Main endpoints:
 | `/api/files` | GET | Indexed file list |
 | `/api/upload` | POST | Upload a file into the first watched folder |
 | `/api/file/{id}/preview` | GET | Preview the original file |
+| `/api/file/{id}/preview` | HEAD | Check preview availability, content type, and size |
 | `/api/file/{id}/chunks` | GET | Debug chunk list for one file |
 | `/api/history` | GET, DELETE | Query history |
 | `/api/history/search` | GET | Search query history |
@@ -177,7 +180,9 @@ Main endpoints:
 | `/api/sources` | GET | Watched source folders |
 | `/api/health` | GET | Dependency and capability health |
 
-`/api/health` returns `ok`, `degraded`, or `unavailable`. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama and local model cache checks are reported as optional capabilities, so missing OCR or contextual-prefix support does not hide query/ingest availability. The response also lists whether query, ingest, OCR, and contextual prefix are currently enabled and available.
+`/api/health` returns `ok`, `degraded`, or `unavailable`. The browser displays this as grouped core and optional capability status. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama, enhanced local models, VLM image parsing, and contextual-prefix support are reported as optional capabilities, so a missing image model can show the app as degraded while core query and ingest remain available.
+
+Model-backed API work uses a bounded foreground task runner. If a query, summary, debug retrieval, or model switch times out, the API returns a clear timeout error and the next request can use a fresh worker instead of waiting behind a stuck task. While foreground model work is active, the background ingest queue pauses and `/api/queue` reports the pause state.
 
 `/api/debug/retrieve` includes the router decision, candidate counts, retrieval stages, reranked results, parent-expanded context, and any degraded retrieval stages. If vector search is unavailable, DocFlow can still return FTS results from SQLite. If reranking fails, it returns the fused candidates instead of dropping all results. If answer generation fails after retrieval succeeds, the query response keeps the retrieved snippets and clearly says the answer model is unavailable.
 
@@ -252,7 +257,8 @@ docflow/
 │   └── start.sh
 ├── src/
 │   ├── api/
-│   │   └── app.py
+│   │   ├── app.py
+│   │   └── model_tasks.py
 │   ├── ingest/
 │   │   ├── chunker.py
 │   │   ├── embedder.py
@@ -294,7 +300,9 @@ Run the tests before handing off changes:
 Keep these constraints in mind when changing the project:
 
 - MLX reranker and MLX LLM work should stay serialized through the shared inference executor.
+- User-facing model work should stay bounded by the foreground task runner so one stuck action cannot block later requests permanently.
 - Ingest and query must use the same embedding backend configuration.
+- Background ingest should keep yielding to active foreground model work.
 - The ingest pipeline and retriever share one embedding model instance after startup warmup.
 - SQLite FTS row IDs are tied to `chunks.id`; update FTS through the store layer.
 - Recursive scans intentionally skip `.obsidian/`, `.trash/`, and `.git/`.
@@ -321,8 +329,10 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 流式回答：先返回引用来源，再逐步返回答案内容。
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
+- 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
+- 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
-- 日用控件：答案复制/导出、依赖状态面板、查询耗时和入库队列进度。
+- 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
@@ -335,7 +345,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Apple Silicon Mac。
 - Python 3.11 或更高版本。
 - Docker Desktop，用于运行 Qdrant。
-- Ollama，用于扫描 PDF 的 OCR。
+- 可选 Ollama，用于扫描 PDF 的 OCR 和上下文前缀生成。
 - DOCX 和图片入库需要额外安装：`python-docx`、`mlx-vlm`、`Pillow`、`pillow-heif`。
 
 ### 快速开始
@@ -465,6 +475,7 @@ paths:
 | `/api/files` | GET | 已入库文件列表 |
 | `/api/upload` | POST | 上传文件到第一个监控目录 |
 | `/api/file/{id}/preview` | GET | 预览原始文件 |
+| `/api/file/{id}/preview` | HEAD | 检查预览是否可用、文件类型和大小 |
 | `/api/file/{id}/chunks` | GET | 调试查看单个文件的切块列表 |
 | `/api/history` | GET, DELETE | 查询历史 |
 | `/api/history/search` | GET | 搜索查询历史 |
@@ -476,7 +487,9 @@ paths:
 | `/api/sources` | GET | 查看监控来源目录 |
 | `/api/health` | GET | 依赖和能力健康状态 |
 
-`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama 和本地模型缓存作为可选能力展示，所以 OCR 或上下文前缀不可用时，不会掩盖查询和入库是否可用。返回结果也会说明查询、入库、OCR、上下文前缀当前是否启用且可用。
+`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。浏览器会把状态分成核心功能和可选能力展示。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama、增强本地模型、图片理解和上下文前缀作为可选能力展示，所以缺少图片模型时，页面可以显示为 degraded，但核心问答和入库仍然可用。
+
+模型相关接口使用有等待上限的前台任务管理。如果问答、摘要、检索调试或模型切换超时，接口会返回明确的超时信息，后续请求会使用新的执行通道，不会一直排在卡住的任务后面。前台模型任务运行时，后台入库队列会暂停，`/api/queue` 会显示暂停状态。
 
 `/api/debug/retrieve` 会返回路由判断、候选数量、各阶段结果、精排结果、父级上下文展开结果，以及是否发生检索降级。向量检索不可用时，DocFlow 仍可从 SQLite 全文检索返回结果；精排失败时，会返回融合后的候选结果，而不是直接丢掉全部结果。如果检索成功但回答模型失败，查询接口会保留已找到的片段，并明确提示回答模型暂时不可用。
 
@@ -551,7 +564,8 @@ docflow/
 │   └── start.sh
 ├── src/
 │   ├── api/
-│   │   └── app.py
+│   │   ├── app.py
+│   │   └── model_tasks.py
 │   ├── ingest/
 │   │   ├── chunker.py
 │   │   ├── embedder.py
@@ -593,7 +607,9 @@ docflow/
 修改项目时要注意这些约束：
 
 - MLX 精排和 MLX 回答生成需要通过同一个推理通道串行运行。
+- 面向用户的模型任务要继续通过前台任务管理设置等待上限，避免一个卡住的任务长期阻塞后续请求。
 - 入库和查询必须使用同一套向量配置。
+- 后台入库要继续给前台模型任务让路。
 - 启动预热后，入库管线和查询器会共享同一个向量模型实例。
 - SQLite 全文检索表和 `chunks.id` 绑定，更新时要走存储层。
 - 递归扫描会主动跳过 `.obsidian/`、`.trash/` 和 `.git/`。
