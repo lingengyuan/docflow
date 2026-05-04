@@ -79,15 +79,15 @@
       "id": "library_management",
       "name": "文件管理能力",
       "target_score": 9,
-      "current_score": 6,
-      "phase": "Phase 12",
+      "current_score": 7.5,
+      "phase": "Phase 12, Phase 18",
       "evidence": [
         "已有文件列表、收藏、上传、扫描和来源预览。",
-        "还没有集合、用户标签和保存筛选。"
+        "Phase 12 新增集合、用户标签、状态/收藏筛选、批量收藏、批量元数据更新和批量重建索引。"
       ],
       "next_steps": [
-        "新增集合和用户标签。",
-        "增加批量摘要、批量重建和来源详情。"
+        "增加保存筛选和更完整的来源详情。",
+        "补充最终示例数据和文件库使用说明。"
       ]
     },
     {
@@ -157,7 +157,7 @@
       "current_score": 8,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 138 个自动化测试。",
+        "已有 145 个自动化测试。",
         "每个阶段都有交接文档规则。"
       ],
       "next_steps": [

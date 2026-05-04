@@ -108,7 +108,7 @@
     </button>
     <button id="nav-library" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('library')">
       <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
-      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Files</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Library</span>
     </button>
     <button id="nav-history" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('history')">
       <span class="material-symbols-outlined" style="font-size:20px">history</span>
@@ -188,7 +188,7 @@
           </div>
           <div class="text-sm text-on-surface leading-relaxed">
             你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
-            将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Files 页面上传，即可开始提问。
+            将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Library 页面上传，即可开始提问。
           </div>
         </div>
       </div>
@@ -261,13 +261,57 @@
       </div>
     </div>
 
-    <!-- Summarize bar -->
-    <div id="summarize-bar" class="hidden px-8 py-2 flex-shrink-0 flex items-center gap-3">
-      <span id="selected-count" class="text-xs text-on-surface-variant"></span>
+    <!-- Library filters -->
+    <div class="px-8 pb-3 flex-shrink-0">
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <select id="library-status-filter" onchange="applyLibraryFilters()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+          <option value="">全部状态</option>
+          <option value="done">已完成</option>
+          <option value="processing">处理中</option>
+          <option value="pending">等待中</option>
+          <option value="error">出错</option>
+        </select>
+        <select id="library-collection-filter" onchange="applyLibraryFilters()" class="h-9 min-w-[150px] rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+          <option value="">全部集合</option>
+        </select>
+        <select id="library-tag-filter" onchange="applyLibraryFilters()" class="h-9 min-w-[150px] rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+          <option value="">全部标签</option>
+        </select>
+        <label class="h-9 inline-flex items-center gap-2 px-3 rounded-lg bg-surface-container-low text-on-surface-variant">
+          <input id="library-favorite-filter" type="checkbox" onchange="applyLibraryFilters()" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+          只看收藏
+        </label>
+        <button onclick="clearLibraryFilters()" class="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+          <span class="material-symbols-outlined" style="font-size:15px">filter_alt_off</span>
+          清除筛选
+        </button>
+        <span id="library-count" class="ml-auto text-[11px] text-on-surface-variant/60"></span>
+      </div>
+    </div>
+
+    <!-- Batch action bar -->
+    <div id="summarize-bar" class="hidden px-8 py-2 flex-shrink-0 flex-wrap items-center gap-3 border-y border-outline-variant/10 bg-surface-container-low/70">
+      <span id="selected-count" class="text-xs font-medium text-on-surface-variant"></span>
       <button onclick="summarizeSelected()" id="summarize-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
         <span class="material-symbols-outlined" style="font-size:15px">summarize</span>
         生成摘要
       </button>
+      <button onclick="favoriteSelected()" id="favorite-selected-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
+        <span class="material-symbols-outlined" style="font-size:15px">star</span>
+        加入收藏
+      </button>
+      <input id="batch-collection-input" list="collection-options" placeholder="集合" class="h-8 w-36 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
+      <input id="batch-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-8 w-44 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
+      <button onclick="applyBatchMetadata()" id="apply-metadata-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+        <span class="material-symbols-outlined" style="font-size:15px">sell</span>
+        应用
+      </button>
+      <button onclick="rebuildSelected()" id="rebuild-selected-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+        <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+        重建索引
+      </button>
+      <datalist id="collection-options"></datalist>
+      <datalist id="tag-options"></datalist>
     </div>
 
     <!-- File table -->
@@ -277,6 +321,8 @@
           <tr class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
             <th class="text-left py-3 pr-4 w-8"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded"></th>
             <th class="text-left py-3 pr-4">文件名</th>
+            <th class="text-left py-3 pr-4">集合</th>
+            <th class="text-left py-3 pr-4">标签</th>
             <th class="text-left py-3 pr-4">类型</th>
             <th class="text-left py-3 pr-4">状态</th>
             <th class="text-left py-3 pr-4">页数</th>
@@ -331,6 +377,9 @@ let conversationItems = [];
 let healthSnapshot = null;
 let selectedFileIds = new Set();
 let favoritedIds = new Set();
+let libraryFiles = [];
+let libraryMeta = { collections: [], user_tags: [] };
+let libraryFilters = { status: '', collection: '', tag: '', favorite: false };
 let queuePollTimer = null;
 let llmOptions = [];
 let pendingConfirmResolve = null;
@@ -674,7 +723,7 @@ function welcomeHtml() {
     </div>
     <div class="text-sm text-on-surface leading-relaxed">
       你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
-      将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Files 页面上传，即可开始提问。
+      将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Library 页面上传，即可开始提问。
     </div>
   </div>`;
 }
@@ -1007,7 +1056,7 @@ function openSourceByPath(filePath, pageNum = 1) {
   });
 }
 
-// ── Files page ──
+// ── Library page ──
 function fileTypeLabel(fileName, isScanned) {
   const ext = (fileName || '').split('.').pop().toLowerCase();
   if (ext === 'pdf') return isScanned ? 'OCR 扫描件' : '原生 PDF';
@@ -1049,48 +1098,136 @@ function setScanButtonState(state) {
   }
 }
 
+function currentFileQuery() {
+  const params = new URLSearchParams();
+  if (libraryFilters.status) params.set('status', libraryFilters.status);
+  if (libraryFilters.collection) params.set('collection', libraryFilters.collection);
+  if (libraryFilters.tag) params.set('tag', libraryFilters.tag);
+  if (libraryFilters.favorite) params.set('favorite', 'true');
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+function applyLibraryFilters() {
+  libraryFilters = {
+    status: document.getElementById('library-status-filter')?.value || '',
+    collection: document.getElementById('library-collection-filter')?.value || '',
+    tag: document.getElementById('library-tag-filter')?.value || '',
+    favorite: Boolean(document.getElementById('library-favorite-filter')?.checked),
+  };
+  refreshFiles({ preserveFilters: true });
+}
+
+function clearLibraryFilters() {
+  document.getElementById('library-status-filter').value = '';
+  document.getElementById('library-collection-filter').value = '';
+  document.getElementById('library-tag-filter').value = '';
+  document.getElementById('library-favorite-filter').checked = false;
+  libraryFilters = { status: '', collection: '', tag: '', favorite: false };
+  refreshFiles({ preserveFilters: true });
+}
+
+function updateLibraryControls() {
+  const collectionSelect = document.getElementById('library-collection-filter');
+  const tagSelect = document.getElementById('library-tag-filter');
+  const collectionOptions = document.getElementById('collection-options');
+  const tagOptions = document.getElementById('tag-options');
+  if (collectionSelect) {
+    const value = collectionSelect.value;
+    collectionSelect.innerHTML = '<option value="">全部集合</option>' + (libraryMeta.collections || [])
+      .map(item => `<option value="${escHtml(item.name)}">${escHtml(item.name)} (${item.count})</option>`)
+      .join('');
+    collectionSelect.value = value;
+  }
+  if (tagSelect) {
+    const value = tagSelect.value;
+    tagSelect.innerHTML = '<option value="">全部标签</option>' + (libraryMeta.user_tags || [])
+      .map(item => `<option value="${escHtml(item.name)}">${escHtml(item.name)} (${item.count})</option>`)
+      .join('');
+    tagSelect.value = value;
+  }
+  if (collectionOptions) {
+    collectionOptions.innerHTML = (libraryMeta.collections || [])
+      .map(item => `<option value="${escHtml(item.name)}"></option>`)
+      .join('');
+  }
+  if (tagOptions) {
+    tagOptions.innerHTML = (libraryMeta.user_tags || [])
+      .map(item => `<option value="${escHtml(item.name)}"></option>`)
+      .join('');
+  }
+}
+
 async function refreshFiles(options = {}) {
   const showLoading = Boolean(options.showLoading);
   if (showLoading) setRefreshButtonLoading(true);
   try {
-    const [files, favs] = await Promise.all([
-      fetch(`${API}/api/files`).then(r => r.json()),
-      fetch(`${API}/api/favorites`).then(r => r.json()).catch(() => []),
+    const [files, meta] = await Promise.all([
+      fetch(`${API}/api/files${currentFileQuery()}`).then(r => r.json()),
+      fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
     ]);
-    favoritedIds = new Set(favs.map(f => f.id));
+    libraryFiles = files;
+    libraryMeta = meta || libraryMeta;
+    updateLibraryControls();
+    favoritedIds = new Set(files.filter(f => f.favorited).map(f => f.id));
     selectedFileIds.clear();
     updateSummarizeBar();
 
     const tbody = document.getElementById('file-tbody');
+    document.getElementById('library-count').textContent = `显示 ${files.length} / ${libraryMeta.total_files ?? files.length} 个文件`;
     if (!files.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-on-surface-variant/60 text-sm">暂无文件，请上传 PDF 或扫描文件夹</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-on-surface-variant/60 text-sm">暂无匹配文件，请调整筛选或上传文件</td></tr>`;
       return;
     }
     tbody.innerHTML = files.map(f => {
-      const isStarred = favoritedIds.has(f.id);
+      const isStarred = Boolean(f.favorited) || favoritedIds.has(f.id);
       const favoriteLabel = isStarred ? `取消收藏 ${f.file_name}` : `收藏 ${f.file_name}`;
+      const userTags = Array.isArray(f.user_tags) ? f.user_tags : [];
       return `<tr class="hover:bg-surface-container/50 transition-all">
         <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" class="rounded"></td>
-        <td class="py-3 pr-4 text-sm font-medium">${escHtml(f.file_name)}</td>
+        <td class="py-3 pr-4 min-w-[220px]">
+          <div class="text-sm font-semibold text-on-surface line-clamp-1">${escHtml(f.file_name)}</div>
+          <div class="text-[11px] text-on-surface-variant/50 line-clamp-1">${escHtml(f.file_path)}</div>
+        </td>
+        <td class="py-3 pr-4 text-xs text-on-surface-variant">${collectionBadge(f.collection)}</td>
+        <td class="py-3 pr-4 text-xs text-on-surface-variant">${tagPills(userTags)}</td>
         <td class="py-3 pr-4 text-xs text-on-surface-variant">${fileTypeLabel(f.file_name, f.is_scanned)}</td>
         <td class="py-3 pr-4">${statusBadge(f.status)}</td>
         <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.total_pages}</td>
         <td class="py-3 pr-4 text-sm text-on-surface-variant">${f.chunk_count}</td>
         <td class="py-3 pr-4 text-xs text-on-surface-variant/60">${(f.updated_at || '').slice(0,16) || '-'}</td>
         <td class="py-3">
+          <div class="flex items-center justify-end gap-2">
+          <button onclick="openFilePreview(${f.id})" class="text-on-surface-variant/40 hover:text-primary transition-colors" title="打开预览" aria-label="打开预览">
+            <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span>
+          </button>
           <button onclick="toggleFavorite(${f.id}, this)" class="text-on-surface-variant/30 hover:text-primary transition-colors" title="${escHtml(favoriteLabel)}" aria-label="${escHtml(favoriteLabel)}">
             <span class="material-symbols-outlined ${isStarred ? 'icon-fill text-primary' : ''}" style="font-size:18px">star</span>
           </button>
+          </div>
         </td>
       </tr>`;
     }).join('');
     document.getElementById('select-all').checked = false;
   } catch (e) {
     document.getElementById('file-tbody').innerHTML =
-      `<tr><td colspan="8" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
+      `<tr><td colspan="10" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
   } finally {
     if (showLoading) setRefreshButtonLoading(false);
   }
+}
+
+function collectionBadge(collection) {
+  return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container-high text-on-surface-variant">
+    <span class="material-symbols-outlined" style="font-size:12px">inventory_2</span>${escHtml(collection || 'Inbox')}
+  </span>`;
+}
+
+function tagPills(tags) {
+  if (!tags.length) return '<span class="text-on-surface-variant/35">-</span>';
+  return `<div class="flex flex-wrap gap-1">${tags.slice(0, 3).map(tag => `
+    <span class="inline-flex items-center px-2 py-1 rounded-lg bg-primary-container/70 text-primary text-[11px] font-medium">${escHtml(tag)}</span>
+  `).join('')}${tags.length > 3 ? `<span class="text-[11px] text-on-surface-variant/50">+${tags.length - 3}</span>` : ''}</div>`;
 }
 
 function statusBadge(status) {
@@ -1146,6 +1283,7 @@ function updateSummarizeBar() {
 async function toggleFavorite(fileId, btn) {
   try {
     const r = await fetch(`${API}/api/favorites/${fileId}`, { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
     const data = await r.json();
     const icon = btn.querySelector('.material-symbols-outlined');
     if (data.favorited) {
@@ -1159,7 +1297,97 @@ async function toggleFavorite(fileId, btn) {
       btn.title = '收藏';
       btn.setAttribute('aria-label', '收藏');
     }
+    await refreshFiles();
   } catch {}
+}
+
+function openFilePreview(fileId) {
+  const item = libraryFiles.find(file => file.id === fileId);
+  const fileName = item?.file_name || '';
+  const suffix = (fileName || '').split('.').pop().toLowerCase();
+  const hash = suffix === 'pdf' ? '#page=1' : '';
+  window.open(`${API}/api/file/${fileId}/preview${hash}`, '_blank');
+}
+
+function parseTagsInput(value) {
+  return String(value || '')
+    .split(/[,，#\n]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+async function favoriteSelected() {
+  if (selectedFileIds.size === 0) return;
+  const btn = document.getElementById('favorite-selected-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/files/batch/favorite`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file_ids: [...selectedFileIds], favorited: true }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    await refreshFiles();
+  } catch (e) {
+    alert(`批量收藏失败: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function applyBatchMetadata() {
+  if (selectedFileIds.size === 0) return;
+  const collection = document.getElementById('batch-collection-input').value.trim();
+  const userTags = parseTagsInput(document.getElementById('batch-tags-input').value);
+  if (!collection && !userTags.length) return;
+  const btn = document.getElementById('apply-metadata-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/files/batch/metadata`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        file_ids: [...selectedFileIds],
+        collection: collection || null,
+        user_tags: userTags.length ? userTags : null,
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById('batch-collection-input').value = '';
+    document.getElementById('batch-tags-input').value = '';
+    await refreshFiles();
+  } catch (e) {
+    alert(`批量更新失败: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function rebuildSelected() {
+  if (selectedFileIds.size === 0) return;
+  const confirmed = await showConfirmDialog({
+    title: '重建选中文件索引？',
+    message: `将重新读取 ${selectedFileIds.size} 个源文件并更新索引。`,
+    confirmText: '开始重建',
+  });
+  if (!confirmed) return;
+  const btn = document.getElementById('rebuild-selected-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/files/batch/rebuild`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file_ids: [...selectedFileIds] }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    setScanButtonState('queued');
+    pollQueueOnce();
+    await refreshFiles();
+  } catch (e) {
+    alert(`重建索引失败: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function summarizeSelected() {

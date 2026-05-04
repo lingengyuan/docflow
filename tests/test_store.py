@@ -163,6 +163,45 @@ class TestDocStore:
         assert len(done_files) == 1
         assert done_files[0]["file_name"] == pdf.name
 
+    def test_file_metadata_filters_and_facets(self, db, pdf, tmp_path):
+        pdf2 = tmp_path / "test2.pdf"
+        make_pdf(pdf2)
+        first_id = db.upsert_file(pdf, pdf.name, "hash1", status="done")
+        second_id = db.upsert_file(pdf2, pdf2.name, "hash2", status="done")
+
+        db.update_file_metadata(first_id, collection="Research", user_tags=["ai", "#paper", "ai"])
+        db.update_file_metadata(second_id, collection="Inbox", user_tags=["todo"])
+        db.set_favorites([first_id], favorited=True)
+
+        assert db.get_file_by_id(first_id)["user_tags"] == ["ai", "paper"]
+        assert [row["id"] for row in db.list_files(collection="Research")] == [first_id]
+        assert [row["id"] for row in db.list_files(tag="paper")] == [first_id]
+        assert [row["id"] for row in db.list_files(favorite=True)] == [first_id]
+
+        facets = db.list_library_facets()
+        assert {"name": "Research", "count": 1} in facets["collections"]
+        assert {"name": "paper", "count": 1} in facets["user_tags"]
+        assert facets["favorites"] == 1
+
+    def test_batch_favorites_ignore_missing_files(self, db, pdf):
+        file_id = db.upsert_file(pdf, pdf.name, "hash1", status="done")
+
+        changed = db.set_favorites([file_id, 999], favorited=True)
+
+        assert changed == [file_id]
+        assert [row["id"] for row in db.list_favorites()] == [file_id]
+
+    def test_reingest_preserves_user_metadata(self, db, pdf):
+        file_id = db.upsert_file(pdf, pdf.name, "hash1", status="done")
+        db.update_file_metadata(file_id, collection="Research", user_tags=["paper"])
+
+        same_id = db.upsert_file(pdf, pdf.name, "hash2", status="done")
+        record = db.get_file_by_id(same_id)
+
+        assert same_id == file_id
+        assert record["collection"] == "Research"
+        assert record["user_tags"] == ["paper"]
+
     def test_embedding_cache_roundtrip(self, db):
         vector = np.array([1.0, 2.0, 3.0], dtype=np.float32)
         db.put_cached_embeddings("test-model", {"hash-a": vector})

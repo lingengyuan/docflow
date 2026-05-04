@@ -643,10 +643,116 @@ def _warmup_models():
 
 
 @app.get("/api/files")
-async def list_files(status: str | None = None):
+async def list_files(
+    status: str | None = None,
+    collection: str | None = None,
+    tag: str | None = None,
+    favorite: bool | None = None,
+):
     if store is None:
         raise HTTPException(503, "Store not ready")
-    return store.list_files(status=status)
+    return store.list_files(
+        status=status,
+        collection=collection,
+        tag=tag,
+        favorite=favorite,
+    )
+
+
+@app.get("/api/library/meta")
+async def library_meta():
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    return store.list_library_facets()
+
+
+class FileMetadataRequest(BaseModel):
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
+@app.patch("/api/files/{file_id}/metadata")
+async def update_file_metadata(file_id: int, req: FileMetadataRequest):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    record = store.update_file_metadata(
+        file_id,
+        collection=req.collection,
+        user_tags=req.user_tags,
+    )
+    if record is None:
+        raise HTTPException(404, "File not found")
+    return record
+
+
+class BatchFavoriteRequest(BaseModel):
+    file_ids: list[int]
+    favorited: bool = True
+
+
+@app.post("/api/files/batch/favorite")
+async def batch_favorite(req: BatchFavoriteRequest):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    if not req.file_ids:
+        raise HTTPException(400, "No file IDs provided")
+    changed = store.set_favorites(req.file_ids, favorited=req.favorited)
+    return {"file_ids": changed, "favorited": req.favorited, "count": len(changed)}
+
+
+class BatchMetadataRequest(BaseModel):
+    file_ids: list[int]
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
+@app.post("/api/files/batch/metadata")
+async def batch_update_file_metadata(req: BatchMetadataRequest):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    if not req.file_ids:
+        raise HTTPException(400, "No file IDs provided")
+    records = store.update_files_metadata(
+        req.file_ids,
+        collection=req.collection,
+        user_tags=req.user_tags,
+    )
+    return {"files": records, "count": len(records)}
+
+
+class BatchRebuildRequest(BaseModel):
+    file_ids: list[int]
+
+
+@app.post("/api/files/batch/rebuild")
+async def batch_rebuild_files(req: BatchRebuildRequest):
+    if store is None or ingest_queue is None:
+        raise HTTPException(503, "Not ready")
+    if not req.file_ids:
+        raise HTTPException(400, "No file IDs provided")
+
+    paths: list[Path] = []
+    missing_ids: list[int] = []
+    for file_id in dict.fromkeys(req.file_ids):
+        record = store.get_file_by_id(file_id)
+        if record is None:
+            missing_ids.append(file_id)
+            continue
+        path = Path(record["file_path"])
+        if path.exists():
+            paths.append(path)
+        else:
+            missing_ids.append(file_id)
+
+    if not paths:
+        raise HTTPException(404, "No existing files found")
+    result = ingest_queue.submit_many(paths)
+    return {
+        **result,
+        "requested": len(req.file_ids),
+        "files": [path.name for path in paths],
+        "missing_ids": missing_ids,
+    }
 
 
 @app.post("/api/upload")

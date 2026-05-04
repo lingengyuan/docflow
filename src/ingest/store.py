@@ -14,6 +14,10 @@ import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+import json
+
+
+DEFAULT_COLLECTION = "Inbox"
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +68,8 @@ class DocStore:
                     chunk_count  INTEGER NOT NULL DEFAULT 0,
                     error_msg    TEXT    NOT NULL DEFAULT '',
                     tags         TEXT    NOT NULL DEFAULT '[]',
+                    collection   TEXT    NOT NULL DEFAULT 'Inbox',
+                    user_tags    TEXT    NOT NULL DEFAULT '[]',
                     mtime_ns     INTEGER NOT NULL DEFAULT 0,
                     created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
                     updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -151,6 +157,8 @@ class DocStore:
         """增量迁移：为已有 DB 添加新列（幂等）。"""
         migrations = [
             "ALTER TABLE files ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE files ADD COLUMN collection TEXT NOT NULL DEFAULT 'Inbox'",
+            "ALTER TABLE files ADD COLUMN user_tags TEXT NOT NULL DEFAULT '[]'",
             "ALTER TABLE files ADD COLUMN mtime_ns INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE chunks ADD COLUMN parent_id INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE chunks ADD COLUMN raw_text TEXT NOT NULL DEFAULT ''",
@@ -166,6 +174,7 @@ class DocStore:
                 except sqlite3.OperationalError:
                     pass  # 列已存在
             conn.execute("CREATE INDEX IF NOT EXISTS idx_chunks_parent_id ON chunks(file_id, parent_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_files_collection ON files(collection)")
 
     @contextmanager
     def _conn(self):
@@ -390,30 +399,128 @@ class DocStore:
     # Query
     # ------------------------------------------------------------------
 
-    def list_files(self, status: str | None = None) -> list[dict]:
-        query = "SELECT * FROM files"
-        params: tuple = ()
+    def list_files(
+        self,
+        status: str | None = None,
+        collection: str | None = None,
+        tag: str | None = None,
+        favorite: bool | None = None,
+    ) -> list[dict]:
+        query = """
+            SELECT f.*, fav.id IS NOT NULL AS favorited
+            FROM files f
+            LEFT JOIN favorites fav ON fav.file_id = f.id
+        """
+        params: list = []
+        clauses = []
         if status:
-            query += " WHERE status = ?"
-            params = (status,)
-        query += " ORDER BY updated_at DESC"
+            clauses.append("f.status = ?")
+            params.append(status)
+        normalized_collection = self._normalize_collection(collection) if collection else ""
+        if normalized_collection:
+            clauses.append("f.collection = ?")
+            params.append(normalized_collection)
+        if favorite is True:
+            clauses.append("fav.id IS NOT NULL")
+        elif favorite is False:
+            clauses.append("fav.id IS NULL")
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY f.updated_at DESC"
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
-        return [dict(r) for r in rows]
+        result = [self._file_row_to_dict(r) for r in rows]
+        normalized_tag = self._normalize_tag(tag) if tag else ""
+        if normalized_tag:
+            result = [row for row in result if normalized_tag in row["user_tags"]]
+        return result
 
     def get_file_by_path(self, file_path: str | Path) -> dict | None:
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT * FROM files WHERE file_path = ?", (str(file_path),)
             ).fetchone()
-        return dict(row) if row else None
+        return self._file_row_to_dict(row) if row else None
 
     def get_file_by_id(self, file_id: int) -> dict | None:
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT * FROM files WHERE id = ?", (file_id,)
             ).fetchone()
-        return dict(row) if row else None
+        return self._file_row_to_dict(row) if row else None
+
+    def update_file_metadata(
+        self,
+        file_id: int,
+        collection: str | None = None,
+        user_tags: list[str] | None = None,
+    ) -> dict | None:
+        updates = []
+        params: list = []
+        if collection is not None:
+            updates.append("collection = ?")
+            params.append(self._normalize_collection(collection))
+        if user_tags is not None:
+            updates.append("user_tags = ?")
+            params.append(json.dumps(self._normalize_tags(user_tags), ensure_ascii=False))
+        if not updates:
+            return self.get_file_by_id(file_id)
+
+        params.append(file_id)
+        with self._conn() as conn:
+            row = conn.execute("SELECT id FROM files WHERE id = ?", (file_id,)).fetchone()
+            if row is None:
+                return None
+            conn.execute(
+                f"UPDATE files SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?",
+                params,
+            )
+        return self.get_file_by_id(file_id)
+
+    def update_files_metadata(
+        self,
+        file_ids: list[int],
+        collection: str | None = None,
+        user_tags: list[str] | None = None,
+    ) -> list[dict]:
+        updated: list[dict] = []
+        for file_id in self._unique_ids(file_ids):
+            record = self.update_file_metadata(file_id, collection=collection, user_tags=user_tags)
+            if record is not None:
+                updated.append(record)
+        return updated
+
+    def list_library_facets(self) -> dict:
+        with self._conn() as conn:
+            collection_rows = conn.execute(
+                """
+                SELECT collection, COUNT(*) AS count
+                FROM files
+                GROUP BY collection
+                ORDER BY lower(collection)
+                """
+            ).fetchall()
+            rows = conn.execute("SELECT tags, user_tags FROM files").fetchall()
+            favorite_count = conn.execute("SELECT COUNT(*) AS count FROM favorites").fetchone()["count"]
+
+        user_tag_counts: dict[str, int] = {}
+        document_tag_counts: dict[str, int] = {}
+        for row in rows:
+            for tag_name in self._parse_json_list(row["user_tags"]):
+                user_tag_counts[tag_name] = user_tag_counts.get(tag_name, 0) + 1
+            for tag_name in self._parse_json_list(row["tags"]):
+                document_tag_counts[tag_name] = document_tag_counts.get(tag_name, 0) + 1
+
+        return {
+            "collections": [
+                {"name": row["collection"] or DEFAULT_COLLECTION, "count": row["count"]}
+                for row in collection_rows
+            ],
+            "user_tags": self._facet_rows(user_tag_counts),
+            "document_tags": self._facet_rows(document_tag_counts),
+            "favorites": favorite_count,
+            "total_files": len(rows),
+        }
 
     def get_file_qdrant_ids(self, file_id: int) -> list[int]:
         """返回某文件所有 chunk 的 Qdrant point ID（用于重新索引时清理旧向量）。"""
@@ -753,6 +860,29 @@ class DocStore:
                 conn.execute("INSERT INTO favorites (file_id) VALUES (?)", (file_id,))
                 return True
 
+    def set_favorites(self, file_ids: list[int], favorited: bool) -> list[int]:
+        ids = self._unique_ids(file_ids)
+        if not ids:
+            return []
+        with self._conn() as conn:
+            placeholders = ",".join("?" * len(ids))
+            existing_rows = conn.execute(
+                f"SELECT id FROM files WHERE id IN ({placeholders})",
+                ids,
+            ).fetchall()
+            existing_ids = [row["id"] for row in existing_rows]
+            if not existing_ids:
+                return []
+            if favorited:
+                conn.executemany(
+                    "INSERT OR IGNORE INTO favorites (file_id) VALUES (?)",
+                    [(file_id,) for file_id in existing_ids],
+                )
+            else:
+                placeholders = ",".join("?" * len(existing_ids))
+                conn.execute(f"DELETE FROM favorites WHERE file_id IN ({placeholders})", existing_ids)
+        return existing_ids
+
     def is_favorite(self, file_id: int) -> bool:
         with self._conn() as conn:
             row = conn.execute(
@@ -763,11 +893,68 @@ class DocStore:
     def list_favorites(self) -> list[dict]:
         with self._conn() as conn:
             rows = conn.execute("""
-                SELECT f.* FROM files f
+                SELECT f.*, 1 AS favorited FROM files f
                 INNER JOIN favorites fav ON f.id = fav.file_id
                 ORDER BY fav.created_at DESC
             """).fetchall()
-        return [dict(r) for r in rows]
+        return [self._file_row_to_dict(r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # File metadata helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _unique_ids(file_ids: list[int]) -> list[int]:
+        return [int(file_id) for file_id in dict.fromkeys(file_ids) if int(file_id) > 0]
+
+    @staticmethod
+    def _parse_json_list(value) -> list[str]:
+        if isinstance(value, list):
+            raw = value
+        else:
+            try:
+                raw = json.loads(value or "[]")
+            except Exception:
+                raw = []
+        if not isinstance(raw, list):
+            return []
+        return [str(item).strip() for item in raw if str(item).strip()]
+
+    @classmethod
+    def _normalize_tags(cls, values: list[str]) -> list[str]:
+        seen = set()
+        tags: list[str] = []
+        for value in values:
+            tag = cls._normalize_tag(value)
+            if tag and tag not in seen:
+                seen.add(tag)
+                tags.append(tag)
+        return tags
+
+    @staticmethod
+    def _normalize_tag(value: str | None) -> str:
+        return str(value or "").strip().lstrip("#")[:40]
+
+    @staticmethod
+    def _normalize_collection(value: str | None) -> str:
+        collection = str(value or "").strip()
+        return collection[:80] if collection else DEFAULT_COLLECTION
+
+    @classmethod
+    def _file_row_to_dict(cls, row: sqlite3.Row) -> dict:
+        data = dict(row)
+        data["tags"] = cls._parse_json_list(data.get("tags"))
+        data["collection"] = cls._normalize_collection(data.get("collection"))
+        data["user_tags"] = cls._parse_json_list(data.get("user_tags"))
+        data["favorited"] = bool(data.get("favorited", False))
+        return data
+
+    @staticmethod
+    def _facet_rows(counts: dict[str, int]) -> list[dict]:
+        return [
+            {"name": name, "count": counts[name]}
+            for name in sorted(counts, key=lambda item: item.lower())
+        ]
 
     # ------------------------------------------------------------------
     # FTS5 全文检索

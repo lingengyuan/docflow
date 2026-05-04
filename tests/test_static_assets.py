@@ -66,6 +66,19 @@ def test_files_actions_have_clear_feedback():
     assert "setScanButtonState" in html
 
 
+def test_library_view_has_filters_and_batch_actions():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "library-collection-filter" in html
+    assert "library-tag-filter" in html
+    assert "library-favorite-filter" in html
+    assert "batch-collection-input" in html
+    assert "batch-tags-input" in html
+    assert "favoriteSelected" in html
+    assert "applyBatchMetadata" in html
+    assert "rebuildSelected" in html
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

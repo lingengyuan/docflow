@@ -26,6 +26,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
+- Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
@@ -341,6 +342,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
+- 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
 - Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
