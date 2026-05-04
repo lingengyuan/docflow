@@ -61,7 +61,7 @@ paths:
 
 vlm:
   enabled: true
-  model: "mlx-community/Qwen2.5-VL-7B-Instruct-4bit"  # ~4GB，按需加载（首次 ingest 图片时）
+  model: "mlx-community/Qwen3-VL-8B-Instruct-4bit"  # ~5.4GB，按需加载（首次 ingest 图片时）
   prompt: "请用中文详细描述这张图片的内容，包括文字、图表、场景、颜色等所有可见信息。如图片含表格或数据，请列出关键数据。输出纯文字，不要 Markdown。"
   max_tokens: 512
 

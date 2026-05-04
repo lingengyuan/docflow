@@ -24,6 +24,9 @@ DocFlow 入口。
   # 运行固定检索评估集（不调用回答 LLM）
   python main.py eval
 
+  # 生成 Phase 11 的 9 分成熟度评分报告
+  python main.py maturity-eval
+
   # 检查 SQLite 与 Qdrant 是否一致
   python main.py check
 
@@ -154,6 +157,13 @@ def eval_retrieval(args: list[str]):
     return run_eval_main()
 
 
+def maturity_eval(args: list[str]):
+    from scripts.run_maturity_eval import main as run_maturity_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_maturity_main()
+
+
 def check_index(args: list[str]):
     from src.maintenance.consistency import check_consistency, print_report
 
@@ -244,6 +254,8 @@ if __name__ == "__main__":
         benchmark(sys.argv[2:])
     elif cmd == "eval":
         sys.exit(eval_retrieval(sys.argv[2:]))
+    elif cmd == "maturity-eval":
+        sys.exit(maturity_eval(sys.argv[2:]))
     elif cmd == "check":
         sys.exit(check_index(sys.argv[2:]))
     elif cmd == "rebuild":

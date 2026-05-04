@@ -27,6 +27,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
+- Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
@@ -111,6 +112,7 @@ python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
+python main.py maturity-eval --no-rerank
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
@@ -205,6 +207,12 @@ Run the fixed retrieval evaluation set:
 
 ```bash
 .venv/bin/python main.py eval
+```
+
+Run the Phase 11 maturity baseline:
+
+```bash
+.venv/bin/python main.py maturity-eval --no-rerank
 ```
 
 Check SQLite and Qdrant consistency:
@@ -333,7 +341,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
-- 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和图片理解模型。
+- 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
+- Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
@@ -418,6 +427,7 @@ python main.py scan
 python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
+python main.py maturity-eval --no-rerank
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
@@ -512,6 +522,12 @@ cd ~/Projects/docflow
 
 ```bash
 .venv/bin/python main.py eval
+```
+
+运行 Phase 11 成熟度基线：
+
+```bash
+.venv/bin/python main.py maturity-eval --no-rerank
 ```
 
 检查 SQLite 和 Qdrant 是否一致：

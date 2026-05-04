@@ -1,0 +1,184 @@
+{
+  "dimensions": [
+    {
+      "id": "local_privacy",
+      "name": "本地隐私",
+      "target_score": 9,
+      "current_score": 8.5,
+      "phase": "Phase 16",
+      "evidence": [
+        "默认本地 SQLite、Qdrant、MLX/Ollama 模型。",
+        "健康检查能区分核心能力和可选能力。"
+      ],
+      "next_steps": [
+        "把所有外部调用做成页面可见、可关闭、可解释。",
+        "在设置页集中展示本地路径和隐私状态。"
+      ]
+    },
+    {
+      "id": "qa_loop",
+      "name": "文档问答主流程",
+      "target_score": 9,
+      "current_score": 7.5,
+      "phase": "Phase 14, Phase 15",
+      "evidence": [
+        "支持流式问答、多轮对话、引用和来源预览。",
+        "支持答案复制和 Markdown 导出。"
+      ],
+      "next_steps": [
+        "增加指定集合、指定文件和全文模式。",
+        "增加保存回答为笔记。"
+      ]
+    },
+    {
+      "id": "format_support",
+      "name": "文档格式支持",
+      "target_score": 9,
+      "current_score": 7.5,
+      "phase": "Phase 13",
+      "evidence": [
+        "支持 PDF、Markdown、TXT、DOCX、代码文本和图片格式。",
+        "Qwen3-VL-8B 图片理解模型已安装并通过 smoke test。"
+      ],
+      "next_steps": [
+        "增加网页导入和页面内临时笔记。",
+        "为图片、截图、表格图建立真实样本验证。"
+      ]
+    },
+    {
+      "id": "answer_reliability",
+      "name": "搜索和答案可靠性",
+      "target_score": 9,
+      "current_score": 7,
+      "phase": "Phase 11, Phase 14",
+      "evidence": [
+        "已有混合检索、精排、父级上下文和检索调试入口。",
+        "Phase 11 新增固定评测报告。"
+      ],
+      "next_steps": [
+        "扩大真实问题评测集。",
+        "让资料不足时明确拒答。"
+      ]
+    },
+    {
+      "id": "ui_usability",
+      "name": "界面可用性",
+      "target_score": 9,
+      "current_score": 6.5,
+      "phase": "Phase 15",
+      "evidence": [
+        "已有 Chat、Files、History、健康面板和模型选择。",
+        "Phase 10 修正了关键按钮和确认流程。"
+      ],
+      "next_steps": [
+        "整理成 Chat、Library、Notes、Settings 四个主入口。",
+        "移除 Tailwind CDN，补齐空状态和错误状态。"
+      ]
+    },
+    {
+      "id": "library_management",
+      "name": "文件管理能力",
+      "target_score": 9,
+      "current_score": 6,
+      "phase": "Phase 12",
+      "evidence": [
+        "已有文件列表、收藏、上传、扫描和来源预览。",
+        "还没有集合、用户标签和保存筛选。"
+      ],
+      "next_steps": [
+        "新增集合和用户标签。",
+        "增加批量摘要、批量重建和来源详情。"
+      ]
+    },
+    {
+      "id": "model_runtime",
+      "name": "模型选择和本地运行",
+      "target_score": 9,
+      "current_score": 7,
+      "phase": "Phase 16",
+      "evidence": [
+        "默认 MLX 4B，增强 MLX 8B，OCR 和 VLM 都可用。",
+        "模型切换已有等待上限和失败保留。"
+      ],
+      "next_steps": [
+        "增加停止、恢复和更清楚的模型进度反馈。",
+        "缺模型时给出明确安装建议。"
+      ]
+    },
+    {
+      "id": "setup_ops",
+      "name": "安装和日常维护",
+      "target_score": 9,
+      "current_score": 7,
+      "phase": "Phase 16, Phase 18",
+      "evidence": [
+        "已有 doctor、start、launchd service、check、rebuild、backup。",
+        "README 提供了常用命令。"
+      ],
+      "next_steps": [
+        "把修复建议集中到设置页。",
+        "补充面向普通用户的本地部署指南。"
+      ]
+    },
+    {
+      "id": "stability_recovery",
+      "name": "稳定性和恢复能力",
+      "target_score": 9,
+      "current_score": 7.5,
+      "phase": "Phase 16, Phase 18",
+      "evidence": [
+        "Phase 10 增加前台任务等待上限、队列让路和安全模型切换。",
+        "已有一致性检查、重建、备份和恢复计划。"
+      ],
+      "next_steps": [
+        "把备份、恢复、检查和重建做成页面入口。",
+        "补充真实恢复演练。"
+      ]
+    },
+    {
+      "id": "local_workflow",
+      "name": "扩展生态",
+      "target_score": 9,
+      "current_score": 5,
+      "phase": "Phase 13, Phase 17",
+      "evidence": [
+        "已有本地文件夹监控和上传。",
+        "还没有网页剪藏、笔记保存和知识产物工作流。"
+      ],
+      "next_steps": [
+        "新增网页导入和回答保存为笔记。",
+        "增加总结、学习卡片、行动项、项目简报。"
+      ]
+    },
+    {
+      "id": "testing_discipline",
+      "name": "测试和交付纪律",
+      "target_score": 9,
+      "current_score": 8,
+      "phase": "Phase 11, Phase 18",
+      "evidence": [
+        "已有 138 个自动化测试。",
+        "每个阶段都有交接文档规则。"
+      ],
+      "next_steps": [
+        "把成熟度评分报告纳入固定验收。",
+        "增加最终端到端总验收报告。"
+      ]
+    },
+    {
+      "id": "product_maturity",
+      "name": "成熟产品感",
+      "target_score": 9,
+      "current_score": 6,
+      "phase": "Phase 15, Phase 18",
+      "evidence": [
+        "README、启动命令、健康检查和页面主流程已经成形。",
+        "还缺发布整理、示例数据、截图和完整故障处理。"
+      ],
+      "next_steps": [
+        "更新 README、截图、快速开始、FAQ 和 LICENSE。",
+        "输出最终 9 分评分报告。"
+      ]
+    }
+  ]
+}

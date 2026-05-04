@@ -26,6 +26,7 @@ class EvalCase:
     expected_files: list[str]
     expected_terms: list[str]
     must_find: bool
+    category: str = "retrieval"
 
 
 def load_cases(path: Path) -> list[EvalCase]:
@@ -43,6 +44,7 @@ def load_cases(path: Path) -> list[EvalCase]:
                     expected_files=list(data.get("expected_files", [])),
                     expected_terms=list(data.get("expected_terms", [])),
                     must_find=bool(data.get("must_find", True)),
+                    category=data.get("category", "retrieval"),
                 )
             )
     return cases
@@ -83,20 +85,91 @@ def evaluate_case(engine: QueryEngine, case: EvalCase, include_rerank: bool) -> 
         passed = bool(final_stage) and len(matched_files) == len(case.expected_files) and len(matched_terms) == len(case.expected_terms)
     else:
         passed = not final_stage or not any(contains_term(combined, term) for term in case.expected_terms)
+    evidence_status = _evidence_status(case, passed, final_stage, matched_files, matched_terms)
+    failure_reason = _failure_reason(case, final_stage, matched_files, matched_terms)
 
     return {
         "id": case.id,
+        "category": case.category,
         "question": case.question,
         "passed": passed,
         "must_find": case.must_find,
+        "evidence_status": evidence_status,
+        "failure_reason": failure_reason,
         "matched_files": matched_files,
         "missing_files": [f for f in case.expected_files if f not in matched_files],
         "matched_terms": matched_terms,
         "missing_terms": [t for t in case.expected_terms if t not in matched_terms],
+        "hit_count": len(final_stage),
+        "top_sources": [
+            {
+                "file_name": item.get("file_name", ""),
+                "section": item.get("section", ""),
+                "page_num": item.get("page_num"),
+            }
+            for item in final_stage[:5]
+        ],
         "top_files": [item.get("file_name", "") for item in final_stage[:5]],
         "top_qdrant_ids": [item.get("qdrant_id") for item in final_stage[:5]],
         "timings": debug["timings"],
     }
+
+
+def _evidence_status(
+    case: EvalCase,
+    passed: bool,
+    final_stage: list[dict],
+    matched_files: list[str],
+    matched_terms: list[str],
+) -> str:
+    if case.must_find and passed:
+        return "grounded"
+    if case.must_find and not final_stage:
+        return "no_evidence"
+    if case.must_find and (matched_files or matched_terms):
+        return "partial_evidence"
+    if case.must_find:
+        return "missing_evidence"
+    if passed:
+        return "correctly_no_match"
+    return "unsupported_match"
+
+
+def _failure_reason(
+    case: EvalCase,
+    final_stage: list[dict],
+    matched_files: list[str],
+    matched_terms: list[str],
+) -> str:
+    if case.must_find:
+        missing = []
+        if not final_stage:
+            missing.append("no_hits")
+        missing_files = [f for f in case.expected_files if f not in matched_files]
+        missing_terms = [t for t in case.expected_terms if t not in matched_terms]
+        if missing_files:
+            missing.append("missing_files=" + ",".join(missing_files))
+        if missing_terms:
+            missing.append("missing_terms=" + ",".join(missing_terms))
+        return "; ".join(missing)
+    if any(contains_term(_combined_stage_text(final_stage), term) for term in case.expected_terms):
+        return "unexpected_evidence"
+    return ""
+
+
+def _combined_stage_text(final_stage: list[dict]) -> str:
+    return "\n".join(
+        [
+            item.get("file_name", "")
+            + "\n"
+            + item.get("file_path", "")
+            + "\n"
+            + item.get("section", "")
+            + "\n"
+            + item.get("text_preview", "")
+            for item in final_stage
+        ]
+    )
 
 
 def main() -> int:
