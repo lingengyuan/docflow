@@ -22,6 +22,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Streaming answers: citations are sent first, followed by token streaming.
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
+- Local knowledge capture: import webpages, create quick Markdown notes, and save answers back into the local library as notes.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
@@ -33,7 +34,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
 - macOS background service: run DocFlow after login through launchd, with commands to install, inspect, or remove the service.
-- Query history, favorites, file upload, source listing, file preview, and summary export endpoints.
+- Query history, favorites, file upload, webpage import, note creation, source listing, file preview, and summary export endpoints.
 
 ### Requirements
 
@@ -338,6 +339,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 流式回答：先返回引用来源，再逐步返回答案内容。
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
+- 本地知识采集：支持导入网页、新建临时 Markdown 笔记，并把回答保存回本地文件库。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
@@ -349,7 +351,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
 - macOS 后台服务：通过 launchd 登录后自动运行 DocFlow，并提供安装、查看和移除命令。
-- 已有接口覆盖查询历史、收藏、上传、来源列表、文件预览和摘要导出。
+- 已有接口覆盖查询历史、收藏、上传、网页导入、笔记创建、来源列表、文件预览和摘要导出。
 
 ### 环境要求
 

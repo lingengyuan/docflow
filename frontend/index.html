@@ -90,6 +90,38 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
     .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+    @media (max-width: 700px) {
+      #view-library > header {
+        height: auto;
+        min-height: 4rem;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+      }
+      #view-library > header h1 {
+        white-space: nowrap;
+        line-height: 1.25rem;
+      }
+      #view-library > header > div {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+      }
+      #view-library > header button,
+      #view-library > header #queue-banner {
+        flex: 0 0 auto;
+      }
+      #view-library .px-8 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      #library-workflow-panel {
+        margin-left: 1rem;
+        margin-right: 1rem;
+      }
+    }
   </style>
 </head>
 <body class="bg-surface font-sans text-on-surface overflow-hidden h-screen flex">
@@ -235,6 +267,14 @@
           <span id="scan-folders-icon" class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
           <span id="scan-folders-label">扫描文件夹</span>
         </button>
+        <button onclick="openLibraryWorkflow('url')" title="导入网页" aria-label="导入网页" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">language</span>
+          导入网页
+        </button>
+        <button onclick="openLibraryWorkflow('note')" title="新建笔记" aria-label="新建笔记" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">edit_note</span>
+          新建笔记
+        </button>
         <button onclick="document.getElementById('file-input').click()" title="上传文件" aria-label="上传文件" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
           <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
           上传文件
@@ -258,6 +298,33 @@
         <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:32px">upload_file</span>
         <div class="text-sm font-medium text-on-surface-variant">拖拽文件至此或点击上传</div>
         <div class="text-xs text-on-surface-variant/60">支持 PDF · MD · TXT · DOCX · 图片 &nbsp;|&nbsp; 也可直接放入 ~/Documents/DocFlow/</div>
+      </div>
+    </div>
+
+    <!-- Import / note workflow -->
+    <div id="library-workflow-panel" class="hidden mx-8 mb-4 flex-shrink-0 rounded-xl bg-surface-container-lowest border border-outline-variant/15 shadow-sm p-4">
+      <div class="flex items-center justify-between gap-4 mb-3">
+        <div>
+          <div id="workflow-title" class="text-sm font-semibold text-on-surface">新建笔记</div>
+          <div id="workflow-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">写入本地监控目录并加入入库队列</div>
+        </div>
+        <button onclick="closeLibraryWorkflow()" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" title="关闭" aria-label="关闭导入面板">
+          <span class="material-symbols-outlined" style="font-size:17px">close</span>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <input id="workflow-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-url-input" placeholder="https://example.com/article" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-collection-input" list="collection-options" placeholder="集合" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+      </div>
+      <textarea id="workflow-content-input" rows="5" placeholder="笔记内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+      <div class="mt-3 flex items-center justify-between gap-3">
+        <span id="workflow-status" class="text-[11px] text-on-surface-variant/60"></span>
+        <button id="workflow-submit-btn" onclick="runLibraryWorkflow()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
+          <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
+          保存并入库
+        </button>
       </div>
     </div>
 
@@ -315,8 +382,8 @@
     </div>
 
     <!-- File table -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar px-8 pb-8">
-      <table class="w-full text-sm">
+    <div class="flex-1 overflow-auto custom-scrollbar px-8 pb-8">
+      <table class="w-full min-w-[980px] text-sm">
         <thead>
           <tr class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
             <th class="text-left py-3 pr-4 w-8"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded"></th>
@@ -380,6 +447,7 @@ let favoritedIds = new Set();
 let libraryFiles = [];
 let libraryMeta = { collections: [], user_tags: [] };
 let libraryFilters = { status: '', collection: '', tag: '', favorite: false };
+let libraryWorkflowMode = 'note';
 let queuePollTimer = null;
 let llmOptions = [];
 let pendingConfirmResolve = null;
@@ -851,6 +919,9 @@ function createAIMessageContainer() {
       <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
+      <button onclick="saveAnswerFromButton(this)" data-answer-text="" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
+        <span class="material-symbols-outlined" style="font-size:16px">note_add</span>
+      </button>
       <button onclick="exportAnswerFromButton(this)" data-answer-text="" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
@@ -907,6 +978,9 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
       <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
+      <button onclick="saveAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
+        <span class="material-symbols-outlined" style="font-size:16px">note_add</span>
+      </button>
       <button onclick="exportAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
@@ -936,6 +1010,40 @@ function exportAnswerFromButton(btn) {
   a.download = `docflow-answer-${new Date().toISOString().slice(0,10)}.md`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function saveAnswerFromButton(btn) {
+  const answer = btn.dataset.answerText || '';
+  if (!answer.trim()) return;
+  btn.disabled = true;
+  const icon = btn.querySelector('.material-symbols-outlined');
+  const previousIcon = icon.textContent;
+  icon.textContent = 'sync';
+  icon.classList.add('animate-spin');
+  try {
+    const r = await fetch(`${API}/api/notes/from-answer`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        title: `Saved Answer ${new Date().toISOString().slice(0,10)}`,
+        answer,
+        collection: 'Saved Answers',
+        user_tags: ['answer'],
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    icon.classList.remove('animate-spin');
+    icon.textContent = 'check';
+    setTimeout(() => { icon.textContent = previousIcon; }, 1500);
+    if (!document.getElementById('view-library').classList.contains('hidden')) refreshFiles();
+  } catch (e) {
+    icon.classList.remove('animate-spin');
+    icon.textContent = 'error';
+    alert(`保存笔记失败: ${e.message}`);
+    setTimeout(() => { icon.textContent = previousIcon; }, 1500);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function sendMessage() {
@@ -1009,6 +1117,7 @@ async function sendMessage() {
           const elapsedMs = performance.now() - startedAt;
           if (meta) meta.textContent = `耗时 ${(elapsedMs / 1000).toFixed(1)} 秒`;
           msgContainer.querySelector('.answer-copy').dataset.copyText = answerText;
+          msgContainer.querySelector('.answer-save').dataset.answerText = answerText;
           msgContainer.querySelector('.answer-export').dataset.answerText = answerText;
           loadConversations();
         } else if (eventType === 'error') {
@@ -1026,6 +1135,7 @@ async function sendMessage() {
       answerText = answerText ? `${answerText}\n\n${interrupted}` : interrupted;
       prose.innerHTML = renderMarkdown(answerText);
       msgContainer.querySelector('.answer-copy').dataset.copyText = answerText;
+      msgContainer.querySelector('.answer-save').dataset.answerText = answerText;
       msgContainer.querySelector('.answer-export').dataset.answerText = answerText;
       if (meta) meta.textContent = '连接中断';
     }
@@ -1155,6 +1265,74 @@ function updateLibraryControls() {
     tagOptions.innerHTML = (libraryMeta.user_tags || [])
       .map(item => `<option value="${escHtml(item.name)}"></option>`)
       .join('');
+  }
+}
+
+function openLibraryWorkflow(mode) {
+  libraryWorkflowMode = mode;
+  const panel = document.getElementById('library-workflow-panel');
+  const isUrl = mode === 'url';
+  document.getElementById('workflow-title').textContent = isUrl ? '导入网页' : '新建笔记';
+  document.getElementById('workflow-subtitle').textContent = isUrl
+    ? '抓取网页正文，保存为本地 Markdown 并加入入库队列'
+    : '写入本地监控目录并加入入库队列';
+  document.getElementById('workflow-url-input').classList.toggle('hidden', !isUrl);
+  document.getElementById('workflow-content-input').classList.toggle('hidden', isUrl);
+  document.getElementById('workflow-status').textContent = '';
+  panel.classList.remove('hidden');
+  (isUrl ? document.getElementById('workflow-url-input') : document.getElementById('workflow-title-input')).focus();
+}
+
+function closeLibraryWorkflow() {
+  document.getElementById('library-workflow-panel').classList.add('hidden');
+}
+
+async function runLibraryWorkflow() {
+  const btn = document.getElementById('workflow-submit-btn');
+  const status = document.getElementById('workflow-status');
+  const title = document.getElementById('workflow-title-input').value.trim();
+  const collection = document.getElementById('workflow-collection-input').value.trim();
+  const userTags = parseTagsInput(document.getElementById('workflow-tags-input').value);
+  const isUrl = libraryWorkflowMode === 'url';
+  const payload = isUrl
+    ? {
+        url: document.getElementById('workflow-url-input').value.trim(),
+        title: title || null,
+        collection: collection || null,
+        user_tags: userTags.length ? userTags : null,
+      }
+    : {
+        title: title || 'Untitled Note',
+        content: document.getElementById('workflow-content-input').value,
+        collection: collection || null,
+        user_tags: userTags.length ? userTags : null,
+      };
+  const endpoint = isUrl ? '/api/import/url' : '/api/notes';
+  btn.disabled = true;
+  status.classList.remove('text-error');
+  status.textContent = isUrl ? '正在导入网页…' : '正在保存笔记…';
+  try {
+    const r = await fetch(`${API}${endpoint}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    status.textContent = `已加入队列：${data.file?.file_name || data.path}`;
+    document.getElementById('workflow-url-input').value = '';
+    document.getElementById('workflow-title-input').value = '';
+    document.getElementById('workflow-content-input').value = '';
+    document.getElementById('workflow-collection-input').value = '';
+    document.getElementById('workflow-tags-input').value = '';
+    setScanButtonState('queued');
+    pollQueueOnce();
+    await refreshFiles();
+  } catch (e) {
+    status.textContent = `失败：${e.message}`;
+    status.classList.add('text-error');
+  } finally {
+    btn.disabled = false;
   }
 }
 

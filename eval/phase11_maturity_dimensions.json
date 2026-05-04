@@ -19,29 +19,28 @@
       "id": "qa_loop",
       "name": "文档问答主流程",
       "target_score": 9,
-      "current_score": 7.5,
+      "current_score": 8,
       "phase": "Phase 14, Phase 15",
       "evidence": [
         "支持流式问答、多轮对话、引用和来源预览。",
-        "支持答案复制和 Markdown 导出。"
+        "支持答案复制、Markdown 导出和保存回答为本地笔记。"
       ],
       "next_steps": [
         "增加指定集合、指定文件和全文模式。",
-        "增加保存回答为笔记。"
+        "增加更明确的指定范围提问模式。"
       ]
     },
     {
       "id": "format_support",
       "name": "文档格式支持",
       "target_score": 9,
-      "current_score": 7.5,
-      "phase": "Phase 13",
+      "current_score": 8,
+      "phase": "Phase 13, Phase 18",
       "evidence": [
         "支持 PDF、Markdown、TXT、DOCX、代码文本和图片格式。",
-        "Qwen3-VL-8B 图片理解模型已安装并通过 smoke test。"
+        "Phase 13 新增网页导入和页面内 Markdown 笔记创建。"
       ],
       "next_steps": [
-        "增加网页导入和页面内临时笔记。",
         "为图片、截图、表格图建立真实样本验证。"
       ]
     },
@@ -139,14 +138,13 @@
       "id": "local_workflow",
       "name": "扩展生态",
       "target_score": 9,
-      "current_score": 5,
-      "phase": "Phase 13, Phase 17",
+      "current_score": 7,
+      "phase": "Phase 17, Phase 18",
       "evidence": [
-        "已有本地文件夹监控和上传。",
-        "还没有网页剪藏、笔记保存和知识产物工作流。"
+        "已有本地文件夹监控、上传、网页导入、临时笔记和回答保存为笔记。",
+        "知识产物工作流还没有形成完整模板。"
       ],
       "next_steps": [
-        "新增网页导入和回答保存为笔记。",
         "增加总结、学习卡片、行动项、项目简报。"
       ]
     },
@@ -157,7 +155,7 @@
       "current_score": 8,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 145 个自动化测试。",
+        "已有 151 个自动化测试。",
         "每个阶段都有交接文档规则。"
       ],
       "next_steps": [

@@ -24,6 +24,12 @@ from pydantic import BaseModel
 
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
+from src.ingest.imports import (
+    build_answer_note_markdown,
+    build_quick_note_markdown,
+    fetch_webpage_markdown,
+    write_markdown_import,
+)
 from src.ingest.store import DocStore
 from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
 from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
@@ -752,6 +758,113 @@ async def batch_rebuild_files(req: BatchRebuildRequest):
         "requested": len(req.file_ids),
         "files": [path.name for path in paths],
         "missing_ids": missing_ids,
+    }
+
+
+class WebImportRequest(BaseModel):
+    url: str
+    title: str | None = None
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
+class NoteCreateRequest(BaseModel):
+    title: str
+    content: str
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
+class AnswerNoteRequest(BaseModel):
+    title: str | None = None
+    question: str | None = None
+    answer: str
+    citations: list[dict] | None = None
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
+@app.post("/api/import/url")
+async def import_url(req: WebImportRequest):
+    if store is None or ingest_queue is None:
+        raise HTTPException(503, "Not ready")
+    try:
+        item = fetch_webpage_markdown(req.url, title=req.title)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(502, f"Failed to fetch URL: {exc}") from exc
+    return _write_import_and_enqueue(
+        "web",
+        item,
+        collection=req.collection or "Web Imports",
+        user_tags=req.user_tags or ["web"],
+    )
+
+
+@app.post("/api/notes")
+async def create_note(req: NoteCreateRequest):
+    if store is None or ingest_queue is None:
+        raise HTTPException(503, "Not ready")
+    try:
+        item = build_quick_note_markdown(req.title, req.content, tags=req.user_tags or ["note"])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return _write_import_and_enqueue(
+        "note",
+        item,
+        collection=req.collection or "Notes",
+        user_tags=req.user_tags or ["note"],
+    )
+
+
+@app.post("/api/notes/from-answer")
+async def save_answer_note(req: AnswerNoteRequest):
+    if store is None or ingest_queue is None:
+        raise HTTPException(503, "Not ready")
+    try:
+        item = build_answer_note_markdown(
+            req.title,
+            req.answer,
+            question=req.question,
+            citations=req.citations or [],
+            tags=req.user_tags or ["answer"],
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return _write_import_and_enqueue(
+        "answer",
+        item,
+        collection=req.collection or "Saved Answers",
+        user_tags=req.user_tags or ["answer"],
+    )
+
+
+def _write_import_and_enqueue(
+    prefix: str,
+    item,
+    collection: str,
+    user_tags: list[str],
+) -> dict:
+    if store is None or ingest_queue is None or not watch_dirs:
+        raise HTTPException(503, "Not ready")
+    root = watch_dirs[0].path
+    path = write_markdown_import(root, prefix, item)
+    file_id = store.upsert_file(
+        path,
+        path.name,
+        DocStore.compute_hash(path),
+        status="pending",
+        total_pages=1,
+        mtime_ns=path.stat().st_mtime_ns,
+    )
+    record = store.update_file_metadata(file_id, collection=collection, user_tags=user_tags)
+    queue_result = ingest_queue.submit(path)
+    return {
+        "status": "queued",
+        "path": str(path),
+        "file": record,
+        "queue": queue_result,
     }
 
 

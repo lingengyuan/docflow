@@ -79,6 +79,18 @@ def test_library_view_has_filters_and_batch_actions():
     assert "rebuildSelected" in html
 
 
+def test_phase13_import_and_note_actions_are_visible():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "导入网页" in html
+    assert "新建笔记" in html
+    assert "library-workflow-panel" in html
+    assert "runLibraryWorkflow" in html
+    assert "/api/import/url" in html
+    assert "/api/notes/from-answer" in html
+    assert "保存为笔记" in html
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
