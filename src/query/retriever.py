@@ -239,6 +239,7 @@ class HybridRetriever:
         self,
         query: str,
         file_filter: list[str] | None = None,
+        retrieval_mode: str = "hybrid",
         prefer_tables: bool = False,
         cancel_event=None,
     ) -> list[dict]:
@@ -254,26 +255,29 @@ class HybridRetriever:
         rerank_limit = route["top_k_rerank"]
         degradations: list[dict] = []
 
+        mode = self._normalize_retrieval_mode(retrieval_mode)
+
         # 1-2. Encode query + vector search. If this path is unavailable, keep FTS alive.
         vec_results: list[dict] = []
-        try:
-            instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
-            query_vec = self.embed_model.encode(
-                [instructed_query],
-                normalize_embeddings=True,
-                convert_to_numpy=True,
-            )[0]
-            query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
-            logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
-            if cancel_event is not None and cancel_event.is_set():
-                return []
+        if mode != "full_text":
+            try:
+                instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
+                query_vec = self.embed_model.encode(
+                    [instructed_query],
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                )[0]
+                query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+                logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
+                if cancel_event is not None and cancel_event.is_set():
+                    return []
 
-            _t1 = _time.time()
-            vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
-            logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
-        except Exception as exc:
-            logger.warning("[retriever] vector path unavailable; falling back to FTS", exc_info=True)
-            degradations.append(self._degradation("vector", exc))
+                _t1 = _time.time()
+                vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
+                logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
+            except Exception as exc:
+                logger.warning("[retriever] vector path unavailable; falling back to FTS", exc_info=True)
+                degradations.append(self._degradation("vector", exc))
 
         if cancel_event is not None and cancel_event.is_set():
             return []
@@ -332,6 +336,7 @@ class HybridRetriever:
         self,
         query: str,
         file_filter: list[str] | None = None,
+        retrieval_mode: str = "hybrid",
         prefer_tables: bool = False,
         include_rerank: bool = True,
         max_text_chars: int = 300,
@@ -346,19 +351,21 @@ class HybridRetriever:
         route = QueryRouter.classify(query)
         search_limit = route["top_k_retrieval"]
         rerank_limit = route["top_k_rerank"]
+        mode = self._normalize_retrieval_mode(retrieval_mode)
 
         query_vec_list: list[float] | None = None
-        instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
-        try:
-            query_vec = self.embed_model.encode(
-                [instructed_query],
-                normalize_embeddings=True,
-                convert_to_numpy=True,
-            )[0]
-            query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
-        except Exception as exc:
-            logger.warning("[retriever] debug vector encode failed", exc_info=True)
-            degradations.append(self._degradation("vector", exc))
+        if mode != "full_text":
+            instructed_query = f"Instruct: {QUERY_INSTRUCTION}\nQuery: {query}"
+            try:
+                query_vec = self.embed_model.encode(
+                    [instructed_query],
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                )[0]
+                query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+            except Exception as exc:
+                logger.warning("[retriever] debug vector encode failed", exc_info=True)
+                degradations.append(self._degradation("vector", exc))
         timings["embed_ms"] = round((_time.perf_counter() - t0) * 1000, 2)
 
         t1 = _time.perf_counter()
@@ -416,6 +423,7 @@ class HybridRetriever:
         return {
             "query": query,
             "file_filter": file_filter or [],
+            "retrieval_mode": mode,
             "prefer_tables": prefer_tables,
             "router": route,
             "top_k_retrieval": search_limit,
@@ -740,6 +748,13 @@ class HybridRetriever:
         for item in fallback:
             item["rerank_fallback"] = True
         return fallback
+
+    @staticmethod
+    def _normalize_retrieval_mode(mode: str | None) -> str:
+        normalized = str(mode or "hybrid").strip().lower().replace("-", "_")
+        if normalized in {"fts", "fulltext", "full_text"}:
+            return "full_text"
+        return "hybrid"
 
     @staticmethod
     def _debug_item(item: dict, max_text_chars: int = 300) -> dict:

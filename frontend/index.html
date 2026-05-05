@@ -91,6 +91,14 @@
     .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
     .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
     @media (max-width: 700px) {
+      #query-scope-controls {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.25rem;
+      }
+      #query-scope-controls select {
+        flex: 0 0 auto;
+      }
       #view-library > header {
         height: auto;
         min-height: 4rem;
@@ -229,6 +237,20 @@
     <!-- Input -->
     <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pt-12 pb-8 px-6">
       <div class="max-w-2xl mx-auto">
+        <div id="query-scope-controls" class="mb-2 flex items-center gap-2 text-xs">
+          <select id="query-scope-mode" onchange="updateQueryScopeControls()" aria-label="提问范围" class="h-8 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20">
+            <option value="all">全部知识库</option>
+            <option value="collection">指定集合</option>
+            <option value="file">指定文件</option>
+            <option value="full_text">全文模式</option>
+          </select>
+          <select id="query-scope-collection" onchange="updateQueryScopeControls()" aria-label="选择集合" class="hidden h-8 max-w-[190px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
+          <select id="query-scope-file" onchange="updateQueryScopeControls()" aria-label="选择文件" class="hidden h-8 max-w-[240px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
+          <button id="query-scope-refresh" onclick="loadQueryScopeOptions(true)" title="刷新范围选项" aria-label="刷新范围选项" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant/60 hover:text-primary hover:bg-surface-container active:scale-95 transition-all">
+            <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+          </button>
+          <span id="query-scope-status" class="text-[10px] text-on-surface-variant/45 whitespace-nowrap"></span>
+        </div>
         <div class="relative flex items-end bg-surface-container-lowest border border-outline-variant/15 rounded-2xl shadow-sm focus-within:shadow-md focus-within:border-primary/40 transition-all p-1.5 gap-1">
           <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()" title="添加文件" aria-label="添加文件">
             <span class="material-symbols-outlined">add_circle</span>
@@ -448,6 +470,7 @@ let libraryFiles = [];
 let libraryMeta = { collections: [], user_tags: [] };
 let libraryFilters = { status: '', collection: '', tag: '', favorite: false };
 let libraryWorkflowMode = 'note';
+let queryScopeFiles = [];
 let queuePollTimer = null;
 let llmOptions = [];
 let pendingConfirmResolve = null;
@@ -492,7 +515,7 @@ function switchView(view) {
   btn.classList.add('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
   btn.classList.remove('text-on-surface-variant', 'opacity-60');
 
-  if (view === 'chat') loadConversations();
+  if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); }
   if (view === 'library') { refreshFiles(); pollQueueOnce(); }
   if (view === 'history') refreshHistory();
 }
@@ -615,6 +638,7 @@ async function loadLLMOptions() {
 }
 loadLLMOptions();
 loadConversations();
+loadQueryScopeOptions();
 
 document.getElementById('llm-btn').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -811,6 +835,90 @@ function renderConversationMessages(messages) {
     });
   });
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── Query scope controls ──
+async function loadQueryScopeOptions(force = false) {
+  const status = document.getElementById('query-scope-status');
+  const refresh = document.getElementById('query-scope-refresh');
+  if (refresh) refresh.disabled = true;
+  if (status && force) status.textContent = '刷新中…';
+  try {
+    const [meta, files] = await Promise.all([
+      fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
+      fetch(`${API}/api/files?status=done`).then(r => r.json()).catch(() => queryScopeFiles),
+    ]);
+    libraryMeta = meta || libraryMeta;
+    queryScopeFiles = Array.isArray(files) ? files : [];
+    renderQueryScopeOptions();
+    if (status) status.textContent = queryScopeLabel();
+  } catch (e) {
+    if (status) status.textContent = '范围读取失败';
+  } finally {
+    if (refresh) refresh.disabled = false;
+  }
+}
+
+function renderQueryScopeOptions() {
+  const collectionSelect = document.getElementById('query-scope-collection');
+  const fileSelect = document.getElementById('query-scope-file');
+  if (collectionSelect) {
+    const value = collectionSelect.value;
+    collectionSelect.innerHTML = (libraryMeta.collections || [])
+      .map(item => `<option value="${escHtml(item.name)}">${escHtml(item.name)} (${item.count})</option>`)
+      .join('');
+    if ([...collectionSelect.options].some(option => option.value === value)) collectionSelect.value = value;
+  }
+  if (fileSelect) {
+    const value = fileSelect.value;
+    fileSelect.innerHTML = queryScopeFiles
+      .map(item => `<option value="${item.id}">${escHtml(item.file_name)} · ${escHtml(item.collection || 'Inbox')}</option>`)
+      .join('');
+    if ([...fileSelect.options].some(option => option.value === value)) fileSelect.value = value;
+  }
+  updateQueryScopeControls();
+}
+
+function updateQueryScopeControls() {
+  const mode = document.getElementById('query-scope-mode')?.value || 'all';
+  const collectionSelect = document.getElementById('query-scope-collection');
+  const fileSelect = document.getElementById('query-scope-file');
+  const status = document.getElementById('query-scope-status');
+  collectionSelect?.classList.toggle('hidden', mode !== 'collection');
+  fileSelect?.classList.toggle('hidden', mode !== 'file');
+  if (status) status.textContent = queryScopeLabel();
+}
+
+function buildQueryScopePayload() {
+  const mode = document.getElementById('query-scope-mode')?.value || 'all';
+  const payload = { scope_mode: mode, retrieval_mode: mode === 'full_text' ? 'full_text' : 'hybrid' };
+  if (mode === 'collection') {
+    payload.collection = document.getElementById('query-scope-collection')?.value || '';
+  }
+  if (mode === 'file') {
+    const rawId = document.getElementById('query-scope-file')?.value || '';
+    payload.file_id = rawId ? parseInt(rawId) : null;
+  }
+  return payload;
+}
+
+function validateQueryScopePayload(payload) {
+  if (payload.scope_mode === 'collection' && !payload.collection) return '请选择集合';
+  if (payload.scope_mode === 'file' && !payload.file_id) return '请选择文件';
+  return '';
+}
+
+function queryScopeLabel() {
+  const mode = document.getElementById('query-scope-mode')?.value || 'all';
+  if (mode === 'collection') {
+    return document.getElementById('query-scope-collection')?.value || '选择集合';
+  }
+  if (mode === 'file') {
+    const select = document.getElementById('query-scope-file');
+    return select?.selectedOptions?.[0]?.textContent || '选择文件';
+  }
+  if (mode === 'full_text') return '仅全文匹配';
+  return `${queryScopeFiles.length} 个可提问文件`;
 }
 
 // ── Chat ──
@@ -1050,6 +1158,12 @@ async function sendMessage() {
   const input = document.getElementById('input');
   const question = input.value.trim();
   if (!question) return;
+  const scopePayload = buildQueryScopePayload();
+  const scopeError = validateQueryScopePayload(scopePayload);
+  if (scopeError) {
+    alert(scopeError);
+    return;
+  }
 
   input.value = '';
   input.style.height = 'auto';
@@ -1060,7 +1174,7 @@ async function sendMessage() {
   const startedAt = performance.now();
 
   try {
-    const body = { question, conversation_id: currentConversationId };
+    const body = { question, conversation_id: currentConversationId, ...scopePayload };
     const r = await fetch(`${API}/api/query/stream`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -1347,6 +1461,9 @@ async function refreshFiles(options = {}) {
     libraryFiles = files;
     libraryMeta = meta || libraryMeta;
     updateLibraryControls();
+    if (!document.getElementById('view-chat').classList.contains('hidden')) {
+      loadQueryScopeOptions();
+    }
     favoritedIds = new Set(files.filter(f => f.favorited).map(f => f.id));
     selectedFileIds.clear();
     updateSummarizeBar();

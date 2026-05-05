@@ -17,6 +17,7 @@ class FakeQueryEngine:
         self,
         question,
         file_filter=None,
+        retrieval_mode="hybrid",
         conversation_context=None,
         retrieval_query=None,
     ):
@@ -24,6 +25,7 @@ class FakeQueryEngine:
             {
                 "question": question,
                 "file_filter": file_filter,
+                "retrieval_mode": retrieval_mode,
                 "conversation_context": conversation_context,
                 "retrieval_query": retrieval_query,
             }
@@ -45,6 +47,7 @@ class FakeQueryEngine:
         self,
         question,
         file_filter=None,
+        retrieval_mode="hybrid",
         cancel_event=None,
         conversation_context=None,
         retrieval_query=None,
@@ -53,6 +56,7 @@ class FakeQueryEngine:
             {
                 "question": question,
                 "file_filter": file_filter,
+                "retrieval_mode": retrieval_mode,
                 "conversation_context": conversation_context,
                 "retrieval_query": retrieval_query,
             }
@@ -78,6 +82,7 @@ class TimeoutThenFastQueryEngine:
         self,
         question,
         file_filter=None,
+        retrieval_mode="hybrid",
         conversation_context=None,
         retrieval_query=None,
     ):
@@ -105,6 +110,7 @@ class SlowStreamQueryEngine(FakeQueryEngine):
         self,
         question,
         file_filter=None,
+        retrieval_mode="hybrid",
         cancel_event=None,
         conversation_context=None,
         retrieval_query=None,
@@ -113,6 +119,7 @@ class SlowStreamQueryEngine(FakeQueryEngine):
         return super().query_stream(
             question,
             file_filter=file_filter,
+            retrieval_mode=retrieval_mode,
             cancel_event=cancel_event,
             conversation_context=conversation_context,
             retrieval_query=retrieval_query,

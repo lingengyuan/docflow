@@ -11,6 +11,7 @@ import queue
 import sqlite3
 import threading
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter, time
 
@@ -301,12 +302,22 @@ app = FastAPI(title="DocFlow", lifespan=lifespan)
 class QueryRequest(BaseModel):
     question: str
     file_filter: list[str] | None = None
+    scope_mode: str | None = "all"
+    collection: str | None = None
+    file_id: int | None = None
+    file_name: str | None = None
+    retrieval_mode: str | None = "hybrid"
     conversation_id: int | None = None
 
 
 class DebugRetrieveRequest(BaseModel):
     question: str
     file_filter: list[str] | None = None
+    scope_mode: str | None = "all"
+    collection: str | None = None
+    file_id: int | None = None
+    file_name: str | None = None
+    retrieval_mode: str | None = "hybrid"
     include_rerank: bool = True
     max_text_chars: int = 300
 
@@ -315,32 +326,142 @@ class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
     conversation_id: int | None = None
+    scope: dict | None = None
 
 
 class ConversationCreateRequest(BaseModel):
     title: str = ""
 
 
+@dataclass(frozen=True)
+class QueryOptions:
+    file_filter: list[str]
+    retrieval_mode: str
+    scope: dict
+
+
+def _resolve_query_options(req) -> QueryOptions:
+    scope_mode = str(getattr(req, "scope_mode", None) or "all").strip().lower().replace("-", "_")
+    retrieval_mode = _normalize_retrieval_mode(getattr(req, "retrieval_mode", None))
+    if scope_mode == "full_text":
+        retrieval_mode = "full_text"
+
+    legacy_filter = _clean_file_filter(getattr(req, "file_filter", None))
+    if legacy_filter:
+        return QueryOptions(
+            file_filter=legacy_filter,
+            retrieval_mode=retrieval_mode,
+            scope={
+                "mode": "file_filter",
+                "label": "指定文件",
+                "files": legacy_filter,
+                "retrieval_mode": retrieval_mode,
+            },
+        )
+
+    if scope_mode in {"all", "full_text"}:
+        label = "全文模式" if scope_mode == "full_text" else "全部知识库"
+        return QueryOptions(
+            file_filter=[],
+            retrieval_mode=retrieval_mode,
+            scope={"mode": scope_mode, "label": label, "retrieval_mode": retrieval_mode},
+        )
+
+    if scope_mode == "collection":
+        if store is None:
+            raise HTTPException(503, "File store not ready")
+        collection = str(getattr(req, "collection", "") or "").strip()
+        if not collection:
+            raise HTTPException(400, "Collection is required for collection scope")
+        files = store.list_files(status="done", collection=collection)
+        file_names = _unique_file_names(files)
+        if not file_names:
+            raise HTTPException(404, f"No indexed files found in collection: {collection}")
+        return QueryOptions(
+            file_filter=file_names,
+            retrieval_mode=retrieval_mode,
+            scope={
+                "mode": "collection",
+                "label": collection,
+                "collection": collection,
+                "file_count": len(file_names),
+                "retrieval_mode": retrieval_mode,
+            },
+        )
+
+    if scope_mode == "file":
+        file_name = str(getattr(req, "file_name", "") or "").strip()
+        file_id = getattr(req, "file_id", None)
+        if file_id is not None:
+            if store is None:
+                raise HTTPException(503, "File store not ready")
+            record = store.get_file_by_id(int(file_id))
+            if record is None or record.get("status") != "done":
+                raise HTTPException(404, "Indexed file not found")
+            file_name = str(record.get("file_name") or "").strip()
+        if not file_name:
+            raise HTTPException(400, "File is required for file scope")
+        return QueryOptions(
+            file_filter=[file_name],
+            retrieval_mode=retrieval_mode,
+            scope={
+                "mode": "file",
+                "label": file_name,
+                "file_id": file_id,
+                "file_name": file_name,
+                "retrieval_mode": retrieval_mode,
+            },
+        )
+
+    raise HTTPException(400, f"Unsupported query scope: {scope_mode}")
+
+
+def _clean_file_filter(values: list[str] | None) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values or []:
+        file_name = str(value or "").strip()
+        if not file_name or file_name in seen:
+            continue
+        seen.add(file_name)
+        result.append(file_name)
+    return result
+
+
+def _unique_file_names(files: list[dict]) -> list[str]:
+    return _clean_file_filter([str(item.get("file_name") or "") for item in files])
+
+
+def _normalize_retrieval_mode(mode: str | None) -> str:
+    normalized = str(mode or "hybrid").strip().lower().replace("-", "_")
+    if normalized in {"fts", "fulltext", "full_text"}:
+        return "full_text"
+    return "hybrid"
+
+
 @app.post("/api/query", response_model=QueryResponse)
 async def query(req: QueryRequest):
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
+    options = _resolve_query_options(req)
     conversation_id = _resolve_conversation_id(req.conversation_id)
     conversation_context = _conversation_context(conversation_id)
     retrieval_query = _build_retrieval_query(req.question, conversation_context)
+    file_filter_json = json.dumps(options.file_filter, ensure_ascii=False)
     if store is not None and conversation_id is not None:
         store.add_message(
             conversation_id=conversation_id,
             role="user",
             content=req.question,
-            file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+            file_filter_json=file_filter_json,
         )
     try:
         result = await model_tasks.run(
             "query",
             lambda: query_engine.query(
                 req.question,
-                file_filter=req.file_filter,
+                file_filter=options.file_filter or None,
+                retrieval_mode=options.retrieval_mode,
                 conversation_context=conversation_context,
                 retrieval_query=retrieval_query,
             ),
@@ -367,7 +488,7 @@ async def query(req: QueryRequest):
             question=req.question,
             answer=result.text,
             citations_json=json.dumps(citations_data, ensure_ascii=False),
-            file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+            file_filter_json=file_filter_json,
             conversation_id=conversation_id or 0,
         )
         if conversation_id is not None:
@@ -376,9 +497,14 @@ async def query(req: QueryRequest):
                 role="assistant",
                 content=result.text,
                 citations_json=json.dumps(citations_data, ensure_ascii=False),
-                file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+                file_filter_json=file_filter_json,
             )
-    return QueryResponse(answer=result.text, citations=citations_data, conversation_id=conversation_id)
+    return QueryResponse(
+        answer=result.text,
+        citations=citations_data,
+        conversation_id=conversation_id,
+        scope=options.scope,
+    )
 
 
 @app.post("/api/query/stream")
@@ -387,15 +513,17 @@ async def query_stream(req: QueryRequest, request: Request):
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
 
+    options = _resolve_query_options(req)
     conversation_id = _resolve_conversation_id(req.conversation_id)
     conversation_context = _conversation_context(conversation_id)
     retrieval_query = _build_retrieval_query(req.question, conversation_context)
+    file_filter_json = json.dumps(options.file_filter, ensure_ascii=False)
     if store is not None and conversation_id is not None:
         store.add_message(
             conversation_id=conversation_id,
             role="user",
             content=req.question,
-            file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+            file_filter_json=file_filter_json,
         )
 
     loop = asyncio.get_event_loop()
@@ -408,7 +536,8 @@ async def query_stream(req: QueryRequest, request: Request):
                 q.put(("conversation", {"conversation_id": conversation_id}))
             chunks, token_gen = query_engine.query_stream(
                 req.question,
-                file_filter=req.file_filter,
+                file_filter=options.file_filter or None,
+                retrieval_mode=options.retrieval_mode,
                 cancel_event=cancel,
                 conversation_context=conversation_context,
                 retrieval_query=retrieval_query,
@@ -444,7 +573,7 @@ async def query_stream(req: QueryRequest, request: Request):
                     question=req.question,
                     answer=answer_text,
                     citations_json=json.dumps(citations_data, ensure_ascii=False),
-                    file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+                    file_filter_json=file_filter_json,
                     conversation_id=conversation_id or 0,
                 )
                 if conversation_id is not None:
@@ -453,7 +582,7 @@ async def query_stream(req: QueryRequest, request: Request):
                         role="assistant",
                         content=answer_text,
                         citations_json=json.dumps(citations_data, ensure_ascii=False),
-                        file_filter_json=json.dumps(req.file_filter or [], ensure_ascii=False),
+                        file_filter_json=file_filter_json,
                     )
             if not cancel.is_set():
                 q.put(("done", ""))
@@ -1062,13 +1191,15 @@ async def debug_retrieve(req: DebugRetrieveRequest):
     """本地调试：返回向量、全文、融合、去重、精排的完整检索链路。"""
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
+    options = _resolve_query_options(req)
     prefer_tables = query_engine._is_table_query(req.question)
     try:
         return await model_tasks.run(
             "debug_retrieve",
             lambda: query_engine.retriever.debug_retrieve(
                 req.question,
-                file_filter=req.file_filter,
+                file_filter=options.file_filter or None,
+                retrieval_mode=options.retrieval_mode,
                 prefer_tables=prefer_tables,
                 include_rerank=req.include_rerank,
                 max_text_chars=max(0, min(req.max_text_chars, 2000)),

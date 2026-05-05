@@ -91,6 +91,19 @@ def test_phase13_import_and_note_actions_are_visible():
     assert "保存为笔记" in html
 
 
+def test_phase14_chat_scope_controls_are_visible():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "query-scope-controls" in html
+    assert "全部知识库" in html
+    assert "指定集合" in html
+    assert "指定文件" in html
+    assert "全文模式" in html
+    assert "buildQueryScopePayload" in html
+    assert "scope_mode" in html
+    assert "full_text" in html
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

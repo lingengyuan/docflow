@@ -21,6 +21,13 @@ TABLE_KEYWORDS = {"表格", "数据", "统计", "总计", "合计", "金额", "�
 
 logger = logging.getLogger(__name__)
 
+INSUFFICIENT_EVIDENCE_MESSAGE = (
+    "在现有文档中未找到足够可靠的信息。"
+    "请扩大提问范围、换个问法，或确认相关文件已经完成入库。"
+)
+MIN_RERANK_SCORE = 0.12
+MIN_VECTOR_SCORE = 0.40
+
 
 class QueryEngine:
     def __init__(self, retriever: HybridRetriever, generator: AnswerGenerator):
@@ -60,6 +67,7 @@ class QueryEngine:
         self,
         question: str,
         file_filter: list[str] | None = None,
+        retrieval_mode: str = "hybrid",
         conversation_context: list[dict] | None = None,
         retrieval_query: str | None = None,
     ) -> Answer:
@@ -68,8 +76,11 @@ class QueryEngine:
         chunks = self.retriever.retrieve(
             query=effective_query,
             file_filter=file_filter,
+            retrieval_mode=retrieval_mode,
             prefer_tables=prefer_tables,
         )
+        if not self._has_sufficient_evidence(chunks):
+            return Answer(text=INSUFFICIENT_EVIDENCE_MESSAGE, citations=[])
         try:
             return self.generator.generate(
                 question,
@@ -84,6 +95,7 @@ class QueryEngine:
         self,
         question: str,
         file_filter: list[str] | None = None,
+        retrieval_mode: str = "hybrid",
         cancel_event=None,
         conversation_context: list[dict] | None = None,
         retrieval_query: str | None = None,
@@ -94,9 +106,12 @@ class QueryEngine:
         chunks = self.retriever.retrieve(
             query=effective_query,
             file_filter=file_filter,
+            retrieval_mode=retrieval_mode,
             prefer_tables=prefer_tables,
             cancel_event=cancel_event,
         )
+        if not self._has_sufficient_evidence(chunks):
+            return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE])
         token_gen = self._safe_generate_stream(
             question,
             chunks,
@@ -116,9 +131,21 @@ class QueryEngine:
         return any(kw in q_lower for kw in TABLE_KEYWORDS)
 
     @staticmethod
+    def _has_sufficient_evidence(chunks: list[dict]) -> bool:
+        if not chunks:
+            return False
+        top = chunks[0]
+        if top.get("rerank_score") is not None and not top.get("rerank_fallback"):
+            return float(top.get("rerank_score") or 0) >= MIN_RERANK_SCORE
+        vec_score = top.get("vec_score")
+        if vec_score is not None and float(vec_score or 0) > 0:
+            return float(vec_score) >= MIN_VECTOR_SCORE
+        return True
+
+    @staticmethod
     def _fallback_answer(chunks: list[dict], exc: Exception) -> Answer:
         if not chunks:
-            return Answer(text="在现有文档中未找到相关信息。", citations=[])
+            return Answer(text=INSUFFICIENT_EVIDENCE_MESSAGE, citations=[])
 
         text = (
             "已找到相关文档片段，但回答模型暂时不可用。"

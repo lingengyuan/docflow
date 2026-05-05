@@ -200,6 +200,20 @@ class TestDebugRetrieve:
         assert result["stages"]["reranked"][0]["rerank_fallback"] is True
         assert result["stages"]["parent_expanded"][0]["qdrant_id"] == 1
 
+    def test_full_text_mode_skips_vector_stage(self):
+        retriever = FakeDebugRetriever()
+
+        result = retriever.debug_retrieve(
+            "alpha question",
+            retrieval_mode="full_text",
+            include_rerank=False,
+        )
+
+        assert result["retrieval_mode"] == "full_text"
+        assert result["stages"]["vector"] == []
+        assert result["stages"]["fts"][0]["qdrant_id"] == 1
+        assert result["status"] == "ok"
+
 
 class TestFtsDegradation:
     def test_fts_search_uses_sqlite_payload_when_qdrant_fetch_fails(self):

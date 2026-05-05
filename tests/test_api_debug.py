@@ -51,6 +51,7 @@ class FakeRetriever:
         self,
         question,
         file_filter=None,
+        retrieval_mode="hybrid",
         prefer_tables=False,
         include_rerank=True,
         max_text_chars=300,
@@ -58,6 +59,7 @@ class FakeRetriever:
         return {
             "query": question,
             "file_filter": file_filter or [],
+            "retrieval_mode": retrieval_mode,
             "prefer_tables": prefer_tables,
             "stages": {
                 "vector": [],

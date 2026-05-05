@@ -18,8 +18,10 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Obsidian-friendly Markdown parsing: frontmatter cleanup, wikilink cleanup, callout cleanup, block-id cleanup, and tag extraction.
 - Structured chunking: heading-aware text chunks, table chunks, and table summary chunks.
 - Parent context retrieval: small chunks are used for matching, while larger parent context is returned for answer generation.
-- Hybrid retrieval: vector search plus SQLite FTS5 keyword search, adaptive routing, and reranking.
+- Hybrid retrieval: vector search plus SQLite FTS5 keyword search, full-text mode, adaptive routing, and reranking.
 - Streaming answers: citations are sent first, followed by token streaming.
+- Scoped questions: ask across the full library, one collection, one file, or full-text matches from the Chat view.
+- Evidence guard: empty or weak retrieval results return a clear insufficient-evidence answer instead of a confident guess.
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
 - Local knowledge capture: import webpages, create quick Markdown notes, and save answers back into the local library as notes.
@@ -34,7 +36,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
 - macOS background service: run DocFlow after login through launchd, with commands to install, inspect, or remove the service.
-- Query history, favorites, file upload, webpage import, note creation, source listing, file preview, and summary export endpoints.
+- Query history, scoped query, favorites, file upload, webpage import, note creation, source listing, file preview, and summary export endpoints.
 
 ### Requirements
 
@@ -335,8 +337,10 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 适配 Obsidian 笔记：清理 frontmatter、wikilink、callout、block id，并提取标签。
 - 结构化分块：支持按标题分块、表格分块、表格摘要分块。
 - 父级上下文检索：用小块命中问题，再把更完整的上下文交给回答模型。
-- 混合检索：向量检索加 SQLite FTS5 全文检索，自动调整候选数量，再做精排。
+- 混合检索：向量检索加 SQLite FTS5 全文检索，支持全文模式，自动调整候选数量，再做精排。
 - 流式回答：先返回引用来源，再逐步返回答案内容。
+- 范围提问：Chat 页面支持全部知识库、指定集合、指定文件和全文模式。
+- 证据保护：没有命中或证据太弱时，会明确提示资料不足，不会强行编答案。
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记，并把回答保存回本地文件库。
@@ -351,7 +355,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
 - macOS 后台服务：通过 launchd 登录后自动运行 DocFlow，并提供安装、查看和移除命令。
-- 已有接口覆盖查询历史、收藏、上传、网页导入、笔记创建、来源列表、文件预览和摘要导出。
+- 已有接口覆盖查询历史、范围提问、收藏、上传、网页导入、笔记创建、来源列表、文件预览和摘要导出。
 
 ### 环境要求
 

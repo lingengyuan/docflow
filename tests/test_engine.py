@@ -17,9 +17,18 @@ CHUNKS = [
 class FakeRetriever:
     def __init__(self):
         self.queries = []
+        self.retrieval_modes = []
 
-    def retrieve(self, query, file_filter=None, prefer_tables=False, cancel_event=None):
+    def retrieve(
+        self,
+        query,
+        file_filter=None,
+        retrieval_mode="hybrid",
+        prefer_tables=False,
+        cancel_event=None,
+    ):
         self.queries.append(query)
+        self.retrieval_modes.append(retrieval_mode)
         return CHUNKS
 
 
@@ -108,3 +117,48 @@ def test_query_stream_uses_conversation_context():
     assert "".join(token_gen) == "answer"
     assert retriever.queries == ["上一问\n继续"]
     assert generator.calls[0] == ("继续", context)
+
+
+def test_query_can_force_full_text_retrieval_mode():
+    retriever = FakeRetriever()
+    generator = WorkingGenerator()
+    engine = QueryEngine(retriever, generator)
+
+    answer = engine.query("exact terms", retrieval_mode="full_text")
+
+    assert answer.text == "answer"
+    assert retriever.retrieval_modes == ["full_text"]
+
+
+def test_full_text_results_with_zero_vector_score_are_allowed():
+    class FullTextRetriever(FakeRetriever):
+        def retrieve(self, *args, **kwargs):
+            item = dict(CHUNKS[0])
+            item["vec_score"] = 0.0
+            item["rrf_score"] = 0.02
+            return [item]
+
+    generator = WorkingGenerator()
+    engine = QueryEngine(FullTextRetriever(), generator)
+
+    answer = engine.query("exact term", retrieval_mode="full_text")
+
+    assert answer.text == "answer"
+    assert generator.calls
+
+
+def test_query_refuses_low_evidence_before_generation():
+    class LowEvidenceRetriever(FakeRetriever):
+        def retrieve(self, *args, **kwargs):
+            item = dict(CHUNKS[0])
+            item["rerank_score"] = 0.01
+            return [item]
+
+    generator = WorkingGenerator()
+    engine = QueryEngine(LowEvidenceRetriever(), generator)
+
+    answer = engine.query("weak match")
+
+    assert "未找到足够可靠的信息" in answer.text
+    assert answer.citations == []
+    assert generator.calls == []
