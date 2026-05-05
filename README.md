@@ -24,11 +24,14 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Evidence guard: empty or weak retrieval results return a clear insufficient-evidence answer instead of a confident guess.
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
+- Product workspace shell: Chat, Library, Notes, and Settings are separated into focused daily-use areas.
 - Local knowledge capture: import webpages, create quick Markdown notes, and save answers back into the local library as notes.
+- Notes workspace: create Markdown notes, import webpages, and review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
+- Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
 - Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
@@ -343,11 +346,14 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 证据保护：没有命中或证据太弱时，会明确提示资料不足，不会强行编答案。
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
+- 产品级工作台：Chat、Library、Notes、Settings 分成四个清晰入口。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记，并把回答保存回本地文件库。
+- Notes 工作区：集中创建 Markdown 笔记、导入网页，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
+- Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
 - 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
 - Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。

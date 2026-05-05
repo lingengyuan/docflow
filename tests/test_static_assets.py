@@ -104,6 +104,22 @@ def test_phase14_chat_scope_controls_are_visible():
     assert "full_text" in html
 
 
+def test_phase15_app_shell_has_notes_and_settings():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'id="nav-chat"' in html
+    assert 'id="nav-library"' in html
+    assert 'id="nav-notes"' in html
+    assert 'id="nav-settings"' in html
+    assert 'id="view-notes"' in html
+    assert 'id="view-settings"' in html
+    assert "createNoteFromNotesView" in html
+    assert "importUrlFromNotesView" in html
+    assert "refreshSettings" in html
+    assert "settings-sources-list" in html
+    assert "settings-model-list" in html
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

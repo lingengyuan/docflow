@@ -18,5 +18,7 @@
 {"id":"phase14_current_scope_controls","category":"qa_loop","question":"DocFlow 现在 Chat 页面支持哪些提问范围？","expected_files":["README.md"],"expected_terms":["全部知识库","指定集合","指定文件","全文模式"],"must_find":true}
 {"id":"phase14_insufficient_evidence","category":"answer_reliability","question":"DocFlow 资料不足或证据太弱时会怎么回答？","expected_files":["README.md"],"expected_terms":["资料不足","不会强行编答案","证据太弱"],"must_find":true}
 {"id":"phase15_main_nav","category":"ui_usability","question":"9 分成熟版计划里成熟版页面的四个主入口是什么？","expected_files":["docflow-9-point-maturity-plan.md"],"expected_terms":["Chat","Library","Notes","Settings"],"must_find":true}
+{"id":"phase15_current_workspace_shell","category":"ui_usability","question":"DocFlow 当前主界面分成哪四个入口？","expected_files":["README.md"],"expected_terms":["Chat","Library","Notes","Settings"],"must_find":true}
+{"id":"phase15_settings_scope","category":"setup_ops","question":"DocFlow 的 Settings 页面集中展示哪些信息？","expected_files":["README.md"],"expected_terms":["模型状态","依赖健康","监控目录","维护命令"],"must_find":true}
 {"id":"not_found_cloud_collab","category":"local_privacy","question":"DocFlow 是否已经提供多人云端协作和账号权限管理？","expected_files":[],"expected_terms":["多人云端协作","账号权限"],"must_find":false}
 {"id":"not_found_mobile_app","category":"product_maturity","question":"DocFlow 是否已经发布了移动端 App？","expected_files":[],"expected_terms":["移动端 App"],"must_find":false}

@@ -150,9 +150,13 @@
       <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
       <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Library</span>
     </button>
-    <button id="nav-history" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('history')">
-      <span class="material-symbols-outlined" style="font-size:20px">history</span>
-      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">History</span>
+    <button id="nav-notes" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('notes')">
+      <span class="material-symbols-outlined" style="font-size:20px">edit_note</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Notes</span>
+    </button>
+    <button id="nav-settings" class="nav-btn w-12 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 text-on-surface-variant opacity-60 hover:opacity-100 hover:bg-surface-container-highest" onclick="switchView('settings')">
+      <span class="material-symbols-outlined" style="font-size:20px">tune</span>
+      <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5">Settings</span>
     </button>
   </nav>
   <!-- Status -->
@@ -188,30 +192,10 @@
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <div class="relative">
-          <button id="health-btn" onclick="toggleHealthPanel(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all text-xs font-medium text-on-surface-variant">
-            <span id="health-icon" class="w-2 h-2 rounded-full bg-tertiary"></span>
-            <span id="health-label">状态</span>
-          </button>
-          <div id="health-panel" class="hidden absolute right-0 mt-2 w-80 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50 p-3">
-            <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">系统状态</div>
-            <div id="health-details" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
-          </div>
-        </div>
-        <!-- LLM selector -->
-        <div class="relative group">
-          <button id="llm-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all cursor-pointer text-xs font-medium text-on-surface-variant">
-            <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
-            <span id="llm-current">LLM</span>
-            <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
-          </button>
-          <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 overflow-hidden z-50 min-w-max">
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
-          <span id="llm-status" class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Local LLM</span>
-        </div>
+        <button onclick="switchView('settings')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 active:scale-95 transition-all text-xs font-medium text-on-surface-variant" title="打开设置" aria-label="打开设置">
+          <span class="material-symbols-outlined text-primary" style="font-size:14px">tune</span>
+          <span id="chat-status-label">本地运行</span>
+        </button>
       </div>
     </header>
 
@@ -227,8 +211,22 @@
             <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
           </div>
           <div class="text-sm text-on-surface leading-relaxed">
-            你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
-            将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Library 页面上传，即可开始提问。
+            你好，我是 DocFlow — 你的本地知识助手。<br>
+            将文件放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code>，或去 Notes 导入网页/写临时笔记，再回到这里选择范围提问。
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <button onclick="switchView('library')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">整理文件库</span>
+                <span class="text-on-surface-variant/70">上传、打标签、分集合</span>
+              </button>
+              <button onclick="switchView('notes')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">采集新资料</span>
+                <span class="text-on-surface-variant/70">网页和临时笔记</span>
+              </button>
+              <button onclick="switchView('settings')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">检查状态</span>
+                <span class="text-on-surface-variant/70">模型、路径、维护</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -426,6 +424,161 @@
     </div>
   </div>
 
+  <!-- ── Notes View ── -->
+  <div id="view-notes" class="view hidden flex flex-col h-full overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
+      <div>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">Notes</h1>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">采集网页、临时想法和可复用回答</p>
+      </div>
+      <button onclick="refreshNotesView()" title="刷新笔记列表" aria-label="刷新笔记列表" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+        刷新
+      </button>
+    </header>
+    <div class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">edit_note</span>
+            <h2 class="text-sm font-semibold text-on-surface">新建 Markdown 笔记</h2>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input id="notes-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-collection-input" list="collection-options" placeholder="集合，默认 Notes" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <textarea id="notes-content-input" rows="9" placeholder="写下要入库的内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <span id="notes-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <button id="notes-submit-btn" onclick="createNoteFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
+              保存并入库
+            </button>
+          </div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">language</span>
+            <h2 class="text-sm font-semibold text-on-surface">导入网页</h2>
+          </div>
+          <input id="notes-url-input" placeholder="https://example.com/article" class="h-9 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input id="notes-url-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认 Web Imports" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-url-tags-input" list="tag-options" placeholder="标签，默认 web" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <div class="mt-4 rounded-lg bg-surface-container-low px-3 py-3 text-xs leading-relaxed text-on-surface-variant">
+            导入会把网页正文保存成 Markdown 文件，再进入本地入库队列。适合公开文章、文档页和短网页。
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <span id="notes-url-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <button id="notes-url-submit-btn" onclick="importUrlFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">add_link</span>
+              导入网页
+            </button>
+          </div>
+        </section>
+
+        <section class="xl:col-span-2">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <div>
+              <h2 class="text-sm font-semibold text-on-surface">最近采集</h2>
+              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自 Notes、Web Imports 和 Saved Answers 的本地文件</p>
+            </div>
+            <span id="notes-count" class="text-[11px] text-on-surface-variant/60"></span>
+          </div>
+          <div id="notes-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Settings View ── -->
+  <div id="view-settings" class="view hidden flex flex-col h-full overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
+      <div>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">Settings</h1>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型、路径和维护入口</p>
+      </div>
+      <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:16px">sync</span>
+        刷新状态
+      </button>
+    </header>
+    <div class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span id="health-icon" class="w-2 h-2 rounded-full bg-tertiary"></span>
+              <h2 class="text-sm font-semibold text-on-surface">系统状态</h2>
+            </div>
+            <button id="health-btn" onclick="toggleHealthPanel(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
+              <span id="health-label">状态</span>
+              <span class="material-symbols-outlined" style="font-size:14px">refresh</span>
+            </button>
+          </div>
+          <div id="health-panel" class="rounded-lg bg-surface-container-low p-3">
+            <div id="health-details" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+          </div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-sm font-semibold text-on-surface">本地模型</h2>
+              <p id="llm-status" class="text-[11px] text-on-surface-variant/60 mt-0.5">Local LLM</p>
+            </div>
+            <div class="relative">
+              <button id="llm-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
+                <span id="llm-current">LLM</span>
+                <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
+              </button>
+              <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl overflow-hidden z-50 min-w-max">
+              </div>
+            </div>
+          </div>
+          <div id="settings-model-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">folder_managed</span>
+            <h2 class="text-sm font-semibold text-on-surface">监控目录</h2>
+          </div>
+          <div id="settings-sources-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">build</span>
+            <h2 class="text-sm font-semibold text-on-surface">维护</h2>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button onclick="triggerIngest()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">folder_sync</span>
+              扫描文件夹
+            </button>
+            <button onclick="switchView('history')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">history</span>
+              查看历史
+            </button>
+            <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">delete_sweep</span>
+              清空历史
+            </button>
+          </div>
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-[11px] leading-relaxed text-on-surface-variant">
+            常用命令：<code>python main.py doctor --strict</code>、<code>python main.py rebuild --dry-run</code>、<code>python main.py backup --dry-run</code>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
   <!-- ── History View ── -->
   <div id="view-history" class="view hidden flex flex-col h-full overflow-hidden">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
@@ -511,12 +664,16 @@ function switchView(view) {
     b.classList.remove('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
     b.classList.add('text-on-surface-variant', 'opacity-60');
   });
-  const btn = document.getElementById(`nav-${view}`);
-  btn.classList.add('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
-  btn.classList.remove('text-on-surface-variant', 'opacity-60');
+  const btn = document.getElementById(`nav-${view}`) || (view === 'history' ? document.getElementById('nav-settings') : null);
+  if (btn) {
+    btn.classList.add('active-nav', 'bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+    btn.classList.remove('text-on-surface-variant', 'opacity-60');
+  }
 
   if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); }
   if (view === 'library') { refreshFiles(); pollQueueOnce(); }
+  if (view === 'notes') refreshNotesView();
+  if (view === 'settings') refreshSettings();
   if (view === 'history') refreshHistory();
 }
 
@@ -535,11 +692,15 @@ async function checkHealth() {
     dot.className = `w-2 h-2 rounded-full ${cls}`;
     document.getElementById('health-icon').className = `w-2 h-2 rounded-full ${cls}`;
     document.getElementById('health-label').textContent = healthStatusLabel(healthSnapshot.status);
+    const chatStatus = document.getElementById('chat-status-label');
+    if (chatStatus) chatStatus.textContent = healthStatusLabel(healthSnapshot.status);
     renderHealthPanel();
   } catch {
     document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-error';
     document.getElementById('health-icon').className = 'w-2 h-2 rounded-full bg-error';
     document.getElementById('health-label').textContent = '不可用';
+    const chatStatus = document.getElementById('chat-status-label');
+    if (chatStatus) chatStatus.textContent = '不可用';
     healthSnapshot = null;
     renderHealthPanel('无法读取健康状态');
   }
@@ -549,8 +710,8 @@ setInterval(checkHealth, 15000);
 
 function toggleHealthPanel(e) {
   e.stopPropagation();
-  renderHealthPanel();
-  document.getElementById('health-panel').classList.toggle('hidden');
+  checkHealth();
+  document.getElementById('health-panel')?.classList.remove('hidden');
 }
 
 function renderHealthPanel(errorText = '') {
@@ -624,6 +785,7 @@ async function loadLLMOptions() {
     llmOptions = models.map(m => m.model);
     document.getElementById('llm-current').textContent = d.current || 'LLM';
     renderLLMStatus(d.switch);
+    renderSettingsModelList(d);
 
     const dropdown = document.getElementById('llm-dropdown');
     dropdown.innerHTML = models.map(item => `
@@ -647,7 +809,6 @@ document.getElementById('llm-btn').addEventListener('click', (e) => {
 document.addEventListener('click', () => {
   document.getElementById('llm-dropdown').classList.add('hidden');
   document.getElementById('conversation-menu').classList.add('hidden');
-  document.getElementById('health-panel').classList.add('hidden');
 });
 
 async function switchLLM(model) {
@@ -697,6 +858,53 @@ function renderLLMStatus(state) {
   } else {
     el.textContent = 'Local LLM';
     el.classList.add('text-on-surface-variant');
+  }
+}
+
+function renderSettingsModelList(data) {
+  const el = document.getElementById('settings-model-list');
+  if (!el) return;
+  const models = data?.models || [];
+  if (!models.length) {
+    el.innerHTML = '<div class="text-on-surface-variant/60">暂无模型信息</div>';
+    return;
+  }
+  el.innerHTML = models.map(item => `
+    <div class="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="min-w-0">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.model)}</div>
+        <div class="text-[11px] text-on-surface-variant/60">${item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')}</div>
+      </div>
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
+        <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}
+      </span>
+    </div>`).join('');
+}
+
+async function refreshSettings() {
+  await Promise.all([
+    checkHealth(),
+    loadLLMOptions(),
+    loadSettingsSources(),
+  ]);
+}
+
+async function loadSettingsSources() {
+  const el = document.getElementById('settings-sources-list');
+  if (!el) return;
+  try {
+    const sources = await fetch(`${API}/api/sources`).then(r => r.json());
+    if (!sources.length) {
+      el.innerHTML = '<div class="text-on-surface-variant/60">暂无监控目录</div>';
+      return;
+    }
+    el.innerHTML = sources.map(source => `
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(source.path)}</div>
+        <div class="text-[11px] text-on-surface-variant/60">${source.recursive ? '递归扫描' : '单层扫描'} · ${(source.extensions || []).join(' ')}</div>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="text-error">监控目录读取失败：${escHtml(e.message)}</div>`;
   }
 }
 
@@ -814,8 +1022,22 @@ function welcomeHtml() {
       <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
     </div>
     <div class="text-sm text-on-surface leading-relaxed">
-      你好，我是 DocFlow — 你的本地 PDF 知识助手。<br>
-      将 PDF 放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code> 或在 Library 页面上传，即可开始提问。
+      你好，我是 DocFlow — 你的本地知识助手。<br>
+      将文件放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code>，或去 Notes 导入网页/写临时笔记，再回到这里选择范围提问。
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <button onclick="switchView('library')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+          <span class="block font-semibold text-on-surface">整理文件库</span>
+          <span class="text-on-surface-variant/70">上传、打标签、分集合</span>
+        </button>
+        <button onclick="switchView('notes')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+          <span class="block font-semibold text-on-surface">采集新资料</span>
+          <span class="text-on-surface-variant/70">网页和临时笔记</span>
+        </button>
+        <button onclick="switchView('settings')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+          <span class="block font-semibold text-on-surface">检查状态</span>
+          <span class="text-on-surface-variant/70">模型、路径、维护</span>
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -919,6 +1141,133 @@ function queryScopeLabel() {
   }
   if (mode === 'full_text') return '仅全文匹配';
   return `${queryScopeFiles.length} 个可提问文件`;
+}
+
+// ── Notes workspace ──
+async function createNoteFromNotesView() {
+  const btn = document.getElementById('notes-submit-btn');
+  const status = document.getElementById('notes-status');
+  const title = document.getElementById('notes-title-input').value.trim() || 'Untitled Note';
+  const content = document.getElementById('notes-content-input').value;
+  const collection = document.getElementById('notes-collection-input').value.trim() || 'Notes';
+  const userTags = parseTagsInput(document.getElementById('notes-tags-input').value);
+  if (!content.trim()) {
+    status.textContent = '请先输入笔记内容';
+    status.classList.add('text-error');
+    return;
+  }
+  btn.disabled = true;
+  status.classList.remove('text-error');
+  status.textContent = '正在保存…';
+  try {
+    const r = await fetch(`${API}/api/notes`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        title,
+        content,
+        collection,
+        user_tags: userTags.length ? userTags : ['note'],
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById('notes-title-input').value = '';
+    document.getElementById('notes-content-input').value = '';
+    document.getElementById('notes-collection-input').value = '';
+    document.getElementById('notes-tags-input').value = '';
+    status.textContent = '已加入入库队列';
+    setScanButtonState('queued');
+    startQueuePolling();
+    await refreshNotesView();
+  } catch (e) {
+    status.textContent = `保存失败：${e.message}`;
+    status.classList.add('text-error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function importUrlFromNotesView() {
+  const btn = document.getElementById('notes-url-submit-btn');
+  const status = document.getElementById('notes-url-status');
+  const url = document.getElementById('notes-url-input').value.trim();
+  const title = document.getElementById('notes-url-title-input').value.trim();
+  const collection = document.getElementById('notes-url-collection-input').value.trim() || 'Web Imports';
+  const userTags = parseTagsInput(document.getElementById('notes-url-tags-input').value);
+  if (!url) {
+    status.textContent = '请输入网页地址';
+    status.classList.add('text-error');
+    return;
+  }
+  btn.disabled = true;
+  status.classList.remove('text-error');
+  status.textContent = '正在导入…';
+  try {
+    const r = await fetch(`${API}/api/import/url`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        url,
+        title: title || null,
+        collection,
+        user_tags: userTags.length ? userTags : ['web'],
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById('notes-url-input').value = '';
+    document.getElementById('notes-url-title-input').value = '';
+    document.getElementById('notes-url-collection-input').value = '';
+    document.getElementById('notes-url-tags-input').value = '';
+    status.textContent = '已加入入库队列';
+    setScanButtonState('queued');
+    startQueuePolling();
+    await refreshNotesView();
+  } catch (e) {
+    status.textContent = `导入失败：${e.message}`;
+    status.classList.add('text-error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function refreshNotesView() {
+  const list = document.getElementById('notes-list');
+  const count = document.getElementById('notes-count');
+  if (!list) return;
+  try {
+    const [files, meta] = await Promise.all([
+      fetch(`${API}/api/files?status=done`).then(r => r.json()),
+      fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
+    ]);
+    libraryMeta = meta || libraryMeta;
+    updateLibraryControls();
+    const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers']);
+    const notes = files
+      .filter(file => noteCollections.has(file.collection || ''))
+      .slice(0, 12);
+    if (count) count.textContent = `${notes.length} 个`;
+    if (!notes.length) {
+      list.innerHTML = `
+        <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-surface-container-lowest shadow-sm px-5 py-10 text-center">
+          <div class="text-sm font-semibold text-on-surface">还没有采集内容</div>
+          <div class="text-xs text-on-surface-variant/60 mt-1">先写一条笔记，或导入一个网页。</div>
+        </div>`;
+      return;
+    }
+    list.innerHTML = notes.map(file => `
+      <button onclick="openFilePreview(${file.id})" class="text-left rounded-xl bg-surface-container-lowest shadow-sm px-4 py-3 hover:bg-surface-container active:scale-95 transition-all">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
+            <div class="text-[11px] text-on-surface-variant/60 mt-1 line-clamp-1">${escHtml(file.collection || 'Inbox')}</div>
+          </div>
+          <span class="material-symbols-outlined text-primary" style="font-size:16px">open_in_new</span>
+        </div>
+        <div class="mt-3 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(file.preview || file.file_path || '')}</div>
+      </button>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="text-error text-sm">笔记列表加载失败：${escHtml(e.message)}</div>`;
+  }
 }
 
 // ── Chat ──

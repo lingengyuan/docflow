@@ -63,15 +63,15 @@
       "id": "ui_usability",
       "name": "界面可用性",
       "target_score": 9,
-      "current_score": 7,
-      "phase": "Phase 15",
+      "current_score": 8,
+      "phase": "Phase 18",
       "evidence": [
-        "已有 Chat、Library、History、健康面板、模型选择和聊天范围选择。",
-        "Phase 10 修正了关键按钮和确认流程。"
+        "Phase 15 将主入口整理为 Chat、Library、Notes、Settings。",
+        "Notes 集中资料采集，Settings 集中模型、健康、路径和维护入口。"
       ],
       "next_steps": [
-        "整理成 Chat、Library、Notes、Settings 四个主入口。",
-        "移除 Tailwind CDN，补齐空状态和错误状态。"
+        "移除 Tailwind CDN，补齐最终空状态和错误状态。",
+        "补充最终截图和普通用户使用说明。"
       ]
     },
     {
@@ -108,14 +108,13 @@
       "id": "setup_ops",
       "name": "安装和日常维护",
       "target_score": 9,
-      "current_score": 7,
+      "current_score": 7.5,
       "phase": "Phase 16, Phase 18",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
-        "README 提供了常用命令。"
+        "Settings 页面集中展示监控目录、健康状态和维护命令。"
       ],
       "next_steps": [
-        "把修复建议集中到设置页。",
         "补充面向普通用户的本地部署指南。"
       ]
     },
@@ -138,10 +137,10 @@
       "id": "local_workflow",
       "name": "扩展生态",
       "target_score": 9,
-      "current_score": 7,
+      "current_score": 7.5,
       "phase": "Phase 17, Phase 18",
       "evidence": [
-        "已有本地文件夹监控、上传、网页导入、临时笔记和回答保存为笔记。",
+        "Notes 页面集中网页导入、临时笔记和最近采集内容。",
         "知识产物工作流还没有形成完整模板。"
       ],
       "next_steps": [
@@ -155,7 +154,7 @@
       "current_score": 8.2,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 160 个自动化测试。",
+        "已有 161 个自动化测试。",
         "每个阶段都有交接文档规则。"
       ],
       "next_steps": [
@@ -167,10 +166,10 @@
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 6,
-      "phase": "Phase 15, Phase 18",
+      "current_score": 7,
+      "phase": "Phase 18",
       "evidence": [
-        "README、启动命令、健康检查和页面主流程已经成形。",
+        "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "还缺发布整理、示例数据、截图和完整故障处理。"
       ],
       "next_steps": [
