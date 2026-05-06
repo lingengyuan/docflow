@@ -40,12 +40,12 @@ def test_destructive_actions_use_in_app_confirmation():
     assert "bg-error/5 text-error hover:bg-error" in html
 
 
-def test_health_panel_shows_core_and_optional_groups():
+def test_health_panel_shows_core_runtime_and_optional_groups():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
     assert "核心可用" in html
     assert "healthSnapshot.groups" in html
-    assert "['core', 'optional']" in html
+    assert "['core', 'runtime', 'optional']" in html
     assert "group.label" in html
     assert "optional_unavailable" in html
     assert "未安装" in html
@@ -118,6 +118,16 @@ def test_phase15_app_shell_has_notes_and_settings():
     assert "refreshSettings" in html
     assert "settings-sources-list" in html
     assert "settings-model-list" in html
+
+
+def test_phase16_settings_exposes_runtime_and_recovery_guidance():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "settings-actions-list" in html
+    assert "renderHealthActions" in html
+    assert "'runtime'" in html
+    assert "恢复建议" in html
+    assert "复制命令" in html
 
 
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():

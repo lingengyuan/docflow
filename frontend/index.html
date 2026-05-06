@@ -502,9 +502,9 @@
         <h1 class="text-base font-semibold text-on-surface tracking-tight">Settings</h1>
         <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型、路径和维护入口</p>
       </div>
-      <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+      <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all whitespace-nowrap">
         <span class="material-symbols-outlined" style="font-size:16px">sync</span>
-        刷新状态
+        <span class="hidden sm:inline">刷新状态</span>
       </button>
     </header>
     <div class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
@@ -526,15 +526,15 @@
         </section>
 
         <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
-          <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h2 class="text-sm font-semibold text-on-surface">本地模型</h2>
               <p id="llm-status" class="text-[11px] text-on-surface-variant/60 mt-0.5">Local LLM</p>
             </div>
             <div class="relative">
-              <button id="llm-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
+              <button id="llm-btn" class="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
                 <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
-                <span id="llm-current">LLM</span>
+                <span id="llm-current" class="line-clamp-2 text-left">LLM</span>
                 <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
               </button>
               <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl overflow-hidden z-50 min-w-max">
@@ -573,6 +573,10 @@
           </div>
           <div class="rounded-lg bg-surface-container-low px-3 py-3 text-[11px] leading-relaxed text-on-surface-variant">
             常用命令：<code>python main.py doctor --strict</code>、<code>python main.py rebuild --dry-run</code>、<code>python main.py backup --dry-run</code>
+          </div>
+          <div class="mt-4">
+            <div class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2">恢复建议</div>
+            <div id="settings-actions-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
           </div>
         </section>
       </div>
@@ -695,6 +699,7 @@ async function checkHealth() {
     const chatStatus = document.getElementById('chat-status-label');
     if (chatStatus) chatStatus.textContent = healthStatusLabel(healthSnapshot.status);
     renderHealthPanel();
+    renderHealthActions();
   } catch {
     document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-error';
     document.getElementById('health-icon').className = 'w-2 h-2 rounded-full bg-error';
@@ -703,6 +708,7 @@ async function checkHealth() {
     if (chatStatus) chatStatus.textContent = '不可用';
     healthSnapshot = null;
     renderHealthPanel('无法读取健康状态');
+    renderHealthActions('无法读取恢复建议');
   }
 }
 checkHealth();
@@ -730,7 +736,7 @@ function renderHealthPanel(errorText = '') {
     el.innerHTML = '<div>暂无状态</div>';
     return;
   }
-  el.innerHTML = ['core', 'optional'].map(key => renderHealthGroup(groups[key])).join('');
+  el.innerHTML = ['core', 'runtime', 'optional'].map(key => renderHealthGroup(groups[key])).join('');
 }
 
 function healthStatusLabel(status) {
@@ -749,6 +755,7 @@ function renderHealthGroup(group) {
       <div class="min-w-0">
         <div class="font-semibold text-on-surface">${escHtml(item.label || item.key)}</div>
         ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(item.detail)}</div>` : ''}
+        ${renderHealthItemActions(item.actions)}
       </div>
       <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
         <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
@@ -759,6 +766,40 @@ function renderHealthGroup(group) {
     <div class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 mt-1">${escHtml(group.label)}</div>
     <div class="flex flex-col gap-2">${rows}</div>
   </section>`;
+}
+
+function renderHealthItemActions(actions) {
+  if (!actions?.length) return '';
+  return `<div class="mt-1 flex flex-col gap-0.5">${actions.slice(0, 2).map(action => `
+    <div class="text-[10px] text-on-surface-variant/60">${escHtml(action)}</div>
+  `).join('')}</div>`;
+}
+
+function renderHealthActions(errorText = '') {
+  const el = document.getElementById('settings-actions-list');
+  if (!el) return;
+  if (errorText) {
+    el.innerHTML = `<div class="text-error">${escHtml(errorText)}</div>`;
+    return;
+  }
+  const actions = healthSnapshot?.actions || [];
+  if (!actions.length) {
+    el.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-2 text-on-surface-variant/60">当前没有需要处理的事项。</div>';
+    return;
+  }
+  el.innerHTML = actions.map(action => `
+    <div class="rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="font-semibold text-on-surface">${escHtml(action.label || '建议')}</div>
+          <div class="text-[11px] text-on-surface-variant/60 mt-0.5">${escHtml(action.detail || '')}</div>
+          ${action.command ? `<code class="mt-2 block whitespace-normal break-all rounded-md bg-surface-container-lowest px-2 py-1 text-[11px] text-on-surface">${escHtml(action.command)}</code>` : ''}
+        </div>
+        ${action.command ? `<button onclick="copyTextFromButton(this)" data-copy-text="${escHtml(action.command)}" class="answer-copy flex-shrink-0 text-on-surface-variant/50 hover:text-primary transition-colors" title="复制命令" aria-label="复制命令">
+          <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+        </button>` : ''}
+      </div>
+    </div>`).join('');
 }
 
 function healthItemColor(status) {
@@ -873,7 +914,8 @@ function renderSettingsModelList(data) {
     <div class="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
       <div class="min-w-0">
         <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.model)}</div>
-        <div class="text-[11px] text-on-surface-variant/60">${item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')}</div>
+        <div class="text-[11px] text-on-surface-variant/60">${escHtml(item.detail || (item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')))}</div>
+        ${renderHealthItemActions(item.actions)}
       </div>
       <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
         <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}

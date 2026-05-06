@@ -32,6 +32,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
 - Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
+- Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
 - Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
@@ -189,7 +190,7 @@ Main endpoints:
 | `/api/sources` | GET | Watched source folders |
 | `/api/health` | GET | Dependency and capability health |
 
-`/api/health` returns `ok`, `degraded`, or `unavailable`. The browser displays this as grouped core and optional capability status. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama, enhanced local models, VLM image parsing, and contextual-prefix support are reported as optional capabilities, so a missing image model can show the app as degraded while core query and ingest remain available.
+`/api/health` returns `ok`, `degraded`, or `unavailable`. The browser displays this as grouped core, model runtime, and optional capability status. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama, enhanced local models, VLM image parsing, and contextual-prefix support are reported as optional capabilities, so a missing image model can show the app as degraded while core query and ingest remain available. The response also includes safe recommended actions such as `python main.py check --json`, `python main.py backup --dry-run`, `ollama pull glm-ocr`, or model-cache preparation guidance. The browser only displays and copies these commands; it does not auto-run repair actions.
 
 Model-backed API work uses a bounded foreground task runner. If a query, summary, debug retrieval, or model switch times out, the API returns a clear timeout error and the next request can use a fresh worker instead of waiting behind a stuck task. While foreground model work is active, the background ingest queue pauses and `/api/queue` reports the pause state.
 
@@ -354,6 +355,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
 - Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
+- 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
 - 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
 - Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。
@@ -511,7 +513,7 @@ paths:
 | `/api/sources` | GET | 查看监控来源目录 |
 | `/api/health` | GET | 依赖和能力健康状态 |
 
-`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。浏览器会把状态分成核心功能和可选能力展示。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama、增强本地模型、图片理解和上下文前缀作为可选能力展示，所以缺少图片模型时，页面可以显示为 degraded，但核心问答和入库仍然可用。
+`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。浏览器会把状态分成核心功能、模型运行时和可选能力展示。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama、增强本地模型、图片理解和上下文前缀作为可选能力展示，所以缺少图片模型时，页面可以显示为 degraded，但核心问答和入库仍然可用。返回结果也会带上安全建议，例如 `python main.py check --json`、`python main.py backup --dry-run`、`ollama pull glm-ocr` 或模型缓存准备说明。页面只展示和复制这些命令，不会自动执行修复操作。
 
 模型相关接口使用有等待上限的前台任务管理。如果问答、摘要、检索调试或模型切换超时，接口会返回明确的超时信息，后续请求会使用新的执行通道，不会一直排在卡住的任务后面。前台模型任务运行时，后台入库队列会暂停，`/api/queue` 会显示暂停状态。
 

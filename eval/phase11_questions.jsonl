@@ -20,5 +20,7 @@
 {"id":"phase15_main_nav","category":"ui_usability","question":"9 分成熟版计划里成熟版页面的四个主入口是什么？","expected_files":["docflow-9-point-maturity-plan.md"],"expected_terms":["Chat","Library","Notes","Settings"],"must_find":true}
 {"id":"phase15_current_workspace_shell","category":"ui_usability","question":"DocFlow 当前主界面分成哪四个入口？","expected_files":["README.md"],"expected_terms":["Chat","Library","Notes","Settings"],"must_find":true}
 {"id":"phase15_settings_scope","category":"setup_ops","question":"DocFlow 的 Settings 页面集中展示哪些信息？","expected_files":["README.md"],"expected_terms":["模型状态","依赖健康","监控目录","维护命令"],"must_find":true}
+{"id":"phase16_model_runtime_readiness","category":"model_runtime","question":"DocFlow 的 Settings 如何展示模型运行时就绪状态？","expected_files":["README.md"],"expected_terms":["模型就绪","OCR","VLM","Settings"],"must_find":true}
+{"id":"phase16_recovery_guidance","category":"stability_recovery","question":"DocFlow 的 Settings 提供哪些安全恢复建议？","expected_files":["README.md"],"expected_terms":["安全检查","备份预览","修复建议","不会自动执行"],"must_find":true}
 {"id":"not_found_cloud_collab","category":"local_privacy","question":"DocFlow 是否已经提供多人云端协作和账号权限管理？","expected_files":[],"expected_terms":["多人云端协作","账号权限"],"must_find":false}
 {"id":"not_found_mobile_app","category":"product_maturity","question":"DocFlow 是否已经发布了移动端 App？","expected_files":[],"expected_terms":["移动端 App"],"must_find":false}

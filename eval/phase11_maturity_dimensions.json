@@ -4,15 +4,14 @@
       "id": "local_privacy",
       "name": "本地隐私",
       "target_score": 9,
-      "current_score": 8.5,
-      "phase": "Phase 16",
+      "current_score": 8.7,
+      "phase": "Phase 18",
       "evidence": [
         "默认本地 SQLite、Qdrant、MLX/Ollama 模型。",
-        "健康检查能区分核心能力和可选能力。"
+        "Settings 会展示核心健康、模型运行时、可选能力和本地维护命令。"
       ],
       "next_steps": [
-        "把所有外部调用做成页面可见、可关闭、可解释。",
-        "在设置页集中展示本地路径和隐私状态。"
+        "把最终外部调用开关整理成普通用户可读的隐私说明。"
       ]
     },
     {
@@ -93,26 +92,26 @@
       "id": "model_runtime",
       "name": "模型选择和本地运行",
       "target_score": 9,
-      "current_score": 7,
-      "phase": "Phase 16",
+      "current_score": 8,
+      "phase": "Phase 18",
       "evidence": [
         "默认 MLX 4B，增强 MLX 8B，OCR 和 VLM 都可用。",
-        "模型切换已有等待上限和失败保留。"
+        "模型切换已有等待上限和失败保留。",
+        "Phase 16 在 Settings 中展示 embedding、reranker、LLM、OCR 和 VLM 就绪状态。"
       ],
       "next_steps": [
-        "增加停止、恢复和更清楚的模型进度反馈。",
-        "缺模型时给出明确安装建议。"
+        "增加模型任务停止和更细的实时进度反馈。"
       ]
     },
     {
       "id": "setup_ops",
       "name": "安装和日常维护",
       "target_score": 9,
-      "current_score": 7.5,
-      "phase": "Phase 16, Phase 18",
+      "current_score": 8.2,
+      "phase": "Phase 18",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
-        "Settings 页面集中展示监控目录、健康状态和维护命令。"
+        "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。"
       ],
       "next_steps": [
         "补充面向普通用户的本地部署指南。"
@@ -122,14 +121,14 @@
       "id": "stability_recovery",
       "name": "稳定性和恢复能力",
       "target_score": 9,
-      "current_score": 7.5,
-      "phase": "Phase 16, Phase 18",
+      "current_score": 8.2,
+      "phase": "Phase 18",
       "evidence": [
         "Phase 10 增加前台任务等待上限、队列让路和安全模型切换。",
-        "已有一致性检查、重建、备份和恢复计划。"
+        "已有一致性检查、重建、备份和恢复计划。",
+        "Phase 16 将健康检查结果转成安全检查、备份预览、OCR 和模型缓存建议。"
       ],
       "next_steps": [
-        "把备份、恢复、检查和重建做成页面入口。",
         "补充真实恢复演练。"
       ]
     },
@@ -154,7 +153,7 @@
       "current_score": 8.2,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 161 个自动化测试。",
+        "已有 164 个自动化测试。",
         "每个阶段都有交接文档规则。"
       ],
       "next_steps": [
@@ -166,10 +165,11 @@
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 7,
+      "current_score": 7.3,
       "phase": "Phase 18",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
+        "Phase 16 增加可读的健康、模型和恢复建议。",
         "还缺发布整理、示例数据、截图和完整故障处理。"
       ],
       "next_steps": [

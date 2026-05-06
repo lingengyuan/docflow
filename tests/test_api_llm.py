@@ -43,7 +43,9 @@ def test_llm_endpoint_reports_model_availability(monkeypatch):
     assert body["current"] == "mlx-community/Qwen3-4B-4bit"
     assert body["models"][0]["current"] is True
     assert body["models"][0]["available"] is True
+    assert body["models"][0]["detail"] == "本地缓存可用。"
     assert body["models"][1]["available"] is False
+    assert body["models"][1]["actions"] == ["联网后准备模型缓存：mlx-community/Qwen3-8B-4bit"]
 
 
 def test_llm_switch_unknown_model_returns_400(monkeypatch):

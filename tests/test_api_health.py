@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import requests
 from fastapi.testclient import TestClient
 
 from src.api import app as api_app
@@ -39,7 +40,13 @@ def _patch_health_checks(
         "_check_models",
         lambda cfg: {
             "status": models_status,
-            "local_cache": {},
+            "local_cache": {
+                "embedding": {"model": "Qwen/Qwen3-Embedding-0.6B", "cached": models_status == "ok"},
+                "reranker": {"model": "Qwen/Qwen3-Reranker-0.6B", "cached": models_status == "ok"},
+                "llm": {"model": "mlx-community/Qwen3-4B-4bit", "cached": models_status == "ok"},
+                "llm_enhanced": {"model": "mlx-community/Qwen3-8B-4bit", "cached": models_status == "ok"},
+                "vlm": {"model": "mlx-community/Qwen3-VL-8B-Instruct-4bit", "cached": models_status == "ok"},
+            },
             "missing_local_cache": [] if models_status == "ok" else ["mlx-community/Qwen3-4B-4bit"],
         },
     )
@@ -67,6 +74,16 @@ def test_health_returns_ok_when_all_checks_pass(monkeypatch):
         "qdrant",
     ]
     assert body["groups"]["optional"]["label"] == "可选能力"
+    assert body["groups"]["runtime"]["label"] == "模型运行时"
+    assert [item["key"] for item in body["groups"]["runtime"]["items"]] == [
+        "embedding",
+        "reranker",
+        "llm",
+        "llm_enhanced",
+        "ocr_runtime",
+        "vlm",
+    ]
+    assert body["actions"][0]["command"] == "python main.py check --json"
 
 
 def test_health_is_unavailable_when_critical_dependency_fails(monkeypatch):
@@ -96,6 +113,8 @@ def test_health_is_degraded_when_optional_dependency_fails(monkeypatch):
     ocr_item = next(item for item in body["groups"]["optional"]["items"] if item["key"] == "ocr")
     assert ocr_item["status"] == "optional_unavailable"
     assert "只影响扫描 PDF" in ocr_item["detail"]
+    assert any("ollama pull glm-ocr" in action for action in ocr_item["actions"])
+    assert any(action["command"] == "ollama pull glm-ocr" for action in body["actions"])
 
 
 def test_health_catches_check_exceptions(monkeypatch):
@@ -114,6 +133,40 @@ def test_health_catches_check_exceptions(monkeypatch):
     assert body["status"] == "unavailable"
     assert body["checks"]["sqlite"]["status"] == "unavailable"
     assert "database locked" in body["checks"]["sqlite"]["error"]
+    assert any(action["command"] == "python main.py doctor --strict" for action in body["actions"])
+
+
+def test_health_runtime_group_reports_missing_model_cache(monkeypatch):
+    _patch_health_checks(monkeypatch, models_status="degraded")
+    client = TestClient(api_app.app)
+
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "degraded"
+    runtime = {item["key"]: item for item in body["groups"]["runtime"]["items"]}
+    assert runtime["llm"]["status"] == "degraded"
+    assert "本地缓存缺失" in runtime["llm"]["detail"]
+    assert any("mlx-community/Qwen3-4B-4bit" in action["label"] for action in body["actions"])
+
+
+def test_ollama_check_reports_guidance_when_service_is_closed(monkeypatch):
+    def broken_get(*args, **kwargs):
+        raise requests.ConnectionError("connection refused")
+
+    monkeypatch.setattr(requests, "get", broken_get)
+
+    result = api_app._check_ollama({
+        "ollama": {"base_url": "http://localhost:11434", "ocr_model": "glm-ocr"},
+        "ingest": {"contextual_prefix_mode": "metadata"},
+        "llm": {"backend": "mlx"},
+    })
+
+    assert result["status"] == "degraded"
+    assert result["models"]["ocr"] == {"model": "glm-ocr", "available": False}
+    assert result["missing_models"] == ["glm-ocr"]
+    assert "打开 Ollama" in result["actions"][0]
 
 
 def test_runtime_sqlite_health_skips_deep_quick_check(monkeypatch):
