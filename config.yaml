@@ -55,7 +55,7 @@ paths:
     - path: "~/Projects/CodeSnippets"
       recursive: true
       extensions: [".md", ".py", ".rs", ".ts", ".css", ".sh"]
-  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
+  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"]
   db_path: "~/Projects/docflow/docflow.db"
   id_counter: "~/Projects/docflow/qdrant_id_counter.txt"
 

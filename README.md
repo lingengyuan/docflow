@@ -4,6 +4,14 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
+Current release target: `0.18.0`.
+
+## Product Screenshots
+
+![DocFlow chat workspace](docs/phase18-chat-desktop.png)
+
+![DocFlow library workspace](docs/phase18-library-desktop.png)
+
 ## English
 
 ### Project Description
@@ -33,6 +41,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
 - Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
 - Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
+- Local production styles: the browser UI serves committed CSS from `frontend/styles.css`; it no longer depends on the Tailwind CDN at runtime.
 - Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
@@ -47,6 +56,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Apple Silicon Mac.
 - Python 3.11 or newer.
 - Docker Desktop for Qdrant.
+- Optional Node.js 20+ only when rebuilding the browser CSS after UI changes.
 - Optional Ollama for OCR on scanned PDFs and contextual-prefix generation.
 - Optional extra packages for DOCX and image ingest: `python-docx`, `mlx-vlm`, `Pillow`, `pillow-heif`.
 
@@ -71,6 +81,13 @@ Pull the OCR model when scanned PDF OCR is needed:
 
 ```bash
 ollama pull glm-ocr
+```
+
+The committed browser CSS is enough to run the app. Rebuild it only after UI style changes:
+
+```bash
+npm install
+npm run build:css
 ```
 
 Check local dependencies:
@@ -127,6 +144,7 @@ python main.py rebuild --qdrant-only --dry-run
 python main.py backup --dry-run
 python main.py export-chunks --output backups/chunks.jsonl
 python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
+npm run build:css
 ```
 
 ### Configuration
@@ -251,6 +269,13 @@ Create a backup archive, export chunks, or inspect a restore plan:
 .venv/bin/python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
 ```
 
+Rebuild the committed browser CSS after changing Tailwind classes or theme tokens:
+
+```bash
+npm install
+npm run build:css
+```
+
 Check the FTS tables:
 
 ```bash
@@ -266,8 +291,15 @@ docflow/
 ├── main.py
 ├── requirements.txt
 ├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── package.json
+├── package-lock.json
+├── tailwind.config.js
 ├── frontend/
 │   ├── favicon.svg
+│   ├── styles.css
+│   ├── tailwind.css
 │   └── index.html
 ├── scripts/
 │   ├── service.sh
@@ -302,6 +334,16 @@ docflow/
 
 This repository does not define Codex skills. The project is a standalone local application.
 
+### Release and Local Deployment
+
+- Local deployment guide: `docs/LOCAL_DEPLOYMENT.md`.
+- Final Phase 18 acceptance report: `docs/phase18-final-acceptance.md`.
+- Phase 18 handoff: `docs/phase18-handoff.md`.
+- Changelog: `CHANGELOG.md`.
+- License: `LICENSE`.
+
+External network use is visible and limited to setup or optional assets: dependency installation, model downloads, Ollama access, and the current Material Symbols font request from Google Fonts. Tailwind is no longer loaded from a runtime CDN.
+
 ### Contributing
 
 Before changing behavior, read `config.yaml`, the relevant files under `src/`, and the tests that cover the area being changed. Keep README commands aligned with real entry points in `main.py`.
@@ -326,7 +368,7 @@ Keep these constraints in mind when changing the project:
 
 ### License
 
-MIT. Add a standalone `LICENSE` file before publishing the project externally.
+MIT. See `LICENSE`.
 
 ## 简体中文
 
@@ -335,6 +377,8 @@ MIT. Add a standalone `LICENSE` file before publishing the project externally.
 DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Obsidian 笔记。你把文件放进监控目录，DocFlow 自动解析和索引，然后可以在浏览器里提问，并得到带来源的回答。
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
+
+当前发布目标：`0.18.0`。
 
 ### 功能特性
 
@@ -357,6 +401,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
 - Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
 - 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
+- 本地生产样式：浏览器页面直接加载 `frontend/styles.css`，运行时不再依赖 Tailwind CDN。
 - 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
 - Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。
@@ -371,6 +416,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Apple Silicon Mac。
 - Python 3.11 或更高版本。
 - Docker Desktop，用于运行 Qdrant。
+- 可选 Node.js 20+，只在修改页面样式后重建 CSS 时需要。
 - 可选 Ollama，用于扫描 PDF 的 OCR 和上下文前缀生成。
 - DOCX 和图片入库需要额外安装：`python-docx`、`mlx-vlm`、`Pillow`、`pillow-heif`。
 
@@ -395,6 +441,13 @@ pip install python-docx mlx-vlm Pillow pillow-heif
 
 ```bash
 ollama pull glm-ocr
+```
+
+已提交的浏览器 CSS 可以直接运行。只有修改页面样式后才需要重建：
+
+```bash
+npm install
+npm run build:css
 ```
 
 检查本机依赖：
@@ -451,6 +504,7 @@ python main.py rebuild --qdrant-only --dry-run
 python main.py backup --dry-run
 python main.py export-chunks --output backups/chunks.jsonl
 python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
+npm run build:css
 ```
 
 ### 配置
@@ -575,6 +629,13 @@ cd ~/Projects/docflow
 .venv/bin/python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
 ```
 
+修改 Tailwind class 或主题配置后，重建已提交的浏览器 CSS：
+
+```bash
+npm install
+npm run build:css
+```
+
 检查全文检索表：
 
 ```bash
@@ -590,8 +651,15 @@ docflow/
 ├── main.py
 ├── requirements.txt
 ├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── package.json
+├── package-lock.json
+├── tailwind.config.js
 ├── frontend/
 │   ├── favicon.svg
+│   ├── styles.css
+│   ├── tailwind.css
 │   └── index.html
 ├── scripts/
 │   ├── service.sh
@@ -626,6 +694,16 @@ docflow/
 
 这个仓库本身没有定义 Codex 技能。它是一个独立运行的本地应用。
 
+### 发布和本地部署
+
+- 本地部署说明：`docs/LOCAL_DEPLOYMENT.md`。
+- Phase 18 最终验收报告：`docs/phase18-final-acceptance.md`。
+- Phase 18 交接文档：`docs/phase18-handoff.md`。
+- 版本记录：`CHANGELOG.md`。
+- 许可证：`LICENSE`。
+
+外部网络使用已经明确标出，主要是依赖安装、模型下载、Ollama 访问，以及当前 Material Symbols 图标字体请求。Tailwind 运行时 CDN 已移除。
+
 ### 贡献指南
 
 修改行为前，先阅读 `config.yaml`、`src/` 下相关文件，以及覆盖对应功能的测试。README 里的命令要和 `main.py` 里的真实入口保持一致。
@@ -650,4 +728,4 @@ docflow/
 
 ### 许可证
 
-MIT。公开发布前建议补一个独立的 `LICENSE` 文件。
+MIT。见 `LICENSE`。

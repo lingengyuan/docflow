@@ -5,54 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DocFlow</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="stylesheet" href="/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <script id="tailwind-config">
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            "surface-dim": "#cfdce3",
-            "background": "#f7f9fb",
-            "on-primary-container": "#455367",
-            "surface-bright": "#f7f9fb",
-            "outline": "#717c82",
-            "on-primary": "#f6f7ff",
-            "on-tertiary": "#e9ffe5",
-            "on-surface-variant": "#566166",
-            "tertiary-container": "#dcfcd9",
-            "surface-container-highest": "#d9e4ea",
-            "on-tertiary-container": "#476248",
-            "primary-dim": "#455368",
-            "tertiary": "#4a664b",
-            "primary": "#515f74",
-            "on-secondary-container": "#445365",
-            "surface-container": "#e8eff3",
-            "primary-container": "#d5e3fd",
-            "surface-container-high": "#e1e9ee",
-            "inverse-primary": "#d5e3fd",
-            "on-background": "#2a3439",
-            "surface-container-low": "#f0f4f7",
-            "surface": "#f7f9fb",
-            "on-surface": "#2a3439",
-            "surface-container-lowest": "#ffffff",
-            "outline-variant": "#a9b4b9",
-            "error": "#9f403d",
-            "secondary-container": "#d4e4fa",
-          },
-          fontFamily: {
-            "sans": ["-apple-system", "PingFang SC", "Noto Sans SC", "Inter", "sans-serif"],
-          },
-          borderRadius: {
-            "DEFAULT": "0.5rem",
-            "lg": "0.75rem",
-            "xl": "1rem",
-            "full": "9999px",
-          },
-        },
-      },
-    }
-  </script>
   <style>
     .material-symbols-outlined {
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -253,7 +207,7 @@
           <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()" title="添加文件" aria-label="添加文件">
             <span class="material-symbols-outlined">add_circle</span>
           </button>
-          <input type="file" id="file-input-chat" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
+          <input type="file" id="file-input-chat" accept=".pdf,.md,.markdown,.txt,.docx,.py,.rs,.ts,.css,.sh,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
           <textarea id="input" rows="1"
             placeholder="向你的文档提问…"
             class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-2 placeholder:text-on-surface-variant/40 resize-none overflow-hidden leading-relaxed outline-none"
@@ -299,7 +253,7 @@
           <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
           上传文件
         </button>
-        <input type="file" id="file-input" accept=".pdf,.md,.txt,.docx,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
+        <input type="file" id="file-input" accept=".pdf,.md,.markdown,.txt,.docx,.py,.rs,.ts,.css,.sh,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
       </div>
     </header>
 
@@ -2397,7 +2351,7 @@ async function handleFileSelect(e) {
 async function handleDrop(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('border-primary/60', 'bg-surface-container');
-  const SUPPORTED = ['.pdf','.md','.txt','.docx','.jpg','.jpeg','.png','.webp','.heic','.heif'];
+  const SUPPORTED = ['.pdf','.md','.markdown','.txt','.docx','.py','.rs','.ts','.css','.sh','.jpg','.jpeg','.png','.webp','.heic','.heif'];
   await uploadFiles([...e.dataTransfer.files].filter(f => SUPPORTED.some(ext => f.name.toLowerCase().endsWith(ext))));
 }
 

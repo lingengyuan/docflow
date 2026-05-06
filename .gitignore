@@ -38,3 +38,6 @@ output/
 *.bak
 *.tmp
 /drafts/*
+
+# Node / frontend build cache
+node_modules/

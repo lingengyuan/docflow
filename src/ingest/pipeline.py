@@ -1,7 +1,7 @@
 """
 IngestPipeline — 将 ParserRegistry + StructuredChunker + Embedder + DocStore 串联。
 
-支持格式：.pdf / .md / .markdown / .txt / .docx
+支持格式：.pdf / .md / .markdown / .txt / .docx / 代码文本 / 可选图片格式
 
 使用方式：
     pipeline = IngestPipeline.from_config("config.yaml")

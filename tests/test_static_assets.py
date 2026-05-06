@@ -142,6 +142,40 @@ def test_phase17_notes_exposes_knowledge_outputs():
     assert "project_brief" in html
 
 
+def test_phase18_frontend_uses_local_tailwind_build():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'href="/styles.css"' in html
+    assert "cdn.tailwindcss.com" not in html
+    assert 'id="tailwind-config"' not in html
+    assert Path("frontend/styles.css").exists()
+    assert Path("tailwind.config.js").exists()
+    assert "build:css" in Path("package.json").read_text(encoding="utf-8")
+    assert ".py,.rs,.ts,.css,.sh" in html
+    assert "'.py','.rs','.ts','.css','.sh'" in html
+
+
+def test_phase18_release_docs_are_linked_from_readme():
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for path in [
+        "LICENSE",
+        "CHANGELOG.md",
+        "docs/LOCAL_DEPLOYMENT.md",
+        "docs/phase18-final-acceptance.md",
+        "docs/phase18-handoff.md",
+        "docs/phase18-chat-desktop.png",
+        "docs/phase18-library-desktop.png",
+    ]:
+        assert Path(path).exists()
+
+    assert "docs/LOCAL_DEPLOYMENT.md" in readme
+    assert "docs/phase18-final-acceptance.md" in readme
+    assert "docs/phase18-chat-desktop.png" in readme
+    assert "MIT. See `LICENSE`." in readme
+    assert "MIT。见 `LICENSE`。" in readme
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

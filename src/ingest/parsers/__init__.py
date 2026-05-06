@@ -17,6 +17,9 @@ from src.ingest.parsers.pdf_parser import PDFParser
 from src.ingest.parsers.txt_parser import TxtParser
 
 
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+
+
 class ParserRegistry:
     def __init__(self):
         self._parsers: dict[str, object] = {}
@@ -46,8 +49,17 @@ class ParserRegistry:
         registry.register(".pdf", PDFParser(ollama_base_url=ollama_url, ocr_model=ocr_model))
         registry.register(".md", MarkdownParser())
         registry.register(".markdown", MarkdownParser())
-        registry.register(".txt", TxtParser())
+        text_parser = TxtParser()
+        registry.register(".txt", text_parser)
         registry.register(".docx", DocxParser())
+
+        for ext in cfg.get("paths", {}).get("supported_extensions", []):
+            normalized = str(ext).lower()
+            if not normalized.startswith("."):
+                normalized = f".{normalized}"
+            if normalized in registry._parsers or normalized in IMAGE_EXTENSIONS:
+                continue
+            registry.register(normalized, text_parser)
 
         vlm_cfg = cfg.get("vlm", {})
         if vlm_cfg.get("enabled", True):
@@ -56,7 +68,7 @@ class ParserRegistry:
                 prompt=vlm_cfg.get("prompt", ""),
                 max_tokens=vlm_cfg.get("max_tokens", 512),
             )
-            for ext in (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"):
+            for ext in IMAGE_EXTENSIONS:
                 registry.register(ext, image_parser)
 
         return registry

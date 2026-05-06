@@ -4,26 +4,28 @@
       "id": "local_privacy",
       "name": "本地隐私",
       "target_score": 9,
-      "current_score": 8.7,
+      "current_score": 8.8,
       "phase": "Phase 18",
       "evidence": [
         "默认本地 SQLite、Qdrant、MLX/Ollama 模型。",
-        "Settings 会展示核心健康、模型运行时、可选能力和本地维护命令。"
+        "Settings 会展示核心健康、模型运行时、可选能力和本地维护命令。",
+        "Phase 18 移除了 Tailwind 运行时 CDN，并补充了本地部署隐私说明。"
       ],
       "next_steps": [
-        "把最终外部调用开关整理成普通用户可读的隐私说明。"
+        "把 Material Symbols 字体改成本地图标资源，减少最后一个运行时外部请求。"
       ]
     },
     {
       "id": "qa_loop",
       "name": "文档问答主流程",
       "target_score": 9,
-      "current_score": 8.5,
-      "phase": "Phase 15",
+      "current_score": 8.6,
+      "phase": "Phase 15, Phase 18",
       "evidence": [
         "支持流式问答、多轮对话、引用和来源预览。",
         "支持全部知识库、指定集合、指定文件和全文模式提问。",
-        "支持答案复制、Markdown 导出和保存回答为本地笔记。"
+        "支持答案复制、Markdown 导出和保存回答为本地笔记。",
+        "Phase 18 补充最终验收和浏览器回归验证。"
       ],
       "next_steps": [
         "把问答、文件库和设置入口整理成更成熟的日常工作台。"
@@ -33,71 +35,73 @@
       "id": "format_support",
       "name": "文档格式支持",
       "target_score": 9,
-      "current_score": 8,
+      "current_score": 8.3,
       "phase": "Phase 13, Phase 18",
       "evidence": [
         "支持 PDF、Markdown、TXT、DOCX、代码文本和图片格式。",
-        "Phase 13 新增网页导入和页面内 Markdown 笔记创建。"
+        "Phase 13 新增网页导入和页面内 Markdown 笔记创建。",
+        "Phase 18 修正代码类扩展名解析，并让配置中的图片扩展名与 VLM 能力说明保持一致。"
       ],
       "next_steps": [
-        "为图片、截图、表格图建立真实样本验证。"
+        "为图片、截图、表格图和扫描 PDF 建立持续运行的真实样本验证。"
       ]
     },
     {
       "id": "answer_reliability",
       "name": "搜索和答案可靠性",
       "target_score": 9,
-      "current_score": 8,
+      "current_score": 8.3,
       "phase": "Phase 15, Phase 18",
       "evidence": [
         "已有混合检索、精排、父级上下文和检索调试入口。",
-        "Phase 14 新增指定范围提问、全文模式和低证据拒答。"
+        "Phase 14 新增指定范围提问、全文模式和低证据拒答。",
+        "Phase 18 将固定检索评测和最终验收报告纳入交付检查。"
       ],
       "next_steps": [
-        "扩大真实问题评测集。",
-        "补充最终端到端检索验收报告。"
+        "扩大真实问题评测集，并加入更多用户日常问题。"
       ]
     },
     {
       "id": "ui_usability",
       "name": "界面可用性",
       "target_score": 9,
-      "current_score": 8,
+      "current_score": 8.5,
       "phase": "Phase 18",
       "evidence": [
         "Phase 15 将主入口整理为 Chat、Library、Notes、Settings。",
-        "Notes 集中资料采集，Settings 集中模型、健康、路径和维护入口。"
+        "Notes 集中资料采集，Settings 集中模型、健康、路径和维护入口。",
+        "Phase 18 改为本地构建的浏览器样式，并补充最终页面验收。"
       ],
       "next_steps": [
-        "移除 Tailwind CDN，补齐最终空状态和错误状态。",
-        "补充最终截图和普通用户使用说明。"
+        "继续补齐更完整的空状态、错误状态和桌面端视觉截图。"
       ]
     },
     {
       "id": "library_management",
       "name": "文件管理能力",
       "target_score": 9,
-      "current_score": 7.5,
+      "current_score": 8.1,
       "phase": "Phase 12, Phase 18",
       "evidence": [
         "已有文件列表、收藏、上传、扫描和来源预览。",
-        "Phase 12 新增集合、用户标签、状态/收藏筛选、批量收藏、批量元数据更新和批量重建索引。"
+        "Phase 12 新增集合、用户标签、状态/收藏筛选、批量收藏、批量元数据更新和批量重建索引。",
+        "Phase 18 修正代码类文件扫描入库的解析注册问题。"
       ],
       "next_steps": [
-        "增加保存筛选和更完整的来源详情。",
-        "补充最终示例数据和文件库使用说明。"
+        "增加保存筛选、更完整的来源详情和更清楚的批量任务进度。"
       ]
     },
     {
       "id": "model_runtime",
       "name": "模型选择和本地运行",
       "target_score": 9,
-      "current_score": 8,
+      "current_score": 8.3,
       "phase": "Phase 18",
       "evidence": [
         "默认 MLX 4B，增强 MLX 8B，OCR 和 VLM 都可用。",
         "模型切换已有等待上限和失败保留。",
-        "Phase 16 在 Settings 中展示 embedding、reranker、LLM、OCR 和 VLM 就绪状态。"
+        "Phase 16 在 Settings 中展示 embedding、reranker、LLM、OCR 和 VLM 就绪状态。",
+        "Phase 18 将模型准备和常见问题写入本地部署说明。"
       ],
       "next_steps": [
         "增加模型任务停止和更细的实时进度反馈。"
@@ -107,41 +111,44 @@
       "id": "setup_ops",
       "name": "安装和日常维护",
       "target_score": 9,
-      "current_score": 8.2,
+      "current_score": 8.8,
       "phase": "Phase 18",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
-        "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。"
+        "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。",
+        "Phase 18 新增本地部署、重建 CSS、备份恢复和故障处理说明。"
       ],
       "next_steps": [
-        "补充面向普通用户的本地部署指南。"
+        "补充一键安装脚本或打包应用，降低新机器首次安装成本。"
       ]
     },
     {
       "id": "stability_recovery",
       "name": "稳定性和恢复能力",
       "target_score": 9,
-      "current_score": 8.2,
+      "current_score": 8.7,
       "phase": "Phase 18",
       "evidence": [
         "Phase 10 增加前台任务等待上限、队列让路和安全模型切换。",
         "已有一致性检查、重建、备份和恢复计划。",
-        "Phase 16 将健康检查结果转成安全检查、备份预览、OCR 和模型缓存建议。"
+        "Phase 16 将健康检查结果转成安全检查、备份预览、OCR 和模型缓存建议。",
+        "Phase 18 完成一次非破坏性备份和恢复演练，校验归档内容、manifest、SQLite 和 chunks 导出。"
       ],
       "next_steps": [
-        "补充真实恢复演练。"
+        "在一次一次性副本环境中做完整覆盖恢复演练。"
       ]
     },
     {
       "id": "local_workflow",
       "name": "扩展生态",
       "target_score": 9,
-      "current_score": 8.3,
+      "current_score": 8.4,
       "phase": "Phase 17, Phase 18",
       "evidence": [
         "Notes 页面集中网页导入、临时笔记和最近采集内容。",
         "Phase 17 新增总结、学习卡片、行动项、项目简报知识产物工作流。",
-        "知识产物可以从手动资料或 Library 选中文件生成，并保存为 Knowledge Outputs 本地 Markdown。"
+        "知识产物可以从手动资料或 Library 选中文件生成，并保存为 Knowledge Outputs 本地 Markdown。",
+        "Phase 18 补齐本地使用说明和发布检查。"
       ],
       "next_steps": [
         "增加更细的模板自定义、批量运行和生成结果预览。"
@@ -151,32 +158,31 @@
       "id": "testing_discipline",
       "name": "测试和交付纪律",
       "target_score": 9,
-      "current_score": 8.4,
+      "current_score": 8.8,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 170 个自动化测试。",
-        "每个阶段都有交接文档规则。"
+        "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和维护命令。",
+        "每个阶段都有交接文档规则。",
+        "Phase 18 将最终验收报告、浏览器验证、备份恢复演练和发布检查纳入交付。"
       ],
       "next_steps": [
-        "把成熟度评分报告纳入固定验收。",
-        "增加最终端到端总验收报告。"
+        "把真实样本集和浏览器流程变成可重复运行的一键验收。"
       ]
     },
     {
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 7.6,
+      "current_score": 8.5,
       "phase": "Phase 17, Phase 18",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康、模型和恢复建议。",
         "Phase 17 让资料整理结果能直接沉淀为本地知识资产。",
-        "还缺发布整理、示例数据、截图和完整故障处理。"
+        "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。"
       ],
       "next_steps": [
-        "更新 README、截图、快速开始、FAQ 和 LICENSE。",
-        "输出最终 9 分评分报告。"
+        "补充桌面打包、截图资产、本地图标字体和更完整真实样本。"
       ]
     }
   ]
