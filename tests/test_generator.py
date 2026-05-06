@@ -123,6 +123,28 @@ class TestOllamaGenerate:
         assert "test question" in payload["messages"][1]["content"]
         assert "previous question" in payload["messages"][1]["content"]
 
+    def test_knowledge_output_payload_uses_template_instruction(self):
+        gen = AnswerGenerator(backend="local", ollama_model="qwen2.5:7b")
+        body = json.dumps({"message": {"content": "## 当前状态\n\n完成"}}).encode()
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+            output = gen.generate_knowledge_output(
+                "project_brief",
+                "Phase Brief",
+                "Phase 17 source text",
+            )
+
+        req = mock_url.call_args[0][0]
+        payload = json.loads(req.data.decode())
+        assert output.startswith("## 当前状态")
+        assert "项目简报" in payload["messages"][1]["content"]
+        assert "Phase 17 source text" in payload["messages"][1]["content"]
+        assert "## 背景" in payload["messages"][0]["content"]
+
     def test_claude_stream_falls_back_to_single_chunk(self):
         gen = AnswerGenerator(backend="claude", claude_api_key="test-key")
         with patch.object(gen, "_call_with_system", return_value="claude answer") as mock_call:

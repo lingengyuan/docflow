@@ -8,6 +8,7 @@ from src.api import app as api_app
 from src.ingest.imports import (
     MarkdownImport,
     build_answer_note_markdown,
+    build_knowledge_output_markdown,
     build_quick_note_markdown,
     html_to_markdown,
     safe_filename,
@@ -45,6 +46,23 @@ def test_note_markdown_builders_validate_content():
     assert "## Question" in answer.markdown
     assert "README.md p.1" in answer.markdown
     assert safe_filename("A/B: C") == "a-b-c"
+
+
+def test_knowledge_output_markdown_builder_adds_type_sources_and_tags():
+    output = build_knowledge_output_markdown(
+        "Sprint Brief",
+        "project_brief",
+        "## 当前状态\n\n已完成第一版。",
+        source_files=["README.md", "docs/phase16-handoff.md"],
+        tags=["phase17"],
+    )
+
+    assert "title: \"Sprint Brief\"" in output.markdown
+    assert "output_type: \"project_brief\"" in output.markdown
+    assert "knowledge-output" in output.markdown
+    assert "phase17" in output.markdown
+    assert "docs/phase16-handoff.md" in output.markdown
+    assert "## 内容" in output.markdown
 
 
 def test_create_note_endpoint_writes_markdown_and_queues(monkeypatch, tmp_path):
@@ -144,3 +162,142 @@ def test_save_answer_endpoint_writes_note(monkeypatch, tmp_path):
     assert response.status_code == 200
     path = Path(response.json()["path"])
     assert "Answer body" in path.read_text(encoding="utf-8")
+
+
+def test_knowledge_output_endpoint_writes_generated_markdown(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    generated = {}
+
+    class FakeQueue:
+        def submit(self, path: Path):
+            return {"status": "queued", "file": path.name}
+
+    class FakeQueryEngine:
+        def generate_knowledge_output(self, output_type, title, source_text):
+            generated["output_type"] = output_type
+            generated["title"] = title
+            generated["source_text"] = source_text
+            return "## 当前状态\n\n资料已经整理。"
+
+    monkeypatch.setattr(api_app, "store", store)
+    monkeypatch.setattr(api_app, "ingest_queue", FakeQueue())
+    monkeypatch.setattr(api_app, "query_engine", FakeQueryEngine())
+    monkeypatch.setattr(api_app, "watch_dirs", [WatchDir(path=tmp_path)])
+    client = TestClient(api_app.app)
+
+    response = client.post(
+        "/api/knowledge-output",
+        json={
+            "output_type": "project_brief",
+            "title": "Phase 17 Brief",
+            "source_text": "Phase 17 adds reusable knowledge outputs.",
+            "collection": "Knowledge Outputs",
+            "user_tags": ["phase17"],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    path = Path(body["path"])
+    assert path.exists()
+    saved = path.read_text(encoding="utf-8")
+    assert "## 当前状态" in saved
+    assert "output_type: \"project_brief\"" in saved
+    assert generated["output_type"] == "project_brief"
+    assert "Phase 17 adds" in generated["source_text"]
+    assert body["file"]["collection"] == "Knowledge Outputs"
+    assert body["file"]["user_tags"] == ["knowledge-output", "project_brief", "phase17"]
+
+
+def test_knowledge_output_endpoint_uses_selected_file_chunks(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    source_path = tmp_path / "source.md"
+    source_path.write_text("# Source\n\nBody", encoding="utf-8")
+    file_id = store.upsert_file(
+        source_path,
+        source_path.name,
+        "hash-source",
+        status="done",
+        total_pages=1,
+        mtime_ns=source_path.stat().st_mtime_ns,
+    )
+    store.add_chunks(
+        file_id,
+        [
+            {
+                "qdrant_id": 101,
+                "chunk_type": "text",
+                "page_num": 1,
+                "section": "Intro",
+                "char_count": 21,
+            }
+        ],
+    )
+    generated = {}
+
+    class FakeQueue:
+        def submit(self, path: Path):
+            return {"status": "queued", "file": path.name}
+
+    class FakeRetriever:
+        def fetch_file_chunks(self, qdrant_ids, max_chunks=12):
+            assert qdrant_ids == [101]
+            return [
+                {
+                    "text": "Source text from selected file.",
+                    "file_name": "source.md",
+                    "page_num": 1,
+                    "section": "Intro",
+                }
+            ]
+
+    class FakeQueryEngine:
+        retriever = FakeRetriever()
+
+        def generate_knowledge_output(self, output_type, title, source_text):
+            generated["source_text"] = source_text
+            return "## 核心要点\n\n- 来自选中文件。"
+
+    monkeypatch.setattr(api_app, "store", store)
+    monkeypatch.setattr(api_app, "ingest_queue", FakeQueue())
+    monkeypatch.setattr(api_app, "query_engine", FakeQueryEngine())
+    monkeypatch.setattr(api_app, "watch_dirs", [WatchDir(path=tmp_path)])
+    client = TestClient(api_app.app)
+
+    response = client.post(
+        "/api/knowledge-output",
+        json={"output_type": "summary", "file_ids": [file_id]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    saved = Path(body["path"]).read_text(encoding="utf-8")
+    assert "文件：source.md" in generated["source_text"]
+    assert "Source text from selected file" in generated["source_text"]
+    assert "source.md" in saved
+    assert body["source_files"] == ["source.md"]
+
+
+def test_knowledge_output_endpoint_requires_source(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+
+    class FakeQueue:
+        def submit(self, path: Path):
+            return {"status": "queued", "file": path.name}
+
+    class FakeQueryEngine:
+        def generate_knowledge_output(self, output_type, title, source_text):
+            return "unused"
+
+    monkeypatch.setattr(api_app, "store", store)
+    monkeypatch.setattr(api_app, "ingest_queue", FakeQueue())
+    monkeypatch.setattr(api_app, "query_engine", FakeQueryEngine())
+    monkeypatch.setattr(api_app, "watch_dirs", [WatchDir(path=tmp_path)])
+    client = TestClient(api_app.app)
+
+    response = client.post(
+        "/api/knowledge-output",
+        json={"output_type": "summary", "source_text": ""},
+    )
+
+    assert response.status_code == 400

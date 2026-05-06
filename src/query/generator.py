@@ -12,6 +12,8 @@ import json
 import urllib.request
 from dataclasses import dataclass, field
 
+from src.knowledge_outputs import get_knowledge_output_type
+
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
 
 规则：
@@ -29,6 +31,14 @@ SUMMARIZE_PROMPT = """你是一个专业的文档摘要助手。请基于提供�
 3. **关键数据/结论**：提取重要数字、日期、结论（如无则省略此节）
 
 规则：使用中文，简洁专业，严格基于文档内容，不要编造。"""
+
+KNOWLEDGE_OUTPUT_SYSTEM_PROMPT = """你是一个本地知识工作流助手。请把用户提供的资料整理成可保存、可复用的 Markdown 知识产物。
+
+规则：
+1. 严格基于资料内容，不要编造事实、日期、结论或来源
+2. 资料不足时明确写出哪些部分资料不足
+3. 输出使用中文 Markdown
+4. 不要输出寒暄、免责声明或模型思考过程"""
 
 
 @dataclass
@@ -92,6 +102,20 @@ class AnswerGenerator:
         else:
             text = self._call_ollama_with_system(SUMMARIZE_PROMPT, user_msg)
         return f"## {file_name}\n\n{text}"
+
+    def generate_knowledge_output(self, output_type: str, title: str, source_text: str) -> str:
+        """基于手动输入或文件片段生成可入库的 Markdown 知识产物。"""
+        output = get_knowledge_output_type(output_type)
+        source = source_text.strip()
+        if not source:
+            raise ValueError("Knowledge output source is empty")
+        system_prompt = f"{KNOWLEDGE_OUTPUT_SYSTEM_PROMPT}\n\n产物要求：{output.instruction}"
+        user_msg = f"产物标题：{title}\n产物类型：{output.label}\n\n资料：\n{source}"
+        if self.backend == "claude":
+            return self._call_with_system(system_prompt, user_msg)
+        if self.backend == "mlx":
+            return self._call_mlx(system_prompt, user_msg)
+        return self._call_ollama_with_system(system_prompt, user_msg)
 
     def generate(
         self,

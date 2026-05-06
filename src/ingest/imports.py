@@ -11,6 +11,8 @@ from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 
+from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
+
 
 MAX_WEBPAGE_BYTES = 2_000_000
 REQUEST_TIMEOUT_S = 15
@@ -150,6 +152,34 @@ def build_answer_note_markdown(
     return MarkdownImport(title=final_title, markdown="\n".join(parts))
 
 
+def build_knowledge_output_markdown(
+    title: str | None,
+    output_type: str,
+    body: str,
+    source_files: list[str] | None = None,
+    tags: list[str] | None = None,
+) -> MarkdownImport:
+    output = get_knowledge_output_type(output_type)
+    final_title = _clean_title(title or output.label)
+    body_text = body.strip()
+    if not body_text:
+        raise ValueError("Knowledge output content is empty")
+    clean_sources = [" ".join(str(item).split()) for item in (source_files or []) if str(item).strip()]
+    parts = [
+        _frontmatter(
+            final_title,
+            tags=knowledge_output_tags(output.id, tags),
+            extra={"output_type": output.id},
+        ),
+        f"# {final_title}\n",
+        f"类型：{output.label}\n",
+    ]
+    if clean_sources:
+        parts.append("## 来源\n\n" + "\n".join(f"- {source}" for source in clean_sources) + "\n")
+    parts.append(f"## 内容\n\n{body_text}\n")
+    return MarkdownImport(title=final_title, markdown="\n".join(parts))
+
+
 def write_markdown_import(root_dir: Path, prefix: str, item: MarkdownImport) -> Path:
     root_dir.mkdir(parents=True, exist_ok=True)
     stem = safe_filename(item.title, fallback=prefix)
@@ -182,7 +212,12 @@ def _clean_title(value: str) -> str:
     return title[:120] if title else "Untitled"
 
 
-def _frontmatter(title: str, source_url: str | None = None, tags: list[str] | None = None) -> str:
+def _frontmatter(
+    title: str,
+    source_url: str | None = None,
+    tags: list[str] | None = None,
+    extra: dict[str, str] | None = None,
+) -> str:
     lines = [
         "---",
         f"title: {_yaml_string(title)}",
@@ -190,6 +225,9 @@ def _frontmatter(title: str, source_url: str | None = None, tags: list[str] | No
     ]
     if source_url:
         lines.append(f"source_url: {_yaml_string(source_url)}")
+    for key, value in (extra or {}).items():
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            lines.append(f"{key}: {_yaml_string(value)}")
     clean_tags = [safe_filename(tag, fallback="tag") for tag in (tags or []) if str(tag).strip()]
     if clean_tags:
         lines.append("tags:")

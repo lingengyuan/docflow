@@ -136,24 +136,25 @@
       "id": "local_workflow",
       "name": "扩展生态",
       "target_score": 9,
-      "current_score": 7.5,
+      "current_score": 8.3,
       "phase": "Phase 17, Phase 18",
       "evidence": [
         "Notes 页面集中网页导入、临时笔记和最近采集内容。",
-        "知识产物工作流还没有形成完整模板。"
+        "Phase 17 新增总结、学习卡片、行动项、项目简报知识产物工作流。",
+        "知识产物可以从手动资料或 Library 选中文件生成，并保存为 Knowledge Outputs 本地 Markdown。"
       ],
       "next_steps": [
-        "增加总结、学习卡片、行动项、项目简报。"
+        "增加更细的模板自定义、批量运行和生成结果预览。"
       ]
     },
     {
       "id": "testing_discipline",
       "name": "测试和交付纪律",
       "target_score": 9,
-      "current_score": 8.2,
+      "current_score": 8.4,
       "phase": "Phase 11, Phase 18",
       "evidence": [
-        "已有 164 个自动化测试。",
+        "已有 170 个自动化测试。",
         "每个阶段都有交接文档规则。"
       ],
       "next_steps": [
@@ -165,11 +166,12 @@
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 7.3,
-      "phase": "Phase 18",
+      "current_score": 7.6,
+      "phase": "Phase 17, Phase 18",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康、模型和恢复建议。",
+        "Phase 17 让资料整理结果能直接沉淀为本地知识资产。",
         "还缺发布整理、示例数据、截图和完整故障处理。"
       ],
       "next_steps": [

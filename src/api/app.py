@@ -21,12 +21,13 @@ import json
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.imports import (
     build_answer_note_markdown,
+    build_knowledge_output_markdown,
     build_quick_note_markdown,
     fetch_webpage_markdown,
     write_markdown_import,
@@ -34,6 +35,11 @@ from src.ingest.imports import (
 from src.ingest.store import DocStore
 from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
 from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
+from src.knowledge_outputs import (
+    KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT,
+    get_knowledge_output_type,
+    knowledge_output_tags,
+)
 from src.query.engine import QueryEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -915,6 +921,15 @@ class AnswerNoteRequest(BaseModel):
     user_tags: list[str] | None = None
 
 
+class KnowledgeOutputRequest(BaseModel):
+    output_type: str
+    title: str | None = None
+    source_text: str | None = None
+    file_ids: list[int] = Field(default_factory=list)
+    collection: str | None = None
+    user_tags: list[str] | None = None
+
+
 @app.post("/api/import/url")
 async def import_url(req: WebImportRequest):
     if store is None or ingest_queue is None:
@@ -969,6 +984,94 @@ async def save_answer_note(req: AnswerNoteRequest):
         collection=req.collection or "Saved Answers",
         user_tags=req.user_tags or ["answer"],
     )
+
+
+@app.post("/api/knowledge-output")
+async def create_knowledge_output(req: KnowledgeOutputRequest):
+    if store is None or ingest_queue is None or query_engine is None:
+        raise HTTPException(503, "Not ready")
+    try:
+        output = get_knowledge_output_type(req.output_type)
+        source_text, source_files = _build_knowledge_output_source(req)
+        title = req.title or output.label
+        generated = await model_tasks.run(
+            "knowledge_output",
+            lambda: query_engine.generate_knowledge_output(output.id, title, source_text),
+            timeout_s=MODEL_TASK_TIMEOUT_S,
+        )
+        user_tags = knowledge_output_tags(output.id, req.user_tags)
+        item = build_knowledge_output_markdown(
+            title,
+            output.id,
+            generated,
+            source_files=source_files,
+            tags=req.user_tags,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except ModelTaskTimeout as exc:
+        logger.warning("[api/knowledge-output] timeout id=%s type=%s", exc.task_id, req.output_type)
+        raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
+
+    result = _write_import_and_enqueue(
+        "knowledge",
+        item,
+        collection=req.collection or "Knowledge Outputs",
+        user_tags=user_tags,
+    )
+    return {
+        **result,
+        "output_type": output.id,
+        "source_files": source_files,
+        "preview": generated[:500],
+    }
+
+
+def _build_knowledge_output_source(req: KnowledgeOutputRequest) -> tuple[str, list[str]]:
+    if store is None or query_engine is None:
+        raise HTTPException(503, "Not ready")
+
+    source_parts: list[str] = []
+    source_files: list[str] = []
+    manual_text = (req.source_text or "").strip()
+    if manual_text:
+        source_parts.append("## 手动输入\n\n" + manual_text)
+
+    for file_id in dict.fromkeys(req.file_ids):
+        record = store.get_file_by_id(file_id)
+        if not record or record["status"] != "done":
+            continue
+        qdrant_ids = store.get_file_qdrant_ids(file_id)
+        chunks = query_engine.retriever.fetch_file_chunks(qdrant_ids, max_chunks=12)
+        file_context = _format_knowledge_file_context(record["file_name"], chunks)
+        if not file_context:
+            continue
+        source_files.append(record["file_name"])
+        source_parts.append(file_context)
+
+    source = "\n\n---\n\n".join(part for part in source_parts if part.strip()).strip()
+    if not source:
+        raise ValueError("Knowledge output source is empty")
+    if len(source) > KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT:
+        source = (
+            source[:KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT].rstrip()
+            + "\n\n[内容已按长度上限截断]"
+        )
+    return source, source_files
+
+
+def _format_knowledge_file_context(file_name: str, chunks: list[dict]) -> str:
+    rows: list[str] = []
+    for chunk in chunks:
+        text = (chunk.get("text") or chunk.get("raw_text") or "").strip()
+        if not text:
+            continue
+        page = chunk.get("page_num") or 0
+        section = f" / {chunk.get('section')}" if chunk.get("section") else ""
+        rows.append(f"### 第{page}页{section}\n\n{text}")
+    if not rows:
+        return ""
+    return f"## 文件：{file_name}\n\n" + "\n\n".join(rows)
 
 
 def _write_import_and_enqueue(

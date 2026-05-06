@@ -125,6 +125,10 @@ class QueryEngine:
         chunks = self.retriever.fetch_file_chunks(qdrant_ids)
         return self.generator.summarize(file_name, chunks)
 
+    def generate_knowledge_output(self, output_type: str, title: str, source_text: str) -> str:
+        """生成可保存为本地 Markdown 的知识产物。"""
+        return self.generator.generate_knowledge_output(output_type, title, source_text)
+
     @staticmethod
     def _is_table_query(question: str) -> bool:
         q_lower = question.lower()

@@ -130,6 +130,18 @@ def test_phase16_settings_exposes_runtime_and_recovery_guidance():
     assert "复制命令" in html
 
 
+def test_phase17_notes_exposes_knowledge_outputs():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'id="knowledge-output-panel"' in html
+    assert 'id="knowledge-submit-btn"' in html
+    assert "Knowledge Outputs" in html
+    assert "/api/knowledge-output" in html
+    assert "openKnowledgeFromSelectedFiles" in html
+    assert "learning_cards" in html
+    assert "project_brief" in html
+
+
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

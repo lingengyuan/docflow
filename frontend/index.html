@@ -383,6 +383,10 @@
         <span class="material-symbols-outlined" style="font-size:15px">summarize</span>
         生成摘要
       </button>
+      <button onclick="openKnowledgeFromSelectedFiles()" id="knowledge-from-selected-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest active:scale-95 transition-all">
+        <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>
+        知识产物
+      </button>
       <button onclick="favoriteSelected()" id="favorite-selected-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest transition-all">
         <span class="material-symbols-outlined" style="font-size:15px">star</span>
         加入收藏
@@ -481,11 +485,46 @@
           </div>
         </section>
 
+        <section id="knowledge-output-panel" class="xl:col-span-2 rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary" style="font-size:18px">lightbulb</span>
+              <div>
+                <h2 class="text-sm font-semibold text-on-surface">生成知识产物</h2>
+                <p id="knowledge-source-files-label" class="text-[11px] text-on-surface-variant/60 mt-0.5">可粘贴资料，也可从 Library 选中文件带入</p>
+              </div>
+            </div>
+            <button onclick="clearKnowledgeSourceFiles()" id="knowledge-clear-files-btn" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">close</span>
+              清除选中文件
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <select id="knowledge-output-type" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+              <option value="summary">结构化总结</option>
+              <option value="learning_cards">学习卡片</option>
+              <option value="action_items">行动项</option>
+              <option value="project_brief">项目简报</option>
+            </select>
+            <input id="knowledge-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20 md:col-span-1">
+            <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <textarea id="knowledge-source-input" rows="7" placeholder="粘贴会议记录、文章片段、项目说明，或先在 Library 选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <span id="knowledge-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <button id="knowledge-submit-btn" onclick="createKnowledgeOutputFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span>
+              生成并入库
+            </button>
+          </div>
+        </section>
+
         <section class="xl:col-span-2">
           <div class="flex items-center justify-between gap-4 mb-3">
             <div>
               <h2 class="text-sm font-semibold text-on-surface">最近采集</h2>
-              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自 Notes、Web Imports 和 Saved Answers 的本地文件</p>
+              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自 Notes、Web Imports、Saved Answers 和 Knowledge Outputs 的本地文件</p>
             </div>
             <span id="notes-count" class="text-[11px] text-on-surface-variant/60"></span>
           </div>
@@ -622,6 +661,7 @@ let currentConversationId = null;
 let conversationItems = [];
 let healthSnapshot = null;
 let selectedFileIds = new Set();
+let knowledgeSourceFileIds = [];
 let favoritedIds = new Set();
 let libraryFiles = [];
 let libraryMeta = { collections: [], user_tags: [] };
@@ -1272,6 +1312,88 @@ async function importUrlFromNotesView() {
   }
 }
 
+function openKnowledgeFromSelectedFiles() {
+  if (selectedFileIds.size === 0) return;
+  knowledgeSourceFileIds = [...selectedFileIds];
+  switchView('notes');
+  const title = document.getElementById('knowledge-title-input');
+  if (title && !title.value.trim()) title.value = `选中文件知识产物`;
+  updateKnowledgeSourceFilesLabel();
+  document.getElementById('knowledge-output-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('knowledge-output-type')?.focus();
+}
+
+function clearKnowledgeSourceFiles() {
+  knowledgeSourceFileIds = [];
+  updateKnowledgeSourceFilesLabel();
+}
+
+function updateKnowledgeSourceFilesLabel() {
+  const label = document.getElementById('knowledge-source-files-label');
+  const clearBtn = document.getElementById('knowledge-clear-files-btn');
+  if (!label || !clearBtn) return;
+  if (knowledgeSourceFileIds.length) {
+    label.textContent = `将使用 Library 中选中的 ${knowledgeSourceFileIds.length} 个文件`;
+    clearBtn.classList.remove('hidden');
+    clearBtn.classList.add('inline-flex');
+  } else {
+    label.textContent = '可粘贴资料，也可从 Library 选中文件带入';
+    clearBtn.classList.add('hidden');
+    clearBtn.classList.remove('inline-flex');
+  }
+}
+
+async function createKnowledgeOutputFromNotesView() {
+  const btn = document.getElementById('knowledge-submit-btn');
+  const status = document.getElementById('knowledge-status');
+  const outputType = document.getElementById('knowledge-output-type').value;
+  const title = document.getElementById('knowledge-title-input').value.trim();
+  const sourceText = document.getElementById('knowledge-source-input').value;
+  const collection = document.getElementById('knowledge-collection-input').value.trim() || 'Knowledge Outputs';
+  const userTags = parseTagsInput(document.getElementById('knowledge-tags-input').value);
+  if (!sourceText.trim() && knowledgeSourceFileIds.length === 0) {
+    status.textContent = '请先输入资料，或从 Library 选中文件';
+    status.classList.add('text-error');
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span><span class="ml-1.5">生成中…</span>';
+  status.classList.remove('text-error');
+  status.textContent = '正在生成并保存…';
+  try {
+    const r = await fetch(`${API}/api/knowledge-output`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        output_type: outputType,
+        title: title || null,
+        source_text: sourceText,
+        file_ids: knowledgeSourceFileIds,
+        collection,
+        user_tags: userTags.length ? userTags : null,
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    document.getElementById('knowledge-title-input').value = '';
+    document.getElementById('knowledge-source-input').value = '';
+    document.getElementById('knowledge-collection-input').value = '';
+    document.getElementById('knowledge-tags-input').value = '';
+    knowledgeSourceFileIds = [];
+    updateKnowledgeSourceFilesLabel();
+    status.textContent = `已加入入库队列：${data.file?.file_name || 'Knowledge Outputs'}`;
+    setScanButtonState('queued');
+    startQueuePolling();
+    await refreshNotesView();
+  } catch (e) {
+    status.textContent = `生成失败：${e.message}`;
+    status.classList.add('text-error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span><span class="ml-1">生成并入库</span>';
+  }
+}
+
 async function refreshNotesView() {
   const list = document.getElementById('notes-list');
   const count = document.getElementById('notes-count');
@@ -1283,7 +1405,8 @@ async function refreshNotesView() {
     ]);
     libraryMeta = meta || libraryMeta;
     updateLibraryControls();
-    const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers']);
+    updateKnowledgeSourceFilesLabel();
+    const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers', 'Knowledge Outputs']);
     const notes = files
       .filter(file => noteCollections.has(file.collection || ''))
       .slice(0, 12);

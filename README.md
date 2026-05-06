@@ -25,8 +25,8 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
 - Product workspace shell: Chat, Library, Notes, and Settings are separated into focused daily-use areas.
-- Local knowledge capture: import webpages, create quick Markdown notes, and save answers back into the local library as notes.
-- Notes workspace: create Markdown notes, import webpages, and review recent captured knowledge.
+- Local knowledge capture: import webpages, create quick Markdown notes, save answers back into the local library, and turn source text or selected files into reusable Markdown knowledge outputs.
+- Notes workspace: create Markdown notes, import webpages, generate summaries, learning cards, action items, and project briefs, then review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
@@ -185,6 +185,7 @@ Main endpoints:
 | `/api/favorites` | GET | Favorite files |
 | `/api/favorites/{id}` | POST | Toggle a favorite |
 | `/api/summarize` | POST | Export file summaries as Markdown |
+| `/api/knowledge-output` | POST | Generate and save reusable Markdown knowledge outputs |
 | `/api/debug/retrieve` | POST | Debug retrieval pipeline without answer generation |
 | `/api/llm` | GET, POST | View or switch the active LLM |
 | `/api/sources` | GET | Watched source folders |
@@ -348,8 +349,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
 - 产品级工作台：Chat、Library、Notes、Settings 分成四个清晰入口。
-- 本地知识采集：支持导入网页、新建临时 Markdown 笔记，并把回答保存回本地文件库。
-- Notes 工作区：集中创建 Markdown 笔记、导入网页，并查看最近采集内容。
+- 本地知识采集：支持导入网页、新建临时 Markdown 笔记、把回答保存回本地文件库，并把资料或选中文件生成可复用 Markdown 知识产物。
+- Notes 工作区：集中创建 Markdown 笔记、导入网页，生成总结、学习卡片、行动项、项目简报，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
@@ -508,6 +509,7 @@ paths:
 | `/api/favorites` | GET | 收藏文件 |
 | `/api/favorites/{id}` | POST | 切换收藏 |
 | `/api/summarize` | POST | 导出文件摘要 |
+| `/api/knowledge-output` | POST | 生成并保存可复用 Markdown 知识产物 |
 | `/api/debug/retrieve` | POST | 调试查看检索链路，不生成回答 |
 | `/api/llm` | GET, POST | 查看或切换当前模型 |
 | `/api/sources` | GET | 查看监控来源目录 |
