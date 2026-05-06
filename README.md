@@ -51,6 +51,20 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - macOS background service: run DocFlow after login through launchd, with commands to install, inspect, or remove the service.
 - Query history, scoped query, favorites, file upload, webpage import, note creation, source listing, file preview, and summary export endpoints.
 
+### Current Product Facts
+
+- Supported ingest formats include PDF, Markdown, DOCX, TXT, code text, and images.
+- Scanned PDF OCR uses `glm-ocr`; optional image understanding uses VLM with Qwen3-VL.
+- Chat scope controls include full library, one collection, one file, and full-text mode.
+- Weak evidence behavior: when evidence is too weak or material is insufficient, DocFlow says the answer cannot be grounded instead of guessing.
+- Source handling: answers show citations, PDF page numbers, Markdown sections, and source previews.
+- Retrieval debugging uses `/api/debug/retrieve`, including router decisions, candidate stages, and `reranked` results.
+- Health checks separate core capabilities from optional capabilities; missing optional capabilities can show `degraded` without marking core query or ingest as broken.
+- Settings shows model status, dependency health, watched folders, maintenance commands, model readiness, OCR, and VLM status.
+- Recovery guidance includes safe checks, backup preview, repair suggestions, and copyable commands; the browser displays them and does not auto-run them.
+- Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
+- Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
+
 ### Requirements
 
 - Apple Silicon Mac.
@@ -233,13 +247,18 @@ Run a dry-run ingest benchmark:
 Run the fixed retrieval evaluation set:
 
 ```bash
-.venv/bin/python main.py eval
+.venv/bin/python main.py eval --cases eval/phase11_questions.jsonl --no-rerank --refresh-sources
+.venv/bin/python main.py eval --cases eval/phase11_questions.jsonl --no-rerank --refresh-sources --source-filter
 ```
+
+The unfiltered command keeps whole-corpus retrieval competition visible. The
+source-filtered command checks whether the expected project source files contain
+enough evidence for every fixed case.
 
 Run the Phase 11 maturity baseline:
 
 ```bash
-.venv/bin/python main.py maturity-eval --no-rerank
+.venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 ```
 
 Check SQLite and Qdrant consistency:
@@ -410,6 +429,20 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
 - macOS 后台服务：通过 launchd 登录后自动运行 DocFlow，并提供安装、查看和移除命令。
 - 已有接口覆盖查询历史、范围提问、收藏、上传、网页导入、笔记创建、来源列表、文件预览和摘要导出。
+
+### 当前产品事实速查
+
+- 支持入库格式包括 PDF、Markdown、DOCX、TXT、代码文本和图片。
+- 扫描版 PDF 的 OCR 使用 `glm-ocr`；可选图片理解使用 VLM 和 Qwen3-VL。
+- Chat 页面提问范围包括全部知识库、指定集合、指定文件和全文模式。
+- 证据保护：资料不足或证据太弱时，DocFlow 会明确说答案无法根据资料确认，不会强行编答案。
+- 引用来源支持 PDF 页码、Markdown 章节、引用列表和来源预览。
+- 检索调试使用 `/api/debug/retrieve`，展示 router 判断、候选阶段和 `reranked` 结果。
+- 健康检查会区分核心能力和可选能力；可选能力缺失时可以显示 `degraded`，但不会把核心问答或入库判坏。
+- Settings 页面集中展示模型状态、依赖健康、监控目录、维护命令、模型就绪、OCR 和 VLM 状态。
+- 恢复建议包括安全检查、备份预览、修复建议和可复制命令；页面只展示和复制，不会自动执行。
+- 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
+- Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。
 
 ### 环境要求
 
@@ -593,13 +626,17 @@ cd ~/Projects/docflow
 运行固定检索评估集：
 
 ```bash
-.venv/bin/python main.py eval
+.venv/bin/python main.py eval --cases eval/phase11_questions.jsonl --no-rerank --refresh-sources
+.venv/bin/python main.py eval --cases eval/phase11_questions.jsonl --no-rerank --refresh-sources --source-filter
 ```
+
+不带 `--source-filter` 的命令用于观察全库竞争下的真实检索情况；带
+`--source-filter` 的命令用于确认预期项目文件本身是否能覆盖固定问题。
 
 运行 Phase 11 成熟度基线：
 
 ```bash
-.venv/bin/python main.py maturity-eval --no-rerank
+.venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 ```
 
 检查 SQLite 和 Qdrant 是否一致：

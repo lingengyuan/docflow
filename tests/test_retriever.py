@@ -57,6 +57,14 @@ class TestRRFFusion:
         assert "rrf_score" in result[0]
         assert result[0]["rrf_score"] > 0
 
+    def test_moderate_vector_score_is_not_dropped_before_rerank(self):
+        item = make_item(42)
+        item["score"] = 0.35
+
+        result = HybridRetriever._rrf_fuse([item], [])
+
+        assert [r["qdrant_id"] for r in result] == [42]
+
 
 class TestTableQueryDetection:
     def test_is_table_query(self):
@@ -80,6 +88,17 @@ class TestQueryRouter:
         assert route["query_type"] == "cross_document"
         assert route["top_k_retrieval"] > 20
         assert route["top_k_rerank"] > 5
+
+    def test_mixed_language_technical_term_uses_keyword_route(self):
+        route = QueryRouter.classify("扫描版 PDF 的 OCR 使用 glm-ocr 吗？")
+
+        assert route["query_type"] == "keyword"
+        assert route["bm25_weight"] > route["vec_weight"]
+
+    def test_product_name_alone_does_not_force_keyword_route(self):
+        route = QueryRouter.classify("DocFlow 当前主界面分成哪四个入口？")
+
+        assert route["query_type"] == "semantic"
 
 
 class FakeEmbedModel:

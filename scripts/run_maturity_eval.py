@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_eval import evaluate_case, load_cases
+from scripts.run_eval import evaluate_case, load_cases, refresh_eval_sources
 from src.quality.maturity import build_report, format_report, load_dimensions
 from src.query.engine import QueryEngine
 
@@ -21,19 +21,38 @@ DEFAULT_DIMENSIONS = Path("eval/phase11_maturity_dimensions.json")
 DEFAULT_CASES = Path("eval/phase11_questions.jsonl")
 
 
-def run_retrieval_eval(config: str, cases_path: Path, include_rerank: bool) -> dict:
+def run_retrieval_eval(
+    config: str,
+    cases_path: Path,
+    include_rerank: bool,
+    refresh_sources: bool = False,
+    source_filter: bool = False,
+) -> dict:
     cases = load_cases(cases_path)
+    source_refresh = refresh_eval_sources(cases, config) if refresh_sources else None
     engine = QueryEngine.from_config(config)
-    results = [evaluate_case(engine, case, include_rerank=include_rerank) for case in cases]
+    results = [
+        evaluate_case(
+            engine,
+            case,
+            include_rerank=include_rerank,
+            source_filter=source_filter,
+        )
+        for case in cases
+    ]
     passed = sum(1 for result in results if result["passed"])
-    return {
+    report = {
         "cases": len(results),
         "passed": passed,
         "failed": len(results) - passed,
         "include_rerank": include_rerank,
+        "source_filter": source_filter,
         "case_file": str(cases_path),
         "results": results,
     }
+    if source_refresh is not None:
+        report["source_refresh"] = source_refresh
+    return report
 
 
 def main() -> int:
@@ -43,6 +62,16 @@ def main() -> int:
     parser.add_argument("--cases", default=str(DEFAULT_CASES), help="Retrieval evidence eval JSONL file")
     parser.add_argument("--no-rerank", action="store_true", help="Skip reranker in retrieval evidence eval")
     parser.add_argument("--skip-retrieval", action="store_true", help="Only score maturity dimensions")
+    parser.add_argument(
+        "--refresh-sources",
+        action="store_true",
+        help="Ingest expected source files before running retrieval evidence checks",
+    )
+    parser.add_argument(
+        "--source-filter",
+        action="store_true",
+        help="For must-find cases, restrict retrieval to expected source files",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 
@@ -54,6 +83,8 @@ def main() -> int:
                 args.config,
                 Path(args.cases),
                 include_rerank=not args.no_rerank,
+                refresh_sources=args.refresh_sources,
+                source_filter=args.source_filter,
             )
         except Exception as exc:
             print(

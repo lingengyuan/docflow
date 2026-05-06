@@ -116,6 +116,7 @@ def format_report(report: dict) -> str:
                 "Retrieval evidence eval:",
                 f"- cases: {retrieval['cases']}, passed: {retrieval['passed']}, failed: {retrieval['failed']}",
                 f"- include_rerank: {retrieval['include_rerank']}",
+                f"- source_filter: {retrieval.get('source_filter', False)}",
             ]
         )
         for result in retrieval["results"]:
@@ -123,4 +124,3 @@ def format_report(report: dict) -> str:
             reason = result.get("failure_reason") or "ok"
             lines.append(f"  [{mark}] {result['id']} :: {result['evidence_status']} :: {reason}")
     return "\n".join(lines)
-

@@ -21,7 +21,7 @@ DocFlow is a local-first Python document Q&A app. `main.py` is the entry point. 
 - DRY: remove meaningful duplication without hiding intent.
 - Easy Change: keep modules small, clear, and localized.
 - Orthogonality: keep ingestion, storage, retrieval, API, and UI separate.
-- No masking fallbacks: fallback behavior must not hide failures, data loss, stale data, or reduced answer quality.
+- No masking fallbacks: fallback behavior must not hide failures, data loss, stale data, or reduced answer quality. In project-rule terms, the fallback principle is to expose failures clearly instead of masking reduced answer quality.
 - Unit tests are required for behavior changes.
 - End-to-end testing is required after feature work; exercise the user flow before handoff.
 

@@ -44,6 +44,13 @@ class QueryRouter:
         re.compile(r'\b\d{4}[-/]\d{1,2}'),  # 日期 2024-01
         re.compile(r'\.\w{2,4}\b'),          # 文件扩展名 .pdf
         re.compile(r'[A-Z]{2,}\d+'),         # 编号 INV2024
+        re.compile(
+            r'[\u4e00-\u9fff].*\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|'
+            r'[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b'
+            r'|\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|'
+            r'[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b'
+            r'.*[\u4e00-\u9fff]'
+        ),
     ]
     _CROSS_DOC_PATTERNS = [
         re.compile(r"对比|比较|差异|区别|汇总|总结|跨文档|多个文件"),
@@ -69,6 +76,14 @@ class QueryRouter:
                 "vec_weight": 1.5,
                 "top_k_retrieval": 30,
                 "top_k_rerank": 10,
+            }
+        elif signals == 1:
+            route = {
+                "query_type": "keyword",
+                "bm25_weight": 1.5,
+                "vec_weight": 1.0,
+                "top_k_retrieval": 24,
+                "top_k_rerank": 6,
             }
         elif len(query) > 20 and signals == 0:
             route = {
@@ -602,7 +617,7 @@ class HybridRetriever:
         fts_results: list[dict],
         k: int = 60,
         prefer_tables: bool = False,
-        vec_score_threshold: float = 0.4,
+        vec_score_threshold: float = 0.3,
         vec_weight: float = 1.0,
         bm25_weight: float = 1.0,
     ) -> list[dict]:

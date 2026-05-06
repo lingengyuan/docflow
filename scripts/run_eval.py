@@ -8,6 +8,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -50,18 +51,91 @@ def load_cases(path: Path) -> list[EvalCase]:
     return cases
 
 
+def expected_source_names(cases: Iterable[EvalCase]) -> list[str]:
+    names: set[str] = set()
+    for case in cases:
+        for expected in case.expected_files:
+            if expected:
+                names.add(expected)
+    return sorted(names)
+
+
+def refresh_eval_sources(cases: list[EvalCase], config_path: str | Path) -> dict:
+    from src.api.app import _parse_watch_dirs
+    from src.ingest.pipeline import IngestPipeline
+    from src.ingest.watcher import _is_excluded
+    import yaml
+
+    config_path = Path(config_path)
+    with config_path.open(encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+    pipeline = IngestPipeline.from_config(config_path)
+
+    refreshed: list[dict] = []
+    missing: list[str] = []
+    for expected in expected_source_names(cases):
+        source_path = _resolve_eval_source(expected, cfg, _parse_watch_dirs, _is_excluded)
+        if source_path is None:
+            missing.append(expected)
+            continue
+        result = pipeline.ingest(source_path)
+        refreshed.append(
+            {
+                "expected": expected,
+                "path": str(source_path),
+                "status": result.get("status", ""),
+                "chunks": result.get("chunks", 0),
+            }
+        )
+    return {"refreshed": refreshed, "missing": missing}
+
+
+def _resolve_eval_source(expected: str, cfg: dict, parse_watch_dirs, is_excluded) -> Path | None:
+    requested = Path(expected).expanduser()
+    if requested.is_absolute() and requested.exists():
+        return requested
+
+    direct_candidates = [
+        PROJECT_ROOT / expected,
+        PROJECT_ROOT / "docs" / expected,
+        PROJECT_ROOT / "plans" / expected,
+        PROJECT_ROOT / "eval" / expected,
+    ]
+    for candidate in direct_candidates:
+        if candidate.exists():
+            return candidate
+
+    expected_name = Path(expected).name
+    for wd in parse_watch_dirs(cfg):
+        root = wd.path
+        if not root.exists():
+            continue
+        pattern = f"**/{expected_name}" if wd.recursive else expected_name
+        for candidate in root.glob(pattern):
+            if candidate.is_file() and not is_excluded(candidate):
+                return candidate
+    return None
+
+
 def contains_term(haystack: str, term: str) -> bool:
     return term.lower() in haystack.lower()
 
 
-def evaluate_case(engine: QueryEngine, case: EvalCase, include_rerank: bool) -> dict:
+def evaluate_case(
+    engine: QueryEngine,
+    case: EvalCase,
+    include_rerank: bool,
+    source_filter: bool = False,
+) -> dict:
+    file_filter = case.expected_files if source_filter and case.must_find and case.expected_files else None
     debug = engine.retriever.debug_retrieve(
         case.question,
+        file_filter=file_filter,
         prefer_tables=engine._is_table_query(case.question),
         include_rerank=include_rerank,
-        max_text_chars=500,
+        max_text_chars=2000,
     )
-    final_stage = debug["stages"]["reranked"] if include_rerank else debug["stages"]["deduped"]
+    final_stage_name, final_stage = _evaluation_stage(debug, include_rerank)
     combined = "\n".join(
         [
             item.get("file_name", "")
@@ -94,6 +168,7 @@ def evaluate_case(engine: QueryEngine, case: EvalCase, include_rerank: bool) -> 
         "question": case.question,
         "passed": passed,
         "must_find": case.must_find,
+        "file_filter": file_filter or [],
         "evidence_status": evidence_status,
         "failure_reason": failure_reason,
         "matched_files": matched_files,
@@ -101,6 +176,7 @@ def evaluate_case(engine: QueryEngine, case: EvalCase, include_rerank: bool) -> 
         "matched_terms": matched_terms,
         "missing_terms": [t for t in case.expected_terms if t not in matched_terms],
         "hit_count": len(final_stage),
+        "evaluation_stage": final_stage_name,
         "top_sources": [
             {
                 "file_name": item.get("file_name", ""),
@@ -113,6 +189,16 @@ def evaluate_case(engine: QueryEngine, case: EvalCase, include_rerank: bool) -> 
         "top_qdrant_ids": [item.get("qdrant_id") for item in final_stage[:5]],
         "timings": debug["timings"],
     }
+
+
+def _evaluation_stage(debug: dict, include_rerank: bool) -> tuple[str, list[dict]]:
+    stages = debug.get("stages", {})
+    parent_expanded = stages.get("parent_expanded") or []
+    if parent_expanded:
+        return "parent_expanded", parent_expanded
+    if include_rerank:
+        return "reranked", stages.get("reranked") or []
+    return "deduped", stages.get("deduped") or []
 
 
 def _evidence_status(
@@ -177,13 +263,34 @@ def main() -> int:
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
     parser.add_argument("--cases", default=str(DEFAULT_EVAL_PATH), help="JSONL eval case file")
     parser.add_argument("--no-rerank", action="store_true", help="Skip reranker and evaluate deduped fused results")
+    parser.add_argument(
+        "--refresh-sources",
+        action="store_true",
+        help="Ingest expected source files before running retrieval checks",
+    )
+    parser.add_argument(
+        "--source-filter",
+        action="store_true",
+        help="For must-find cases, restrict retrieval to expected source files",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 
     cases = load_cases(Path(args.cases))
+    source_refresh = None
     try:
+        if args.refresh_sources:
+            source_refresh = refresh_eval_sources(cases, args.config)
         engine = QueryEngine.from_config(args.config)
-        results = [evaluate_case(engine, case, include_rerank=not args.no_rerank) for case in cases]
+        results = [
+            evaluate_case(
+                engine,
+                case,
+                include_rerank=not args.no_rerank,
+                source_filter=args.source_filter,
+            )
+            for case in cases
+        ]
     except Exception as exc:
         print(
             "Eval failed before completion. Check that Qdrant is running and the expected documents are ingested.",
@@ -198,8 +305,11 @@ def main() -> int:
         "passed": passed,
         "failed": len(results) - passed,
         "include_rerank": not args.no_rerank,
+        "source_filter": args.source_filter,
         "results": results,
     }
+    if source_refresh is not None:
+        summary["source_refresh"] = source_refresh
 
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))

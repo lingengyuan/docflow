@@ -146,8 +146,11 @@ Before handing off a release-like change:
 npm run build:css
 .venv/bin/python -m pytest
 .venv/bin/python main.py check --json
-.venv/bin/python main.py maturity-eval --skip-retrieval
+.venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 git diff --check
 ```
+
+Use `.venv/bin/python main.py maturity-eval --skip-retrieval` only for a
+scorecard-only check when Qdrant or the local retrieval index is unavailable.
 
 For UI changes, also run a browser validation pass against `http://127.0.0.1:8000`.
