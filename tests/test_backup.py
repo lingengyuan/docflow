@@ -3,6 +3,7 @@ import os
 import tarfile
 from pathlib import Path
 
+import pytest
 import yaml
 
 from src.ingest.store import DocStore
@@ -10,6 +11,7 @@ from src.maintenance.backup import (
     apply_retention,
     create_backup,
     export_chunks_jsonl,
+    restore_drill,
     restore_plan,
 )
 
@@ -37,6 +39,7 @@ def _write_config(tmp_path: Path, db_path: Path) -> Path:
     }
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    (tmp_path / "qdrant_id_counter.txt").write_text("8", encoding="utf-8")
     return config_path
 
 
@@ -108,6 +111,49 @@ def test_restore_plan_reads_archive_without_writing(tmp_path):
     assert result["missing"] == []
     assert "config.yaml" in result["members"]
     assert any("rebuild --qdrant-only" in step for step in result["steps"])
+
+
+def test_restore_drill_validates_disposable_restore(tmp_path):
+    config_path, _store = _store_with_chunk(tmp_path)
+
+    result = restore_drill(config_path, output_dir=tmp_path / "drill")
+
+    assert result["status"] == "ok"
+    assert result["manifest"] == {"file_count": 1, "chunk_count": 1}
+    assert result["restored"]["files"] == 1
+    assert result["restored"]["chunks"] == 1
+    assert result["restored"]["chunks_jsonl"] == 1
+    assert result["restored"]["quick_check"] == "ok"
+    assert result["source_paths"]["missing"] == []
+    assert result["id_counter"]["status"] == "ok"
+    assert result["duplicate_qdrant_ids"] == []
+    assert result["file_chunk_mismatches"] == []
+    assert result["restore_plan_status"] == "ok"
+    assert Path(result["archive"]).exists()
+    assert all(check["passed"] for check in result["checks"])
+
+
+def test_restore_drill_reports_missing_source_files(tmp_path):
+    config_path, _store = _store_with_chunk(tmp_path)
+    (tmp_path / "note.md").unlink()
+
+    result = restore_drill(config_path, output_dir=tmp_path / "drill")
+
+    assert result["status"] == "failed"
+    missing = result["source_paths"]["missing"]
+    assert missing[0]["file_name"] == "note.md"
+    source_check = next(check for check in result["checks"] if check["id"] == "source_paths_exist")
+    assert source_check["passed"] is False
+
+
+def test_restore_drill_refuses_unmarked_existing_output_dir(tmp_path):
+    config_path, _store = _store_with_chunk(tmp_path)
+    output_dir = tmp_path / "existing"
+    output_dir.mkdir()
+    (output_dir / "unrelated.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unmarked restore drill directory"):
+        restore_drill(config_path, output_dir=output_dir)
 
 
 def test_create_backup_dry_run_does_not_write_archive(tmp_path):

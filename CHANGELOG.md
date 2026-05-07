@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0 - 2026-05-07
+
+- Added `python main.py restore-drill` for disposable backup recovery rehearsal.
+- Validated restored SQLite integrity, manifest counts, exported chunks, source paths,
+  chunk count metadata, duplicate vector IDs, ID counter safety, and restore-plan readiness.
+
 ## 0.21.0 - 2026-05-07
 
 - Added `python main.py sample-suite` for generated real sample validation.

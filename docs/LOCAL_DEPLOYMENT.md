@@ -92,6 +92,15 @@ Inspect restore steps without changing local files:
 python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
 ```
 
+Run a disposable restore drill without changing live files:
+
+```bash
+python main.py restore-drill
+```
+
+The drill checks the backup archive, extracted SQLite, chunk export, duplicate
+vector IDs, ID counter safety, source paths, and restore-plan readiness.
+
 Manual restore outline:
 
 1. Stop DocFlow.
@@ -146,6 +155,7 @@ Before handing off a release-like change:
 npm run build:css
 .venv/bin/python -m pytest
 .venv/bin/python main.py sample-suite
+.venv/bin/python main.py restore-drill
 .venv/bin/python main.py check --json
 .venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 git diff --check

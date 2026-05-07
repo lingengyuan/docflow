@@ -40,6 +40,7 @@ DocFlow 入口。
   python main.py backup [--dry-run] [--output backups] [--keep 5]
   python main.py export-chunks [--output backups/chunks.jsonl]
   python main.py restore-plan <backup.tar.gz>
+  python main.py restore-drill [--output-dir /tmp/docflow-phase22-restore-drill] [--json]
 
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan
@@ -174,6 +175,13 @@ def sample_suite(args: list[str]):
     return run_sample_suite_main()
 
 
+def restore_drill_command(args: list[str]):
+    from scripts.run_restore_drill import main as run_restore_drill_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_restore_drill_main()
+
+
 def check_index(args: list[str]):
     from src.maintenance.consistency import check_consistency, print_report
 
@@ -268,6 +276,8 @@ if __name__ == "__main__":
         sys.exit(maturity_eval(sys.argv[2:]))
     elif cmd == "sample-suite":
         sys.exit(sample_suite(sys.argv[2:]))
+    elif cmd == "restore-drill":
+        sys.exit(restore_drill_command(sys.argv[2:]))
     elif cmd == "check":
         sys.exit(check_index(sys.argv[2:]))
     elif cmd == "rebuild":

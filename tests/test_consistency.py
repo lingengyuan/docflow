@@ -6,6 +6,7 @@ from src.ingest.store import DocStore
 from src.maintenance.consistency import (
     check_consistency,
     compare_index_state,
+    inspect_id_counter,
     rebuild_qdrant_only,
 )
 
@@ -59,6 +60,43 @@ def test_compare_index_state_reports_mismatches():
     assert report.missing_source_files[0]["file_name"] == "missing.md"
 
 
+def test_compare_index_state_reports_duplicate_qdrant_ids():
+    report = compare_index_state(
+        sqlite_chunk_ids={10},
+        qdrant_point_ids={10},
+        file_counts=[],
+        missing_source_files=[],
+        duplicate_qdrant_ids=[
+            {
+                "qdrant_id": 10,
+                "count": 2,
+                "chunk_ids": [1, 2],
+                "files": [
+                    {"file_id": 1, "file_name": "a.md", "file_path": "/tmp/a.md"},
+                    {"file_id": 2, "file_name": "b.md", "file_path": "/tmp/b.md"},
+                ],
+            }
+        ],
+        sqlite_chunk_count=2,
+    )
+
+    assert report.status == "inconsistent"
+    assert report.sqlite_chunks == 2
+    assert report.qdrant_points == 1
+    assert report.duplicate_qdrant_ids[0]["qdrant_id"] == 10
+
+
+def test_inspect_id_counter_reports_stale_counter(tmp_path):
+    counter_path = tmp_path / "qdrant_id_counter.txt"
+    counter_path.write_text("10", encoding="utf-8")
+
+    result = inspect_id_counter(counter_path, [{"qdrant_id": 12}])
+
+    assert result["status"] == "stale"
+    assert result["value"] == 10
+    assert result["expected_min"] == 13
+
+
 def test_check_consistency_accepts_matching_sqlite_and_qdrant(tmp_path):
     source = tmp_path / "note.md"
     source.write_text("hello", encoding="utf-8")
@@ -80,6 +118,7 @@ def test_check_consistency_accepts_matching_sqlite_and_qdrant(tmp_path):
     )
     store.set_chunk_count(source, 1)
     config_path = _write_config(tmp_path, db_path)
+    (tmp_path / "qdrant_id_counter.txt").write_text("11", encoding="utf-8")
 
     class Record:
         def __init__(self, qid):
