@@ -4,7 +4,7 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.23.0`.
+Current release target: `0.24.0`.
 
 ## Product Screenshots
 
@@ -50,6 +50,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
 - Ingest queue visibility: queue status includes current stage and chunk progress.
 - One-command startup: startup checks Python dependencies, SQLite, Qdrant, Ollama, and the app port before launching.
+- Local install plan: `python main.py install-local` previews setup by default, including dependencies, startup checks, restore drill, ID repair preview, and service install preview.
 - macOS background service: run DocFlow after login through launchd, with commands to install, inspect, or remove the service.
 - Query history, scoped query, favorites, file upload, webpage import, note creation, source listing, file preview, and summary export endpoints.
 
@@ -66,6 +67,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Recovery guidance includes safe checks, backup preview, repair suggestions, and copyable commands; the browser displays them and does not auto-run them.
 - Backup recovery can be rehearsed without touching live data by running `python main.py restore-drill`.
 - Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
+- Local install is explicit: preview with `python main.py install-local`, then use `--apply` only when the plan is acceptable.
 - Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
 - Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
 
@@ -114,6 +116,12 @@ Check local dependencies:
 python main.py doctor
 ```
 
+Preview the local install plan:
+
+```bash
+python main.py install-local
+```
+
 Start the app:
 
 ```bash
@@ -149,6 +157,8 @@ Useful commands:
 ```bash
 python main.py doctor --json
 python main.py start --check-only
+python main.py install-local
+python main.py install-local --apply --skip-deps
 python main.py service status
 python main.py service install --dry-run
 python main.py scan
@@ -276,6 +286,7 @@ Run the generated real sample suite:
 Check SQLite and Qdrant consistency:
 
 ```bash
+.venv/bin/python main.py install-local
 .venv/bin/python main.py doctor
 .venv/bin/python main.py start --check-only
 .venv/bin/python main.py service install --dry-run
@@ -335,6 +346,11 @@ docflow/
 │   ├── tailwind.css
 │   └── index.html
 ├── scripts/
+│   ├── install_local.sh
+│   ├── run_eval.py
+│   ├── run_maturity_eval.py
+│   ├── run_restore_drill.py
+│   ├── run_sample_suite.py
 │   ├── service.sh
 │   └── start.sh
 ├── src/
@@ -353,6 +369,7 @@ docflow/
 │   ├── maintenance/
 │   │   ├── backup.py
 │   │   ├── consistency.py
+│   │   ├── local_install.py
 │   │   ├── launchd.py
 │   │   └── startup.py
 │   ├── query/
@@ -411,7 +428,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.23.0`。
+当前发布目标：`0.24.0`。
 
 ### 功能特性
 
@@ -443,6 +460,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
 - 入库队列可见：可以看到当前阶段和 chunk 处理进度。
 - 一键启动：启动前检查 Python 依赖、SQLite、Qdrant、Ollama 和应用端口。
+- 本地安装计划：`python main.py install-local` 默认只预览设置计划，包括依赖、启动检查、恢复演练、编号修复预览和服务安装预览。
 - macOS 后台服务：通过 launchd 登录后自动运行 DocFlow，并提供安装、查看和移除命令。
 - 已有接口覆盖查询历史、范围提问、收藏、上传、网页导入、笔记创建、来源列表、文件预览和摘要导出。
 
@@ -459,6 +477,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 恢复建议包括安全检查、备份预览、修复建议和可复制命令；页面只展示和复制，不会自动执行。
 - 可以用 `python main.py restore-drill` 在不触碰现有数据的情况下演练备份恢复。
 - 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
+- 本地安装默认先预览：运行 `python main.py install-local` 查看计划，确认后才用 `--apply` 执行。
 - 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
 - Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。
 
@@ -507,6 +526,12 @@ npm run build:css
 python main.py doctor
 ```
 
+预览本地安装计划：
+
+```bash
+python main.py install-local
+```
+
 启动应用：
 
 ```bash
@@ -542,6 +567,8 @@ python main.py service uninstall
 ```bash
 python main.py doctor --json
 python main.py start --check-only
+python main.py install-local
+python main.py install-local --apply --skip-deps
 python main.py service status
 python main.py service install --dry-run
 python main.py scan
@@ -668,6 +695,7 @@ cd ~/Projects/docflow
 检查 SQLite 和 Qdrant 是否一致：
 
 ```bash
+.venv/bin/python main.py install-local
 .venv/bin/python main.py doctor
 .venv/bin/python main.py start --check-only
 .venv/bin/python main.py service install --dry-run
@@ -727,6 +755,11 @@ docflow/
 │   ├── tailwind.css
 │   └── index.html
 ├── scripts/
+│   ├── install_local.sh
+│   ├── run_eval.py
+│   ├── run_maturity_eval.py
+│   ├── run_restore_drill.py
+│   ├── run_sample_suite.py
 │   ├── service.sh
 │   └── start.sh
 ├── src/
@@ -745,6 +778,7 @@ docflow/
 │   ├── maintenance/
 │   │   ├── backup.py
 │   │   ├── consistency.py
+│   │   ├── local_install.py
 │   │   ├── launchd.py
 │   │   └── startup.py
 │   ├── query/

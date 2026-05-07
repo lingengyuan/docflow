@@ -1,6 +1,6 @@
 # DocFlow Local Deployment Guide
 
-Date: 2026-05-06
+Date: 2026-05-07
 
 This guide is for running DocFlow as a long-lived personal local knowledge assistant on an Apple Silicon Mac.
 
@@ -23,6 +23,7 @@ Visible external network use:
 
 ```bash
 cd ~/Projects/docflow
+python main.py install-local
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -30,6 +31,11 @@ docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 python main.py doctor
 python main.py start
 ```
+
+`python main.py install-local` is a dry-run preview by default. It shows the
+local setup plan, restore drill, ID repair preview, and service install preview
+without changing the machine. Use `python main.py install-local --apply` only
+after the plan is acceptable.
 
 Open `http://localhost:8000`.
 
@@ -41,6 +47,7 @@ source .venv/bin/activate
 python main.py service status
 python main.py check --json
 python main.py repair-ids --dry-run
+python main.py restore-drill
 ```
 
 If the service is not installed:
@@ -155,6 +162,7 @@ Before handing off a release-like change:
 
 ```bash
 npm run build:css
+.venv/bin/python main.py install-local --skip-deps
 .venv/bin/python -m pytest
 .venv/bin/python main.py sample-suite
 .venv/bin/python main.py restore-drill

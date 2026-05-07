@@ -115,13 +115,14 @@
       "name": "安装和日常维护",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 18, Phase 22, Phase 23",
+      "phase": "Phase 18, Phase 22, Phase 23, Phase 24",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
         "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。",
         "Phase 18 新增本地部署、重建 CSS、备份恢复和故障处理说明。",
         "Phase 22 新增 `restore-drill`，把备份恢复、重复向量 ID 和 ID 计数安全检查变成可重复命令。",
-        "Phase 23 新增 `repair-ids --dry-run`，可先检查落后计数和重复向量 ID，再决定是否修复。"
+        "Phase 23 新增 `repair-ids --dry-run`，可先检查落后计数和重复向量 ID，再决定是否修复。",
+        "Phase 24 新增 `install-local` 本地安装计划，默认只预览并覆盖启动检查、恢复演练、编号修复预览和服务安装预览。"
       ],
       "next_steps": [
         "补充一键安装脚本或打包应用，降低新机器首次安装成本。"
@@ -167,7 +168,7 @@
       "name": "测试和交付纪律",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23",
+      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23, Phase 24",
       "evidence": [
         "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和维护命令。",
         "每个阶段都有交接文档规则。",
@@ -175,7 +176,8 @@
         "Phase 19 将固定检索评测扩展为可刷新来源、可区分全库检索和指定来源证据检查。",
         "Phase 21 新增 `sample-suite` 命令，把真实样本验证变成可重复的一键检查。",
         "Phase 22 新增恢复演练测试，覆盖正常恢复和源文件缺失的失败提示。",
-        "Phase 23 新增编号锁、编号下限、修复 dry-run 和存储最大 ID 的测试。"
+        "Phase 23 新增编号锁、编号下限、修复 dry-run 和存储最大 ID 的测试。",
+        "Phase 24 新增本地安装计划和 Settings 维护命令覆盖测试。"
       ],
       "next_steps": [
         "把浏览器多页面流程也纳入同一套可重复验收。"
@@ -185,8 +187,8 @@
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 8.8,
-      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22",
+      "current_score": 8.9,
+      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22, Phase 24",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康、模型和恢复建议。",
@@ -194,7 +196,8 @@
         "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。",
         "Phase 20 移除最后一个运行时远程 UI 资源，让页面更符合本地产品定位。",
         "Phase 21 增加真实样本验收入口，降低发布前遗漏多格式能力问题的风险。",
-        "Phase 22 增加可运行的恢复演练入口，让本地个人资料库的灾备能力更接近成熟产品。"
+        "Phase 22 增加可运行的恢复演练入口，让本地个人资料库的灾备能力更接近成熟产品。",
+        "Phase 24 增加默认安全的本地安装计划和 Settings 可见维护命令，让新机器落地路径更接近成熟产品。"
       ],
       "next_steps": [
         "补充桌面打包、截图资产和更完整的人工验收脚本。"

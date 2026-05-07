@@ -167,6 +167,14 @@ def test_phase20_frontend_uses_local_icons():
     assert "icon.textContent =" not in html
 
 
+def test_phase24_settings_surfaces_local_install_and_recovery_commands():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "python main.py install-local" in html
+    assert "python main.py restore-drill" in html
+    assert "python main.py repair-ids --dry-run" in html
+
+
 def test_phase18_release_docs_are_linked_from_readme():
     readme = Path("README.md").read_text(encoding="utf-8")
 

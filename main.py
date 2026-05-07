@@ -11,6 +11,7 @@ DocFlow 入口。
   python main.py start [--host 0.0.0.0] [--port 8000] [--check-only] [--json]
 
   # macOS 后台服务（launchd）
+  python main.py install-local [--apply] [--with-service] [--skip-deps] [--host 127.0.0.1] [--port 8000]
   python main.py service install [--dry-run] [--host 127.0.0.1] [--port 8000] [--python /path/to/python]
   python main.py service status
   python main.py service uninstall [--dry-run]
@@ -120,6 +121,22 @@ def service_command(args: list[str]):
         return 1
     print_result(result)
     return 0 if result["status"] in {"ok", "dry_run", "loaded", "not_loaded"} else 1
+
+
+def install_local_command(args: list[str]):
+    from src.maintenance.local_install import install_local, print_result
+
+    host = _arg_value(args, "--host", "127.0.0.1")
+    port = int(_arg_value(args, "--port", "8000"))
+    result = install_local(
+        dry_run="--apply" not in args,
+        with_service="--with-service" in args,
+        host=host,
+        port=port,
+        skip_deps="--skip-deps" in args,
+    )
+    print_result(result)
+    return 0 if result["status"] in {"ok", "dry_run"} else 1
 
 
 def ingest(path: str):
@@ -268,6 +285,8 @@ if __name__ == "__main__":
         sys.exit(start_command(sys.argv[2:]))
     elif cmd == "service":
         sys.exit(service_command(sys.argv[2:]))
+    elif cmd == "install-local":
+        sys.exit(install_local_command(sys.argv[2:]))
     elif cmd == "ingest":
         if len(sys.argv) < 3:
             print("Usage: python main.py ingest <path>")

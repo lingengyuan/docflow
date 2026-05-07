@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.0 - 2026-05-07
+
+- Added `python main.py install-local` and `scripts/install_local.sh` as a safe local install plan.
+- Kept local install dry-run by default; use `--apply` to execute the plan.
+- Surfaced install, restore drill, and vector ID repair commands in Settings maintenance guidance.
+
 ## 0.23.0 - 2026-05-07
 
 - Hardened Qdrant ID allocation with an interprocess file lock and live index floor checks.
