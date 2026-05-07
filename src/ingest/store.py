@@ -530,6 +530,12 @@ class DocStore:
             ).fetchall()
         return [r["qdrant_id"] for r in rows]
 
+    def max_qdrant_id(self) -> int:
+        """Return the highest Qdrant point ID recorded in SQLite, or -1 when empty."""
+        with self._conn() as conn:
+            row = conn.execute("SELECT MAX(qdrant_id) AS max_id FROM chunks").fetchone()
+        return int(row["max_id"]) if row and row["max_id"] is not None else -1
+
     def list_chunk_index(self) -> list[dict]:
         """Return all chunk rows needed for consistency checks and Qdrant-only rebuilds."""
         with self._conn() as conn:

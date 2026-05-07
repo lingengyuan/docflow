@@ -51,6 +51,8 @@ class FakeEmbedder:
         self.encode_calls: list[list[str]] = []
         self.embedding_model_name = "fake-embedding"
         self.embedding_cache_key = "torch::fake-embedding"
+        self.min_next_ids: list[int | None] = []
+        self.qdrant_max_id = -1
 
     def encode_texts(self, texts, progress_callback=None):
         self.encode_calls.append(list(texts))
@@ -61,14 +63,19 @@ class FakeEmbedder:
                     "total_texts": len(texts),
                     "batch_size": len(texts) or 1,
                 }
-            )
+        )
         return np.asarray([[0.1, 0.2, 0.3] for _ in texts], dtype=np.float32)
 
-    def upsert_embeddings(self, chunks, dense_vecs):
-        return list(range(100, 100 + len(chunks)))
+    def upsert_embeddings(self, chunks, dense_vecs, min_next_id=None):
+        self.min_next_ids.append(min_next_id)
+        start = min_next_id or 100
+        return list(range(start, start + len(chunks)))
 
     def delete_file_vectors(self, qdrant_ids):
         return None
+
+    def max_point_id(self):
+        return self.qdrant_max_id
 
 
 def _make_file(path: Path):
@@ -151,3 +158,40 @@ def test_contextual_prefix_uses_embedding_text_without_changing_raw_text(tmp_pat
     assert chunk.text == "raw body"
     assert chunk.contextual_prefix == "File: note.md | Section: Plan"
     assert embedder.encode_calls == [["File: note.md | Section: Plan\n\nraw body"]]
+
+
+def test_ingest_advances_vector_id_floor_from_sqlite_and_qdrant(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    old_source = _make_file(tmp_path / "old.txt")
+    old_file_id = store.upsert_file(old_source, old_source.name, "old-hash", status="done")
+    store.add_chunks(
+        old_file_id,
+        [
+            {
+                "qdrant_id": 20,
+                "chunk_type": "text",
+                "page_num": 1,
+                "section": "",
+                "char_count": 5,
+                "raw_text": "old",
+            }
+        ],
+    )
+    store.set_chunk_count(old_source, 1)
+
+    embedder = FakeEmbedder()
+    embedder.qdrant_max_id = 30
+    pipeline = IngestPipeline(
+        registry=FakeRegistry(),
+        chunker=FakeChunker(),
+        embedder=embedder,
+        store=store,
+        use_embedding_cache=False,
+    )
+
+    result = pipeline.ingest(_make_file(tmp_path / "new.txt"))
+
+    assert result["status"] == "done"
+    assert embedder.min_next_ids == [31]
+    indexed = store.get_file_by_path(tmp_path / "new.txt")
+    assert store.get_file_qdrant_ids(indexed["id"]) == [31]

@@ -35,6 +35,7 @@ DocFlow 入口。
 
   # 从原始文件重建索引，或只重建 Qdrant
   python main.py rebuild [--qdrant-only] [--dry-run]
+  python main.py repair-ids [--dry-run]
 
   # 备份、导出 chunk，或查看恢复步骤
   python main.py backup [--dry-run] [--output backups] [--keep 5]
@@ -204,6 +205,15 @@ def rebuild_command(args: list[str]):
     return 0
 
 
+def repair_ids_command(args: list[str]):
+    from src.maintenance.consistency import repair_index_ids
+
+    dry_run = "--dry-run" in args
+    result = repair_index_ids("config.yaml", dry_run=dry_run)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in {"done", "dry_run"} else 1
+
+
 def backup_command(args: list[str]):
     from src.maintenance.backup import create_backup
 
@@ -282,6 +292,8 @@ if __name__ == "__main__":
         sys.exit(check_index(sys.argv[2:]))
     elif cmd == "rebuild":
         sys.exit(rebuild_command(sys.argv[2:]))
+    elif cmd == "repair-ids":
+        sys.exit(repair_ids_command(sys.argv[2:]))
     elif cmd == "backup":
         sys.exit(backup_command(sys.argv[2:]))
     elif cmd == "export-chunks":

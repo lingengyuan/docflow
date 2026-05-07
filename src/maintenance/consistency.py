@@ -121,6 +121,7 @@ def check_consistency(
     id_counter = inspect_id_counter(
         Path(cfg["paths"].get("id_counter", "qdrant_id_counter.txt")).expanduser(),
         chunk_rows,
+        qdrant_point_ids=qdrant_ids,
     )
     missing_source_files = [
         {
@@ -142,14 +143,21 @@ def check_consistency(
     )
 
 
-def inspect_id_counter(counter_path: Path, chunk_rows: list[dict]) -> dict:
+def inspect_id_counter(
+    counter_path: Path,
+    chunk_rows: list[dict],
+    qdrant_point_ids: set[int] | None = None,
+) -> dict:
     """Check whether the next Qdrant point ID counter is ahead of SQLite IDs."""
     max_qdrant_id = max((int(row["qdrant_id"]) for row in chunk_rows), default=-1)
-    expected_min = max_qdrant_id + 1
+    max_point_id = max(qdrant_point_ids or {-1})
+    expected_min = max(max_qdrant_id, max_point_id) + 1
     result: dict[str, int | str | None] = {
         "path": str(counter_path),
         "value": None,
         "expected_min": expected_min,
+        "sqlite_max": max_qdrant_id,
+        "qdrant_max": max_point_id,
         "status": "ok",
     }
     if not counter_path.exists():
@@ -198,6 +206,76 @@ def find_duplicate_qdrant_ids(chunk_rows: list[dict]) -> list[dict]:
             }
         )
     return result
+
+
+def repair_index_ids(config_path: str | Path = "config.yaml", dry_run: bool = True) -> dict:
+    """Repair stale ID counters and duplicate Qdrant IDs by reingesting affected files."""
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    store = DocStore(Path(cfg["paths"]["db_path"]).expanduser())
+    qdrant = QdrantClient(
+        host=cfg["qdrant"]["host"],
+        port=cfg["qdrant"]["port"],
+        timeout=5,
+    )
+    collection = cfg.get("qdrant", {}).get("collection", COLLECTION_NAME)
+    qdrant_ids = _scroll_qdrant_ids(qdrant, collection)
+    rows = store.list_chunk_index()
+    duplicates = find_duplicate_qdrant_ids(rows)
+    counter_path = Path(cfg["paths"].get("id_counter", "qdrant_id_counter.txt")).expanduser()
+    counter = inspect_id_counter(counter_path, rows, qdrant_point_ids=qdrant_ids)
+    min_next_id = counter["expected_min"]
+
+    affected_paths = _duplicate_file_paths(duplicates)
+    result: dict = {
+        "status": "dry_run" if dry_run else "done",
+        "dry_run": dry_run,
+        "id_counter": counter,
+        "min_next_id": min_next_id,
+        "duplicate_qdrant_ids": duplicates,
+        "affected_files": [str(path) for path in affected_paths],
+        "actions": [],
+    }
+    if counter.get("status") != "ok":
+        result["actions"].append(f"advance id counter to at least {min_next_id}")
+    if affected_paths:
+        result["actions"].append(f"reingest {len(affected_paths)} files with duplicate vector IDs")
+    if dry_run or not result["actions"]:
+        return result
+
+    pipeline = IngestPipeline.from_config(config_path, store=store)
+    sync = pipeline.embedder.sync_id_counter(int(min_next_id))
+    ingest_results = []
+    for path in affected_paths:
+        if not path.exists():
+            ingest_results.append(
+                {"status": "missing", "file": path.name, "path": str(path)}
+            )
+            continue
+        store.set_status(path, "error", error_msg="Phase23 duplicate qdrant_id repair")
+        ingest_results.append(pipeline.ingest(path))
+
+    final_report = check_consistency(config_path)
+    result.update(
+        {
+            "id_counter_sync": sync,
+            "ingest_results": ingest_results,
+            "final_status": final_report.status,
+            "final_report": final_report.to_dict(),
+        }
+    )
+    if not final_report.ok:
+        result["status"] = "failed"
+    return result
+
+
+def _duplicate_file_paths(duplicates: list[dict]) -> list[Path]:
+    paths: dict[str, Path] = {}
+    for duplicate in duplicates:
+        for item in duplicate.get("files", []):
+            path = Path(item["file_path"])
+            paths[str(path)] = path
+    return list(paths.values())
 
 
 def rebuild_index(config_path: str | Path = "config.yaml", dry_run: bool = False) -> dict:
@@ -277,8 +355,7 @@ def rebuild_qdrant_only(config_path: str | Path = "config.yaml", dry_run: bool =
         embedder._qdrant.upsert(collection_name=COLLECTION_NAME, points=points[i:i + 100])
 
     next_id = max((int(row["qdrant_id"]) for row in rows), default=-1) + 1
-    embedder._qdrant_next_id = next_id
-    embedder._id_counter_path.write_text(str(next_id))
+    embedder.sync_id_counter(next_id)
     return {
         "status": "done",
         "mode": "qdrant_only",

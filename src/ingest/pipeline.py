@@ -490,7 +490,11 @@ class IngestPipeline:
                         f"  Re-ingesting: removing {len(prepared.old_qdrant_ids)} old vectors for {prepared.path.name}"
                     )
                     self.embedder.delete_file_vectors(prepared.old_qdrant_ids)
-            qdrant_ids = self.embedder.upsert_embeddings(all_chunks, vectors)
+            qdrant_ids = self.embedder.upsert_embeddings(
+                all_chunks,
+                vectors,
+                min_next_id=self._safe_next_qdrant_id(),
+            )
             qdrant_s = perf_counter() - qdrant_start
         except Exception as e:
             logger.exception("Error embedding ingest batch")
@@ -612,6 +616,13 @@ class IngestPipeline:
             start = end
 
         return results
+
+    def _safe_next_qdrant_id(self) -> int:
+        """Return a safe lower bound for the next vector ID before allocation."""
+        sqlite_max = self.store.max_qdrant_id()
+        max_point_id = getattr(self.embedder, "max_point_id", None)
+        qdrant_max = max_point_id() if callable(max_point_id) else -1
+        return max(sqlite_max, qdrant_max) + 1
 
     def ingest(self, file_path: str | Path) -> dict:
         """

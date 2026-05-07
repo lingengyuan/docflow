@@ -40,6 +40,7 @@ cd ~/Projects/docflow
 source .venv/bin/activate
 python main.py service status
 python main.py check --json
+python main.py repair-ids --dry-run
 ```
 
 If the service is not installed:
@@ -137,6 +138,7 @@ Index counts do not match:
 
 ```bash
 python main.py check --json
+python main.py repair-ids --dry-run
 python main.py rebuild --qdrant-only --dry-run
 ```
 
@@ -157,6 +159,7 @@ npm run build:css
 .venv/bin/python main.py sample-suite
 .venv/bin/python main.py restore-drill
 .venv/bin/python main.py check --json
+.venv/bin/python main.py repair-ids --dry-run
 .venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 git diff --check
 ```

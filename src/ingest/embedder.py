@@ -9,7 +9,9 @@ BM25 全文索引已迁移至 SQLite FTS5（由 DocStore 管理）。
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
@@ -159,7 +161,12 @@ class Embedder:
 
         return np.concatenate(vectors, axis=0)
 
-    def upsert_embeddings(self, chunks: list[Chunk], dense_vecs: np.ndarray) -> list[int]:
+    def upsert_embeddings(
+        self,
+        chunks: list[Chunk],
+        dense_vecs: np.ndarray,
+        min_next_id: int | None = None,
+    ) -> list[int]:
         if len(chunks) != len(dense_vecs):
             raise ValueError("chunks and dense_vecs length mismatch")
         if not chunks:
@@ -172,8 +179,7 @@ class Embedder:
             self._vector_dim = dense_vecs.shape[1]
             self._ensure_collection(self._vector_dim)
 
-        start_id = self._next_id()
-        ids = list(range(start_id, start_id + len(chunks)))
+        ids = self._reserve_ids(len(chunks), min_next_id=min_next_id or 0)
 
         points = [
             PointStruct(
@@ -198,9 +204,7 @@ class Embedder:
             for j in range(len(chunks))
         ]
 
-        # Single upsert + single ID counter write
         self._qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
-        self._advance_id(len(chunks))
 
         return ids
 
@@ -211,25 +215,108 @@ class Embedder:
     def _load_id_counter(self) -> int:
         if self._id_counter_path.exists():
             try:
-                return int(self._id_counter_path.read_text().strip())
+                return int(self._id_counter_path.read_text(encoding="utf-8").strip())
             except (ValueError, IOError):
                 pass
         try:
-            info = self._qdrant.get_collection(COLLECTION_NAME)
-            return info.points_count
+            return self.max_point_id() + 1
         except Exception:
             return 0
 
     def _next_id(self) -> int:
         return self._qdrant_next_id
 
-    def _advance_id(self, count: int):
-        self._qdrant_next_id += count
-        self._id_counter_path.write_text(str(self._qdrant_next_id))
+    def _reserve_ids(self, count: int, min_next_id: int = 0) -> list[int]:
+        """Reserve a monotonic ID range under an interprocess file lock."""
+        if count <= 0:
+            return []
+        self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._id_counter_path.open("a+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                current = self._read_counter_handle(f)
+                start = max(current, self._qdrant_next_id, int(min_next_id or 0))
+                next_id = start + count
+                self._write_counter_handle(f, next_id)
+                self._qdrant_next_id = next_id
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        return list(range(start, next_id))
+
+    def sync_id_counter(self, min_next_id: int = 0) -> dict:
+        """Advance the local ID counter to at least min_next_id under lock."""
+        self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._id_counter_path.open("a+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                current = self._read_counter_handle(f)
+                target = max(current, self._qdrant_next_id, int(min_next_id or 0))
+                if target != current:
+                    self._write_counter_handle(f, target)
+                self._qdrant_next_id = target
+                return {
+                    "path": str(self._id_counter_path),
+                    "previous": current,
+                    "value": target,
+                    "min_next_id": int(min_next_id or 0),
+                    "advanced": target != current,
+                }
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     def _reset_id_counter(self):
         self._qdrant_next_id = 0
-        self._id_counter_path.write_text("0")
+        self._write_counter_locked(0)
+
+    def max_point_id(self) -> int:
+        """Return the highest point ID in Qdrant, or -1 when the collection is empty."""
+        try:
+            if not self._qdrant.collection_exists(COLLECTION_NAME):
+                return -1
+            max_id = -1
+            offset = None
+            while True:
+                records, offset = self._qdrant.scroll(
+                    collection_name=COLLECTION_NAME,
+                    limit=256,
+                    offset=offset,
+                    with_payload=False,
+                    with_vectors=False,
+                )
+                for record in records:
+                    max_id = max(max_id, int(record.id))
+                if offset is None:
+                    break
+            return max_id
+        except Exception:
+            logger.warning("[embedder] failed to inspect Qdrant point IDs", exc_info=True)
+            raise
+
+    def _write_counter_locked(self, value: int) -> None:
+        self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._id_counter_path.open("a+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                self._write_counter_handle(f, value)
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+    @staticmethod
+    def _read_counter_handle(handle) -> int:
+        handle.seek(0)
+        raw = handle.read().strip()
+        try:
+            return int(raw or "0")
+        except ValueError:
+            return 0
+
+    @staticmethod
+    def _write_counter_handle(handle, value: int) -> None:
+        handle.seek(0)
+        handle.truncate()
+        handle.write(str(value))
+        handle.flush()
+        os.fsync(handle.fileno())
 
     def delete_file_vectors(self, qdrant_ids: list[int]):
         """删除某个文件的所有 Qdrant 向量（重新索引时调用）。FTS5 清理由 store.add_chunks() 负责。"""

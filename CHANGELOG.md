@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 - 2026-05-07
+
+- Hardened Qdrant ID allocation with an interprocess file lock and live index floor checks.
+- Added `python main.py repair-ids --dry-run` to inspect stale ID counters and duplicate vector IDs before repair.
+- Extended consistency checks so the ID counter floor uses both SQLite and Qdrant point IDs.
+
 ## 0.22.0 - 2026-05-07
 
 - Added `python main.py restore-drill` for disposable backup recovery rehearsal.

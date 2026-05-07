@@ -114,13 +114,14 @@
       "id": "setup_ops",
       "name": "安装和日常维护",
       "target_score": 9,
-      "current_score": 8.9,
-      "phase": "Phase 18, Phase 22",
+      "current_score": 9.0,
+      "phase": "Phase 18, Phase 22, Phase 23",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
         "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。",
         "Phase 18 新增本地部署、重建 CSS、备份恢复和故障处理说明。",
-        "Phase 22 新增 `restore-drill`，把备份恢复、重复向量 ID 和 ID 计数安全检查变成可重复命令。"
+        "Phase 22 新增 `restore-drill`，把备份恢复、重复向量 ID 和 ID 计数安全检查变成可重复命令。",
+        "Phase 23 新增 `repair-ids --dry-run`，可先检查落后计数和重复向量 ID，再决定是否修复。"
       ],
       "next_steps": [
         "补充一键安装脚本或打包应用，降低新机器首次安装成本。"
@@ -130,14 +131,15 @@
       "id": "stability_recovery",
       "name": "稳定性和恢复能力",
       "target_score": 9,
-      "current_score": 8.9,
-      "phase": "Phase 18, Phase 22",
+      "current_score": 9.0,
+      "phase": "Phase 18, Phase 22, Phase 23",
       "evidence": [
         "Phase 10 增加前台任务等待上限、队列让路和安全模型切换。",
         "已有一致性检查、重建、备份和恢复计划。",
         "Phase 16 将健康检查结果转成安全检查、备份预览、OCR 和模型缓存建议。",
         "Phase 18 完成一次非破坏性备份和恢复演练，校验归档内容、manifest、SQLite 和 chunks 导出。",
-        "Phase 22 会真实创建备份、解包到临时目录，并检查 SQLite 完整性、manifest 数量、chunks JSONL、重复向量 ID、ID 计数、源文件路径和恢复步骤。"
+        "Phase 22 会真实创建备份、解包到临时目录，并检查 SQLite 完整性、manifest 数量、chunks JSONL、重复向量 ID、ID 计数、源文件路径和恢复步骤。",
+        "Phase 23 用文件锁保护向量 ID 分配，并在入库前按 SQLite 和 Qdrant 的最大 ID 自动推进计数。"
       ],
       "next_steps": [
         "继续补充带真实覆盖操作的独立副本演练，确保误操作时能按步骤回到可用状态。"
@@ -165,14 +167,15 @@
       "name": "测试和交付纪律",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22",
+      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23",
       "evidence": [
         "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和维护命令。",
         "每个阶段都有交接文档规则。",
         "Phase 18 将最终验收报告、浏览器验证、备份恢复演练和发布检查纳入交付。",
         "Phase 19 将固定检索评测扩展为可刷新来源、可区分全库检索和指定来源证据检查。",
         "Phase 21 新增 `sample-suite` 命令，把真实样本验证变成可重复的一键检查。",
-        "Phase 22 新增恢复演练测试，覆盖正常恢复和源文件缺失的失败提示。"
+        "Phase 22 新增恢复演练测试，覆盖正常恢复和源文件缺失的失败提示。",
+        "Phase 23 新增编号锁、编号下限、修复 dry-run 和存储最大 ID 的测试。"
       ],
       "next_steps": [
         "把浏览器多页面流程也纳入同一套可重复验收。"

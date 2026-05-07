@@ -104,6 +104,20 @@ class TestDocStore:
         assert chunks[0]["chunk_type"] == "text"
         assert chunks[1]["section"] == "A"
 
+    def test_max_qdrant_id_returns_highest_indexed_id(self, db, pdf):
+        assert db.max_qdrant_id() == -1
+        h = DocStore.compute_hash(pdf)
+        file_id = db.upsert_file(pdf, pdf.name, h)
+        db.add_chunks(
+            file_id,
+            [
+                {"qdrant_id": 20, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 10},
+                {"qdrant_id": 10, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 10},
+            ],
+        )
+
+        assert db.max_qdrant_id() == 20
+
     def test_chunk_parent_context_fields_roundtrip(self, db, pdf):
         h = DocStore.compute_hash(pdf)
         file_id = db.upsert_file(pdf, pdf.name, h)

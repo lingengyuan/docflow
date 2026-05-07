@@ -4,7 +4,7 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.22.0`.
+Current release target: `0.23.0`.
 
 ## Product Screenshots
 
@@ -42,6 +42,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
 - Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
 - Restore drill: `python main.py restore-drill` creates a disposable backup rehearsal and checks restored SQLite, chunks, duplicate vector IDs, the ID counter, source paths, and restore-plan readiness.
+- ID safety repair: `python main.py repair-ids --dry-run` reports stale vector ID counters and duplicate vector IDs before any repair is applied.
 - Local production styles: the browser UI serves committed CSS from `frontend/styles.css`; it no longer depends on the Tailwind CDN at runtime.
 - Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
@@ -64,6 +65,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Settings shows model status, dependency health, watched folders, maintenance commands, model readiness, OCR, and VLM status.
 - Recovery guidance includes safe checks, backup preview, repair suggestions, and copyable commands; the browser displays them and does not auto-run them.
 - Backup recovery can be rehearsed without touching live data by running `python main.py restore-drill`.
+- Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
 - Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
 - Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
 
@@ -157,6 +159,7 @@ python main.py maturity-eval --no-rerank
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
+python main.py repair-ids --dry-run
 python main.py backup --dry-run
 python main.py export-chunks --output backups/chunks.jsonl
 python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
@@ -287,6 +290,7 @@ Plan or run index rebuilds:
 .venv/bin/python main.py rebuild
 .venv/bin/python main.py rebuild --qdrant-only --dry-run
 .venv/bin/python main.py rebuild --qdrant-only
+.venv/bin/python main.py repair-ids --dry-run
 ```
 
 Create a backup archive, export chunks, or inspect a restore plan:
@@ -407,7 +411,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.22.0`。
+当前发布目标：`0.23.0`。
 
 ### 功能特性
 
@@ -431,6 +435,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
 - 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
 - 恢复演练：`python main.py restore-drill` 会在临时目录做备份恢复检查，验证恢复后的 SQLite、chunk、重复向量 ID、ID 计数、源文件路径和恢复步骤。
+- 编号安全修复：`python main.py repair-ids --dry-run` 会先报告落后的向量编号计数和重复向量 ID，不会直接改数据。
 - 本地生产样式：浏览器页面直接加载 `frontend/styles.css`，运行时不再依赖 Tailwind CDN。
 - 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
@@ -453,6 +458,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Settings 页面集中展示模型状态、依赖健康、监控目录、维护命令、模型就绪、OCR 和 VLM 状态。
 - 恢复建议包括安全检查、备份预览、修复建议和可复制命令；页面只展示和复制，不会自动执行。
 - 可以用 `python main.py restore-drill` 在不触碰现有数据的情况下演练备份恢复。
+- 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
 - 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
 - Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。
 
@@ -546,6 +552,7 @@ python main.py maturity-eval --no-rerank
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
+python main.py repair-ids --dry-run
 python main.py backup --dry-run
 python main.py export-chunks --output backups/chunks.jsonl
 python main.py restore-plan backups/docflow-backup-YYYYmmdd-HHMMSS-ffffff.tar.gz
@@ -675,6 +682,7 @@ cd ~/Projects/docflow
 .venv/bin/python main.py rebuild
 .venv/bin/python main.py rebuild --qdrant-only --dry-run
 .venv/bin/python main.py rebuild --qdrant-only
+.venv/bin/python main.py repair-ids --dry-run
 ```
 
 创建备份归档、导出 chunk，或查看恢复步骤：
