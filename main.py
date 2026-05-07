@@ -31,6 +31,9 @@ DocFlow 入口。
   # 生成并验证真实样本套件
   python main.py sample-suite
 
+  # 运行浏览器验收检查（需要 Web 服务已启动）
+  python main.py browser-acceptance [--base-url http://127.0.0.1:8000] [--json] [--no-screenshots] [--headed]
+
   # 检查 SQLite 与 Qdrant 是否一致
   python main.py check
 
@@ -193,6 +196,13 @@ def sample_suite(args: list[str]):
     return run_sample_suite_main()
 
 
+def browser_acceptance(args: list[str]):
+    from scripts.run_browser_acceptance import main as run_browser_acceptance_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_browser_acceptance_main()
+
+
 def restore_drill_command(args: list[str]):
     from scripts.run_restore_drill import main as run_restore_drill_main
 
@@ -305,6 +315,8 @@ if __name__ == "__main__":
         sys.exit(maturity_eval(sys.argv[2:]))
     elif cmd == "sample-suite":
         sys.exit(sample_suite(sys.argv[2:]))
+    elif cmd == "browser-acceptance":
+        sys.exit(browser_acceptance(sys.argv[2:]))
     elif cmd == "restore-drill":
         sys.exit(restore_drill_command(sys.argv[2:]))
     elif cmd == "check":

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.26.0 - 2026-05-07
+
+- Redesigned the browser UI into a quieter personal knowledge workspace with a wider sidebar, global search, unified toolbars, and right-side context panels.
+- Added real context surfaces for chat citations, Library file details, Notes recent captures, and Settings recovery guidance.
+- Updated browser acceptance checks and README screenshots for the Phase 26 workspace.
+
+## 0.25.0 - 2026-05-07
+
+- Added `python main.py browser-acceptance` for repeatable Chromium checks across Chat, Library, Notes, and Settings.
+- Added screenshot artifacts under `output/playwright/phase25-browser-acceptance`.
+- Documented browser acceptance in README and local deployment guidance.
+
 ## 0.24.0 - 2026-05-07
 
 - Added `python main.py install-local` and `scripts/install_local.sh` as a safe local install plan.

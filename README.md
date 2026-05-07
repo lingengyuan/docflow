@@ -4,13 +4,13 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.24.0`.
+Current release target: `0.26.0`.
 
 ## Product Screenshots
 
-![DocFlow chat workspace](docs/phase18-chat-desktop.png)
+![DocFlow chat workspace](docs/phase26-chat-desktop.png)
 
-![DocFlow library workspace](docs/phase18-library-desktop.png)
+![DocFlow library workspace](docs/phase26-library-desktop.png)
 
 ## English
 
@@ -33,6 +33,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
 - Product workspace shell: Chat, Library, Notes, and Settings are separated into focused daily-use areas.
+- Phase 26 workspace redesign: a wider local-first sidebar, global search, unified toolbar actions, and right-side context panels for citations, file details, recent captures, and recovery guidance.
 - Local knowledge capture: import webpages, create quick Markdown notes, save answers back into the local library, and turn source text or selected files into reusable Markdown knowledge outputs.
 - Notes workspace: create Markdown notes, import webpages, generate summaries, learning cards, action items, and project briefs, then review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
@@ -43,6 +44,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
 - Restore drill: `python main.py restore-drill` creates a disposable backup rehearsal and checks restored SQLite, chunks, duplicate vector IDs, the ID counter, source paths, and restore-plan readiness.
 - ID safety repair: `python main.py repair-ids --dry-run` reports stale vector ID counters and duplicate vector IDs before any repair is applied.
+- Browser acceptance: `python main.py browser-acceptance` opens the running app in Chromium, checks Chat, Library, Notes, and Settings, and saves screenshots.
 - Local production styles: the browser UI serves committed CSS from `frontend/styles.css`; it no longer depends on the Tailwind CDN at runtime.
 - Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
@@ -68,6 +70,8 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Backup recovery can be rehearsed without touching live data by running `python main.py restore-drill`.
 - Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
 - Local install is explicit: preview with `python main.py install-local`, then use `--apply` only when the plan is acceptable.
+- Browser acceptance is repeatable: with the service running, `python main.py browser-acceptance` verifies the four main pages and writes screenshots under `output/playwright/`.
+- The current browser UI follows the Phase 26 personal knowledge workspace style: quiet sidebar navigation, global search, primary work area, and real context panels instead of decorative controls.
 - Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
 - Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
 
@@ -77,6 +81,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Python 3.11 or newer.
 - Docker Desktop for Qdrant.
 - Optional Node.js 20+ only when rebuilding the browser CSS after UI changes.
+- Optional Playwright and Chromium only when running browser acceptance checks.
 - Optional Ollama for OCR on scanned PDFs and contextual-prefix generation.
 - Optional extra packages for DOCX and image ingest: `python-docx`, `mlx-vlm`, `Pillow`, `pillow-heif`.
 
@@ -134,6 +139,12 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
+Run the browser acceptance checks after the app is available:
+
+```bash
+python main.py browser-acceptance
+```
+
 Recommended daily use on macOS:
 
 ```bash
@@ -166,6 +177,7 @@ python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
 python main.py maturity-eval --no-rerank
+python main.py browser-acceptance
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
@@ -283,6 +295,12 @@ Run the generated real sample suite:
 .venv/bin/python main.py sample-suite
 ```
 
+Run browser acceptance against the running app:
+
+```bash
+.venv/bin/python main.py browser-acceptance
+```
+
 Check SQLite and Qdrant consistency:
 
 ```bash
@@ -347,6 +365,7 @@ docflow/
 │   └── index.html
 ├── scripts/
 │   ├── install_local.sh
+│   ├── run_browser_acceptance.py
 │   ├── run_eval.py
 │   ├── run_maturity_eval.py
 │   ├── run_restore_drill.py
@@ -372,6 +391,10 @@ docflow/
 │   │   ├── local_install.py
 │   │   ├── launchd.py
 │   │   └── startup.py
+│   ├── quality/
+│   │   ├── browser_acceptance.py
+│   │   ├── maturity.py
+│   │   └── sample_suite.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py
@@ -428,7 +451,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.24.0`。
+当前发布目标：`0.26.0`。
 
 ### 功能特性
 
@@ -443,6 +466,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
 - 产品级工作台：Chat、Library、Notes、Settings 分成四个清晰入口。
+- Phase 26 工作台改版：更稳定的本地侧栏、全局搜索、统一工具按钮，以及引用来源、文件详情、最近采集和恢复建议等右侧上下文面板。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记、把回答保存回本地文件库，并把资料或选中文件生成可复用 Markdown 知识产物。
 - Notes 工作区：集中创建 Markdown 笔记、导入网页，生成总结、学习卡片、行动项、项目简报，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
@@ -453,6 +477,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
 - 恢复演练：`python main.py restore-drill` 会在临时目录做备份恢复检查，验证恢复后的 SQLite、chunk、重复向量 ID、ID 计数、源文件路径和恢复步骤。
 - 编号安全修复：`python main.py repair-ids --dry-run` 会先报告落后的向量编号计数和重复向量 ID，不会直接改数据。
+- 浏览器验收：`python main.py browser-acceptance` 会用 Chromium 打开正在运行的页面，检查 Chat、Library、Notes、Settings，并保存截图。
 - 本地生产样式：浏览器页面直接加载 `frontend/styles.css`，运行时不再依赖 Tailwind CDN。
 - 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
@@ -478,6 +503,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 可以用 `python main.py restore-drill` 在不触碰现有数据的情况下演练备份恢复。
 - 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
 - 本地安装默认先预览：运行 `python main.py install-local` 查看计划，确认后才用 `--apply` 执行。
+- 浏览器验收可以重复运行：服务启动后执行 `python main.py browser-acceptance`，会检查四个主页面，并把截图写到 `output/playwright/`。
+- 当前浏览器界面采用 Phase 26 个人知识工作台风格：安静侧栏、全局搜索、主工作区和真实上下文面板，不放装饰性按钮。
 - 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
 - Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。
 
@@ -487,6 +514,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Python 3.11 或更高版本。
 - Docker Desktop，用于运行 Qdrant。
 - 可选 Node.js 20+，只在修改页面样式后重建 CSS 时需要。
+- 可选 Playwright 和 Chromium，只在运行浏览器验收时需要。
 - 可选 Ollama，用于扫描 PDF 的 OCR 和上下文前缀生成。
 - DOCX 和图片入库需要额外安装：`python-docx`、`mlx-vlm`、`Pillow`、`pillow-heif`。
 
@@ -544,6 +572,12 @@ python main.py start
 docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 ```
 
+应用可访问后，运行浏览器验收：
+
+```bash
+python main.py browser-acceptance
+```
+
 macOS 日常推荐用法：
 
 ```bash
@@ -576,6 +610,7 @@ python main.py ingest /path/to/file.pdf
 python main.py benchmark README.md docs/HANDOFF-v3.md
 python main.py eval
 python main.py maturity-eval --no-rerank
+python main.py browser-acceptance
 python main.py check
 python main.py rebuild --dry-run
 python main.py rebuild --qdrant-only --dry-run
@@ -692,6 +727,12 @@ cd ~/Projects/docflow
 .venv/bin/python main.py sample-suite
 ```
 
+对正在运行的应用做浏览器验收：
+
+```bash
+.venv/bin/python main.py browser-acceptance
+```
+
 检查 SQLite 和 Qdrant 是否一致：
 
 ```bash
@@ -756,6 +797,7 @@ docflow/
 │   └── index.html
 ├── scripts/
 │   ├── install_local.sh
+│   ├── run_browser_acceptance.py
 │   ├── run_eval.py
 │   ├── run_maturity_eval.py
 │   ├── run_restore_drill.py
@@ -781,6 +823,10 @@ docflow/
 │   │   ├── local_install.py
 │   │   ├── launchd.py
 │   │   └── startup.py
+│   ├── quality/
+│   │   ├── browser_acceptance.py
+│   │   ├── maturity.py
+│   │   └── sample_suite.py
 │   ├── query/
 │   │   ├── engine.py
 │   │   ├── generator.py

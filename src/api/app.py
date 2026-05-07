@@ -1858,4 +1858,15 @@ if STATIC_DIR.exists():
     async def favicon_ico():
         return FileResponse(str(STATIC_DIR / "favicon.svg"), media_type="image/svg+xml")
 
+    @app.head("/favicon.ico", include_in_schema=False)
+    async def favicon_ico_head():
+        favicon_path = STATIC_DIR / "favicon.svg"
+        return Response(
+            status_code=200,
+            headers={
+                "content-length": str(favicon_path.stat().st_size),
+                "content-type": "image/svg+xml",
+            },
+        )
+
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")

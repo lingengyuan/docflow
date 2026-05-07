@@ -20,6 +20,7 @@ filelock==3.25.2
 flatbuffers==25.12.19
 frozenlist==1.8.0
 fsspec==2026.2.0
+greenlet==3.3.2
 grpcio==1.78.0
 h11==0.16.0
 h2==4.3.0
@@ -53,6 +54,7 @@ optimum-onnx==0.1.0
 packaging==26.0
 pandas==3.0.1
 peft==0.18.1
+playwright==1.58.0
 pluggy==1.6.0
 portalocker==3.2.0
 propcache==0.4.1
@@ -61,6 +63,7 @@ psutil==7.2.2
 pyarrow==23.0.1
 pydantic==2.12.5
 pydantic_core==2.41.5
+pyee==13.0.1
 Pygments==2.19.2
 PyMuPDF==1.27.2
 pytest==9.0.2

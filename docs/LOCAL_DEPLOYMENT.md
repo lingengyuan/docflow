@@ -48,6 +48,7 @@ python main.py service status
 python main.py check --json
 python main.py repair-ids --dry-run
 python main.py restore-drill
+python main.py browser-acceptance
 ```
 
 If the service is not installed:
@@ -64,6 +65,23 @@ The committed `frontend/styles.css` is enough to run the app. Rebuild it only af
 ```bash
 npm install
 npm run build:css
+```
+
+## Browser Acceptance
+
+Run this after the app is available at `http://127.0.0.1:8000`:
+
+```bash
+python main.py browser-acceptance
+```
+
+The command opens Chromium, checks Chat, Library, Notes, and Settings, and
+writes screenshots under `output/playwright/phase25-browser-acceptance`.
+It requires Playwright and a Chromium browser install. If the browser runtime is
+missing, install it with:
+
+```bash
+.venv/bin/python -m playwright install chromium
 ```
 
 ## Model Preparation
@@ -168,6 +186,7 @@ npm run build:css
 .venv/bin/python main.py restore-drill
 .venv/bin/python main.py check --json
 .venv/bin/python main.py repair-ids --dry-run
+.venv/bin/python main.py browser-acceptance
 .venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 git diff --check
 ```
@@ -175,4 +194,5 @@ git diff --check
 Use `.venv/bin/python main.py maturity-eval --skip-retrieval` only for a
 scorecard-only check when Qdrant or the local retrieval index is unavailable.
 
-For UI changes, also run a browser validation pass against `http://127.0.0.1:8000`.
+For UI changes, keep the app running and use the browser acceptance command
+against `http://127.0.0.1:8000`.

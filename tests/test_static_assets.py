@@ -27,6 +27,16 @@ def test_favicon_ico_is_served_without_404():
     assert response.text.startswith("<svg")
 
 
+def test_favicon_ico_head_is_served_without_404():
+    client = TestClient(api_app.app)
+
+    response = client.head("/favicon.ico")
+
+    assert response.status_code == 200
+    assert "image/svg+xml" in response.headers["content-type"]
+    assert int(response.headers["content-length"]) > 0
+
+
 def test_destructive_actions_use_in_app_confirmation():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
@@ -175,6 +185,27 @@ def test_phase24_settings_surfaces_local_install_and_recovery_commands():
     assert "python main.py repair-ids --dry-run" in html
 
 
+def test_phase25_browser_acceptance_command_is_documented():
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert Path("scripts/run_browser_acceptance.py").exists()
+    assert "python main.py browser-acceptance" in readme
+
+
+def test_phase26_ui_redesign_shell_has_real_context_panels():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert 'class="app-topbar flex-shrink-0"' in html
+    assert 'id="global-search-input"' in html
+    assert 'id="chat-context-sources"' in html
+    assert 'id="library-context-panel"' in html
+    assert 'id="settings-actions-list"' in html
+    assert "renderLibraryContext" in html
+    assert "renderChatContextSources" in html
+    assert "handleGlobalSearchKey" in html
+    assert "fonts.googleapis.com" not in html
+
+
 def test_phase18_release_docs_are_linked_from_readme():
     readme = Path("README.md").read_text(encoding="utf-8")
 
@@ -184,14 +215,14 @@ def test_phase18_release_docs_are_linked_from_readme():
         "docs/LOCAL_DEPLOYMENT.md",
         "docs/phase18-final-acceptance.md",
         "docs/phase18-handoff.md",
-        "docs/phase18-chat-desktop.png",
-        "docs/phase18-library-desktop.png",
+        "docs/phase26-chat-desktop.png",
+        "docs/phase26-library-desktop.png",
     ]:
         assert Path(path).exists()
 
     assert "docs/LOCAL_DEPLOYMENT.md" in readme
     assert "docs/phase18-final-acceptance.md" in readme
-    assert "docs/phase18-chat-desktop.png" in readme
+    assert "docs/phase26-chat-desktop.png" in readme
     assert "MIT. See `LICENSE`." in readme
     assert "MIT。见 `LICENSE`。" in readme
 
