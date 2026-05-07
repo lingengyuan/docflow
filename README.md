@@ -261,6 +261,12 @@ Run the Phase 11 maturity baseline:
 .venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
 ```
 
+Run the generated real sample suite:
+
+```bash
+.venv/bin/python main.py sample-suite
+```
+
 Check SQLite and Qdrant consistency:
 
 ```bash
@@ -637,6 +643,12 @@ cd ~/Projects/docflow
 
 ```bash
 .venv/bin/python main.py maturity-eval --no-rerank --refresh-sources --source-filter
+```
+
+运行自动生成的真实样本套件：
+
+```bash
+.venv/bin/python main.py sample-suite
 ```
 
 检查 SQLite 和 Qdrant 是否一致：

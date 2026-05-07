@@ -36,15 +36,16 @@
       "id": "format_support",
       "name": "文档格式支持",
       "target_score": 9,
-      "current_score": 8.3,
-      "phase": "Phase 13, Phase 18",
+      "current_score": 8.6,
+      "phase": "Phase 13, Phase 18, Phase 21",
       "evidence": [
         "支持 PDF、Markdown、TXT、DOCX、代码文本和图片格式。",
         "Phase 13 新增网页导入和页面内 Markdown 笔记创建。",
-        "Phase 18 修正代码类扩展名解析，并让配置中的图片扩展名与 VLM 能力说明保持一致。"
+        "Phase 18 修正代码类扩展名解析，并让配置中的图片扩展名与 VLM 能力说明保持一致。",
+        "Phase 21 新增可重复生成的扫描 PDF、截图图片和表格 Markdown 样本套件。"
       ],
       "next_steps": [
-        "为图片、截图、表格图和扫描 PDF 建立持续运行的真实样本验证。"
+        "继续增加 DOCX、网页导入和真实图片样本的端到端覆盖。"
       ]
     },
     {
@@ -144,13 +145,14 @@
       "id": "local_workflow",
       "name": "扩展生态",
       "target_score": 9,
-      "current_score": 8.4,
-      "phase": "Phase 17, Phase 18",
+      "current_score": 8.5,
+      "phase": "Phase 17, Phase 18, Phase 21",
       "evidence": [
         "Notes 页面集中网页导入、临时笔记和最近采集内容。",
         "Phase 17 新增总结、学习卡片、行动项、项目简报知识产物工作流。",
         "知识产物可以从手动资料或 Library 选中文件生成，并保存为 Knowledge Outputs 本地 Markdown。",
-        "Phase 18 补齐本地使用说明和发布检查。"
+        "Phase 18 补齐本地使用说明和发布检查。",
+        "Phase 21 样本套件验证了选中文件生成知识产物并重新加入入库队列。"
       ],
       "next_steps": [
         "增加更细的模板自定义、批量运行和生成结果预览。"
@@ -160,33 +162,35 @@
       "id": "testing_discipline",
       "name": "测试和交付纪律",
       "target_score": 9,
-      "current_score": 8.9,
-      "phase": "Phase 11, Phase 18, Phase 19",
+      "current_score": 9.0,
+      "phase": "Phase 11, Phase 18, Phase 19, Phase 21",
       "evidence": [
         "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和维护命令。",
         "每个阶段都有交接文档规则。",
         "Phase 18 将最终验收报告、浏览器验证、备份恢复演练和发布检查纳入交付。",
-        "Phase 19 将固定检索评测扩展为可刷新来源、可区分全库检索和指定来源证据检查。"
+        "Phase 19 将固定检索评测扩展为可刷新来源、可区分全库检索和指定来源证据检查。",
+        "Phase 21 新增 `sample-suite` 命令，把真实样本验证变成可重复的一键检查。"
       ],
       "next_steps": [
-        "把真实样本集和浏览器流程变成可重复运行的一键验收。"
+        "把浏览器多页面流程也纳入同一套可重复验收。"
       ]
     },
     {
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 8.6,
-      "phase": "Phase 17, Phase 18, Phase 20",
+      "current_score": 8.7,
+      "phase": "Phase 17, Phase 18, Phase 20, Phase 21",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康、模型和恢复建议。",
         "Phase 17 让资料整理结果能直接沉淀为本地知识资产。",
         "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。",
-        "Phase 20 移除最后一个运行时远程 UI 资源，让页面更符合本地产品定位。"
+        "Phase 20 移除最后一个运行时远程 UI 资源，让页面更符合本地产品定位。",
+        "Phase 21 增加真实样本验收入口，降低发布前遗漏多格式能力问题的风险。"
       ],
       "next_steps": [
-        "补充桌面打包、截图资产和更完整真实样本。"
+        "补充桌面打包、截图资产和更完整的人工验收脚本。"
       ]
     }
   ]

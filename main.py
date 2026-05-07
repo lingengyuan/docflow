@@ -27,6 +27,9 @@ DocFlow 入口。
   # 生成 Phase 11 的 9 分成熟度评分报告
   python main.py maturity-eval
 
+  # 生成并验证真实样本套件
+  python main.py sample-suite
+
   # 检查 SQLite 与 Qdrant 是否一致
   python main.py check
 
@@ -164,6 +167,13 @@ def maturity_eval(args: list[str]):
     return run_maturity_main()
 
 
+def sample_suite(args: list[str]):
+    from scripts.run_sample_suite import main as run_sample_suite_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_sample_suite_main()
+
+
 def check_index(args: list[str]):
     from src.maintenance.consistency import check_consistency, print_report
 
@@ -256,6 +266,8 @@ if __name__ == "__main__":
         sys.exit(eval_retrieval(sys.argv[2:]))
     elif cmd == "maturity-eval":
         sys.exit(maturity_eval(sys.argv[2:]))
+    elif cmd == "sample-suite":
+        sys.exit(sample_suite(sys.argv[2:]))
     elif cmd == "check":
         sys.exit(check_index(sys.argv[2:]))
     elif cmd == "rebuild":

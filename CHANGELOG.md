@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 - 2026-05-07
+
+- Added `python main.py sample-suite` for generated real sample validation.
+- Covered deterministic scanned PDF OCR, VLM image parsing, table chunking,
+  source preview, and knowledge output workflows.
+
 ## 0.20.0 - 2026-05-07
 
 - Replaced the runtime Google Fonts Material Symbols request with local inline SVG icons.
