@@ -405,6 +405,8 @@ class DocStore:
         collection: str | None = None,
         tag: str | None = None,
         favorite: bool | None = None,
+        kind: str | None = None,
+        recent: bool | None = None,
     ) -> list[dict]:
         query = """
             SELECT f.*, fav.id IS NOT NULL AS favorited
@@ -424,15 +426,23 @@ class DocStore:
             clauses.append("fav.id IS NOT NULL")
         elif favorite is False:
             clauses.append("fav.id IS NULL")
+        kind_patterns = self._file_kind_patterns(kind)
+        normalized_tag = self._normalize_tag(tag) if tag else ""
+        if kind_patterns:
+            clauses.append("(" + " OR ".join("LOWER(f.file_name) LIKE ?" for _ in kind_patterns) + ")")
+            params.extend(kind_patterns)
         if clauses:
             query += " WHERE " + " AND ".join(clauses)
         query += " ORDER BY f.updated_at DESC"
+        if recent is True and not normalized_tag:
+            query += " LIMIT 30"
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
         result = [self._file_row_to_dict(r) for r in rows]
-        normalized_tag = self._normalize_tag(tag) if tag else ""
         if normalized_tag:
             result = [row for row in result if normalized_tag in row["user_tags"]]
+            if recent is True:
+                result = result[:30]
         return result
 
     def get_file_by_path(self, file_path: str | Path) -> dict | None:
@@ -500,7 +510,7 @@ class DocStore:
                 ORDER BY lower(collection)
                 """
             ).fetchall()
-            rows = conn.execute("SELECT tags, user_tags FROM files").fetchall()
+            rows = conn.execute("SELECT file_name, tags, user_tags, updated_at FROM files").fetchall()
             favorite_count = conn.execute("SELECT COUNT(*) AS count FROM favorites").fetchone()["count"]
 
         user_tag_counts: dict[str, int] = {}
@@ -511,6 +521,13 @@ class DocStore:
             for tag_name in self._parse_json_list(row["tags"]):
                 document_tag_counts[tag_name] = document_tag_counts.get(tag_name, 0) + 1
 
+        type_counts = {
+            "pdf": sum(1 for row in rows if self._file_kind(row["file_name"]) == "pdf"),
+            "markdown": sum(1 for row in rows if self._file_kind(row["file_name"]) == "markdown"),
+            "image": sum(1 for row in rows if self._file_kind(row["file_name"]) == "image"),
+            "code": sum(1 for row in rows if self._file_kind(row["file_name"]) == "code"),
+        }
+
         return {
             "collections": [
                 {"name": row["collection"] or DEFAULT_COLLECTION, "count": row["count"]}
@@ -520,7 +537,39 @@ class DocStore:
             "document_tags": self._facet_rows(document_tag_counts),
             "favorites": favorite_count,
             "total_files": len(rows),
+            "types": type_counts,
+            "recent": min(len(rows), 30),
         }
+
+    @staticmethod
+    def _file_kind(file_name: str) -> str:
+        suffix = Path(file_name or "").suffix.lower()
+        if suffix == ".pdf":
+            return "pdf"
+        if suffix in {".md", ".markdown"}:
+            return "markdown"
+        if suffix in {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}:
+            return "image"
+        if suffix in {".py", ".rs", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh"}:
+            return "code"
+        if suffix == ".docx":
+            return "docx"
+        if suffix == ".txt":
+            return "text"
+        return "other"
+
+    @staticmethod
+    def _file_kind_patterns(kind: str | None) -> list[str]:
+        normalized = (kind or "").strip().lower()
+        groups = {
+            "pdf": [".pdf"],
+            "markdown": [".md", ".markdown"],
+            "image": [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"],
+            "code": [".py", ".rs", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh"],
+            "docx": [".docx"],
+            "text": [".txt"],
+        }
+        return [f"%{suffix}" for suffix in groups.get(normalized, [])]
 
     def get_file_qdrant_ids(self, file_id: int) -> list[int]:
         """返回某文件所有 chunk 的 Qdrant point ID（用于重新索引时清理旧向量）。"""

@@ -18,7 +18,9 @@ def test_files_api_passes_library_filters(monkeypatch):
     monkeypatch.setattr(api_app, "store", FakeStore())
     client = TestClient(api_app.app)
 
-    response = client.get("/api/files?status=done&collection=Research&tag=paper&favorite=true")
+    response = client.get(
+        "/api/files?status=done&collection=Research&tag=paper&favorite=true&kind=pdf&recent=true"
+    )
 
     assert response.status_code == 200
     assert calls["filters"] == {
@@ -26,6 +28,8 @@ def test_files_api_passes_library_filters(monkeypatch):
         "collection": "Research",
         "tag": "paper",
         "favorite": True,
+        "kind": "pdf",
+        "recent": True,
     }
 
 

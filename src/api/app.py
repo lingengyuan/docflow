@@ -791,6 +791,8 @@ async def list_files(
     collection: str | None = None,
     tag: str | None = None,
     favorite: bool | None = None,
+    kind: str | None = None,
+    recent: bool | None = None,
 ):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -799,6 +801,8 @@ async def list_files(
         collection=collection,
         tag=tag,
         favorite=favorite,
+        kind=kind,
+        recent=recent,
     )
 
 

@@ -4,7 +4,7 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.26.0`.
+Current release target: `0.27.0`.
 
 ## Product Screenshots
 
@@ -34,11 +34,12 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
 - Product workspace shell: Chat, Library, Notes, and Settings are separated into focused daily-use areas.
 - Phase 26 workspace redesign: a wider local-first sidebar, global search, unified toolbar actions, and right-side context panels for citations, file details, recent captures, and recovery guidance.
+- Phase 27 Library upgrade: real Library groups for all files, favorites, recent imports, PDFs, Markdown, images, and code, plus richer file details with source chunks, recent citations, and file-scoped question shortcuts.
 - Local knowledge capture: import webpages, create quick Markdown notes, save answers back into the local library, and turn source text or selected files into reusable Markdown knowledge outputs.
 - Notes workspace: create Markdown notes, import webpages, generate summaries, learning cards, action items, and project briefs, then review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
-- Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview.
+- Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview; Library file details can open chunk-level source review and save a chunk as a local note.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
 - Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
 - Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
@@ -46,7 +47,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - ID safety repair: `python main.py repair-ids --dry-run` reports stale vector ID counters and duplicate vector IDs before any repair is applied.
 - Browser acceptance: `python main.py browser-acceptance` opens the running app in Chromium, checks Chat, Library, Notes, and Settings, and saves screenshots.
 - Local production styles: the browser UI serves committed CSS from `frontend/styles.css`; it no longer depends on the Tailwind CDN at runtime.
-- Library management: collections, user tags, status/favorite filters, batch favorite, batch metadata updates, and batch index rebuild from the Library view.
+- Library management: collections, user tags, Library groups, status/favorite filters, batch favorite, batch metadata updates, source review, file-scoped questions, and batch index rebuild from the Library view.
 - Local model options: Qwen3 embedding, Qwen3 reranker, MLX LLM, optional Ollama OCR, optional VLM image parsing.
 - Phase 11 maturity baseline: score the project against the 9-point maturity target and run fixed retrieval evidence checks.
 - Folder watching: multiple watched directories, recursive scans, debounce, and startup cleanup for deleted files.
@@ -71,7 +72,8 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
 - Local install is explicit: preview with `python main.py install-local`, then use `--apply` only when the plan is acceptable.
 - Browser acceptance is repeatable: with the service running, `python main.py browser-acceptance` verifies the four main pages and writes screenshots under `output/playwright/`.
-- The current browser UI follows the Phase 26 personal knowledge workspace style: quiet sidebar navigation, global search, primary work area, and real context panels instead of decorative controls.
+- The current browser UI follows the Phase 26/27 personal knowledge workspace style: quiet sidebar navigation, global search, primary work area, real Library groups, and context panels instead of decorative controls.
+- Library file details now expose source chunks, recent citation history, open-original actions, save-as-note actions, and direct file-scoped question setup.
 - Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
 - Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
 
@@ -451,7 +453,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.26.0`。
+当前发布目标：`0.27.0`。
 
 ### 功能特性
 
@@ -467,11 +469,12 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
 - 产品级工作台：Chat、Library、Notes、Settings 分成四个清晰入口。
 - Phase 26 工作台改版：更稳定的本地侧栏、全局搜索、统一工具按钮，以及引用来源、文件详情、最近采集和恢复建议等右侧上下文面板。
+- Phase 27 文件库升级：Library 支持全部、收藏、最近导入、PDF、Markdown、图片和代码等真实分组，文件详情里可以查看来源片段、最近引用，并一键进入指定文件提问。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记、把回答保存回本地文件库，并把资料或选中文件生成可复用 Markdown 知识产物。
 - Notes 工作区：集中创建 Markdown 笔记、导入网页，生成总结、学习卡片、行动项、项目简报，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
-- 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览。
+- 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览；Library 文件详情可以查看 chunk 级来源片段，并把片段保存为本地笔记。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
 - Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
 - 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
@@ -479,7 +482,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 编号安全修复：`python main.py repair-ids --dry-run` 会先报告落后的向量编号计数和重复向量 ID，不会直接改数据。
 - 浏览器验收：`python main.py browser-acceptance` 会用 Chromium 打开正在运行的页面，检查 Chat、Library、Notes、Settings，并保存截图。
 - 本地生产样式：浏览器页面直接加载 `frontend/styles.css`，运行时不再依赖 Tailwind CDN。
-- 文件库管理：Library 页面支持集合、用户标签、状态/收藏筛选、批量收藏、批量更新元数据和批量重建索引。
+- 文件库管理：Library 页面支持集合、用户标签、资料分组、状态/收藏筛选、批量收藏、批量更新元数据、来源片段复核、指定文件提问和批量重建索引。
 - 本地模型：Qwen3 embedding、Qwen3 reranker、MLX LLM，可选 Ollama OCR 和 Qwen3-VL 图片理解模型。
 - Phase 11 成熟度基线：按照 9 分成熟版目标评分，并运行固定检索证据评测。
 - 文件夹监控：支持多个目录、递归扫描、延迟去重，以及启动时清理已删除文件。
@@ -504,7 +507,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
 - 本地安装默认先预览：运行 `python main.py install-local` 查看计划，确认后才用 `--apply` 执行。
 - 浏览器验收可以重复运行：服务启动后执行 `python main.py browser-acceptance`，会检查四个主页面，并把截图写到 `output/playwright/`。
-- 当前浏览器界面采用 Phase 26 个人知识工作台风格：安静侧栏、全局搜索、主工作区和真实上下文面板，不放装饰性按钮。
+- 当前浏览器界面采用 Phase 26/27 个人知识工作台风格：安静侧栏、全局搜索、主工作区、真实资料分组和上下文面板，不放装饰性按钮。
+- Library 文件详情已经能展示来源片段、最近引用记录、打开原文、保存片段为笔记和指定文件提问入口。
 - 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
 - Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。
 

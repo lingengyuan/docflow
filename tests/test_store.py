@@ -191,11 +191,35 @@ class TestDocStore:
         assert [row["id"] for row in db.list_files(collection="Research")] == [first_id]
         assert [row["id"] for row in db.list_files(tag="paper")] == [first_id]
         assert [row["id"] for row in db.list_files(favorite=True)] == [first_id]
+        assert {row["id"] for row in db.list_files(kind="pdf")} == {first_id, second_id}
+        assert [row["id"] for row in db.list_files(kind="markdown")] == []
+        assert {row["id"] for row in db.list_files(recent=True)} == {first_id, second_id}
 
         facets = db.list_library_facets()
         assert {"name": "Research", "count": 1} in facets["collections"]
         assert {"name": "paper", "count": 1} in facets["user_tags"]
         assert facets["favorites"] == 1
+        assert facets["types"]["pdf"] == 2
+
+    def test_recent_file_filter_keeps_tag_matches_before_limit(self, db, tmp_path):
+        target = tmp_path / "target.md"
+        target_id = db.upsert_file(target, target.name, "target-hash", status="done")
+        db.update_file_metadata(target_id, user_tags=["keep"])
+        for idx in range(35):
+            path = tmp_path / f"decoy-{idx}.md"
+            db.upsert_file(path, path.name, f"decoy-hash-{idx}", status="done")
+
+        with db._conn() as conn:
+            conn.execute(
+                "UPDATE files SET updated_at = '2025-01-01 00:00:00' WHERE id = ?",
+                (target_id,),
+            )
+            conn.execute(
+                "UPDATE files SET updated_at = '2025-02-01 00:00:00' WHERE id != ?",
+                (target_id,),
+            )
+
+        assert [row["id"] for row in db.list_files(tag="keep", recent=True)] == [target_id]
 
     def test_batch_favorites_ignore_missing_files(self, db, pdf):
         file_id = db.upsert_file(pdf, pdf.name, "hash1", status="done")

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.27.0 - 2026-05-08
+
+- Added real Library groups for all files, favorites, recent imports, PDFs, Markdown, images, and code.
+- Upgraded Library file details with source chunk review, recent citation history, open-original actions, save-as-note, and file-scoped question shortcuts.
+- Extended browser acceptance to click Library groups and verify source review states.
+
 ## 0.26.0 - 2026-05-07
 
 - Redesigned the browser UI into a quieter personal knowledge workspace with a wider sidebar, global search, unified toolbars, and right-side context panels.

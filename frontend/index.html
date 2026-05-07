@@ -666,6 +666,37 @@
 
     <div class="library-grid flex-1 min-h-0">
       <aside class="side-filter-panel overflow-y-auto custom-scrollbar p-4">
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">分组</div>
+        <div id="library-group-controls" class="flex flex-col gap-1.5 text-xs mb-6">
+          <button id="library-group-all" onclick="setLibraryGroup('all')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">inventory_2</span>全部文件</span>
+            <span id="library-group-all-count">0</span>
+          </button>
+          <button id="library-group-favorites" onclick="setLibraryGroup('favorites')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">star</span>收藏</span>
+            <span id="library-group-favorites-count">0</span>
+          </button>
+          <button id="library-group-recent" onclick="setLibraryGroup('recent')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">schedule</span>最近导入</span>
+            <span id="library-group-recent-count">0</span>
+          </button>
+          <button id="library-group-pdf" onclick="setLibraryGroup('pdf')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">description</span>PDF</span>
+            <span id="library-group-pdf-count">0</span>
+          </button>
+          <button id="library-group-markdown" onclick="setLibraryGroup('markdown')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">article</span>Markdown</span>
+            <span id="library-group-markdown-count">0</span>
+          </button>
+          <button id="library-group-image" onclick="setLibraryGroup('image')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">image</span>图片</span>
+            <span id="library-group-image-count">0</span>
+          </button>
+          <button id="library-group-code" onclick="setLibraryGroup('code')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">code</span>代码</span>
+            <span id="library-group-code-count">0</span>
+          </button>
+        </div>
         <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">筛选</div>
         <div class="flex flex-col gap-2 text-xs">
           <select id="library-status-filter" onchange="applyLibraryFilters()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
@@ -1044,9 +1075,10 @@ let knowledgeSourceFileIds = [];
 let favoritedIds = new Set();
 let libraryFiles = [];
 let libraryMeta = { collections: [], user_tags: [] };
-let libraryFilters = { status: '', collection: '', tag: '', favorite: false };
+let libraryFilters = { status: '', collection: '', tag: '', favorite: false, kind: '', recent: false };
 let libraryWorkflowMode = 'note';
 let activeLibraryFileId = null;
+let librarySourceReview = { fileId: null, chunks: [] };
 let lastCitations = [];
 let queryScopeFiles = [];
 let queuePollTimer = null;
@@ -1067,6 +1099,7 @@ const LOCAL_ICON_PATHS = {
   check: '<path d="m5 12 4 4L19 6"/>',
   check_circle: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  code: '<path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/>',
   content_copy: '<rect x="8" y="8" width="11" height="13" rx="2"/><path d="M5 16H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   delete: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"/>',
   delete_sweep: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3M3 11h3M2 15h4M1 19h5"/>',
@@ -1080,6 +1113,7 @@ const LOCAL_ICON_PATHS = {
   folder_sync: '<path d="M3 7h7l2 2h9v4"/><path d="M4 19h8"/><path d="M18 14a4 4 0 1 0 2.8 1.2"/><path d="M21 14v3h-3"/>',
   forum: '<path d="M4 5h12v8H8l-4 4V5Z"/><path d="M10 15h6l4 4V9h-2"/>',
   history: '<path d="M4 12a8 8 0 1 0 3-6"/><path d="M4 4v5h5M12 8v5l3 2"/>',
+  image: '<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 17 4-4 3 3 3-4 6 5"/>',
   inventory_2: '<path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/>',
   keyboard_arrow_down: '<path d="m6 9 6 6 6-6"/>',
   language: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
@@ -2374,6 +2408,8 @@ function currentFileQuery() {
   if (libraryFilters.collection) params.set('collection', libraryFilters.collection);
   if (libraryFilters.tag) params.set('tag', libraryFilters.tag);
   if (libraryFilters.favorite) params.set('favorite', 'true');
+  if (libraryFilters.kind) params.set('kind', libraryFilters.kind);
+  if (libraryFilters.recent) params.set('recent', 'true');
   const query = params.toString();
   return query ? `?${query}` : '';
 }
@@ -2384,7 +2420,27 @@ function applyLibraryFilters() {
     collection: document.getElementById('library-collection-filter')?.value || '',
     tag: document.getElementById('library-tag-filter')?.value || '',
     favorite: Boolean(document.getElementById('library-favorite-filter')?.checked),
+    kind: libraryFilters.kind || '',
+    recent: Boolean(libraryFilters.recent),
   };
+  refreshFiles({ preserveFilters: true });
+}
+
+function setLibraryGroup(group) {
+  libraryFilters.kind = '';
+  libraryFilters.recent = false;
+  libraryFilters.favorite = false;
+  const favoriteFilter = document.getElementById('library-favorite-filter');
+  if (favoriteFilter) favoriteFilter.checked = false;
+  if (group === 'favorites') {
+    libraryFilters.favorite = true;
+    if (favoriteFilter) favoriteFilter.checked = true;
+  } else if (group === 'recent') {
+    libraryFilters.recent = true;
+  } else if (['pdf', 'markdown', 'image', 'code'].includes(group)) {
+    libraryFilters.kind = group;
+  }
+  updateLibraryGroupControls();
   refreshFiles({ preserveFilters: true });
 }
 
@@ -2393,7 +2449,8 @@ function clearLibraryFilters() {
   document.getElementById('library-collection-filter').value = '';
   document.getElementById('library-tag-filter').value = '';
   document.getElementById('library-favorite-filter').checked = false;
-  libraryFilters = { status: '', collection: '', tag: '', favorite: false };
+  libraryFilters = { status: '', collection: '', tag: '', favorite: false, kind: '', recent: false };
+  updateLibraryGroupControls();
   refreshFiles({ preserveFilters: true });
 }
 
@@ -2426,6 +2483,32 @@ function updateLibraryControls() {
       .map(item => `<option value="${escHtml(item.name)}"></option>`)
       .join('');
   }
+  updateLibraryGroupControls();
+}
+
+function currentLibraryGroup() {
+  if (libraryFilters.favorite) return 'favorites';
+  if (libraryFilters.recent) return 'recent';
+  return libraryFilters.kind || 'all';
+}
+
+function updateLibraryGroupControls() {
+  const counts = {
+    all: libraryMeta.total_files || 0,
+    favorites: libraryMeta.favorites || 0,
+    recent: libraryMeta.recent || 0,
+    pdf: libraryMeta.types?.pdf || 0,
+    markdown: libraryMeta.types?.markdown || 0,
+    image: libraryMeta.types?.image || 0,
+    code: libraryMeta.types?.code || 0,
+  };
+  Object.entries(counts).forEach(([group, count]) => {
+    const countEl = document.getElementById(`library-group-${group}-count`);
+    if (countEl) countEl.textContent = count;
+  });
+  const active = currentLibraryGroup();
+  document.querySelectorAll('.library-group-btn').forEach(btn => btn.classList.remove('active-nav'));
+  document.getElementById(`library-group-${active}`)?.classList.add('active-nav');
 }
 
 function openLibraryWorkflow(mode) {
@@ -2529,7 +2612,7 @@ async function refreshFiles(options = {}) {
       const favoriteLabel = isStarred ? `取消收藏 ${f.file_name}` : `收藏 ${f.file_name}`;
       const userTags = Array.isArray(f.user_tags) ? f.user_tags : [];
       const rowClass = f.id === activeLibraryFileId ? 'data-row-active' : 'hover:bg-surface-container/50';
-      return `<tr onclick="setLibraryActiveFile(${f.id})" class="${rowClass} cursor-pointer transition-colors">
+      return `<tr data-file-id="${f.id}" onclick="setLibraryActiveFile(${f.id})" class="${rowClass} cursor-pointer transition-colors">
         <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" onclick="event.stopPropagation()" class="rounded"></td>
         <td class="py-3 pr-4 min-w-[220px]">
           <div class="text-sm font-semibold text-on-surface line-clamp-1">${escHtml(f.file_name)}</div>
@@ -2567,9 +2650,11 @@ async function refreshFiles(options = {}) {
 
 function setLibraryActiveFile(fileId) {
   activeLibraryFileId = fileId;
-  document.querySelectorAll('#file-tbody tr').forEach(row => row.classList.remove('data-row-active'));
+  document.querySelectorAll('#file-tbody tr').forEach(row => {
+    const active = row.dataset.fileId === String(fileId);
+    row.classList.toggle('data-row-active', active);
+  });
   renderLibraryContext();
-  refreshFiles({ preserveFilters: true });
 }
 
 function renderLibraryContext(state = {}) {
@@ -2619,10 +2704,27 @@ function renderLibraryContext(state = {}) {
     <section class="soft-panel p-4">
       <h3 class="panel-title">来源预览</h3>
       <p class="mt-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(file.preview || file.file_path || '暂无预览')}</p>
-      <button onclick="openFilePreview(${file.id})" class="toolbar-btn mt-3" title="打开原文预览" aria-label="打开原文预览">
-        <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
-        打开原文
-      </button>
+      <div class="mt-3 flex flex-col gap-2">
+        <button id="library-source-review-btn" onclick="openSourceReview(${file.id})" class="toolbar-btn" title="查看引用片段" aria-label="查看引用片段">
+          <span class="material-symbols-outlined" style="font-size:15px">link</span>
+          查看引用片段
+        </button>
+        <button onclick="openFilePreview(${file.id})" class="toolbar-btn" title="打开原文预览" aria-label="打开原文预览">
+          <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+          打开原文
+        </button>
+      </div>
+      <div id="library-source-review" class="mt-3 rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">打开引用片段后，可查看切块、来源位置，并保存片段为笔记。</div>
+    </section>
+    <section class="soft-panel p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="panel-title">最近引用</h3>
+        <button onclick="askWithLibraryFile(${file.id})" class="toolbar-btn" title="用这个文件提问" aria-label="用这个文件提问">
+          <span class="material-symbols-outlined" style="font-size:15px">chat_bubble</span>
+          提问
+        </button>
+      </div>
+      <div id="library-recent-citations" class="mt-3 text-xs text-on-surface-variant">正在读取最近引用…</div>
     </section>
     <section class="soft-panel p-4">
       <h3 class="panel-title">标签</h3>
@@ -2642,6 +2744,133 @@ function renderLibraryContext(state = {}) {
       </div>
     </section>`;
   renderLocalIcons(panel);
+  loadLibraryFileActivity(file);
+}
+
+async function openSourceReview(fileId) {
+  const panel = document.getElementById('library-source-review');
+  if (!panel) return;
+  panel.innerHTML = '<span class="spinner"></span><span class="ml-2">正在读取引用片段…</span>';
+  try {
+    const data = await fetch(`${API}/api/file/${fileId}/chunks?max_text_chars=1200`).then(r => {
+      if (!r.ok) throw new Error('引用片段读取失败');
+      return r.json();
+    });
+    const chunks = data.chunks || [];
+    librarySourceReview = { fileId, chunks };
+    if (!chunks.length) {
+      panel.innerHTML = '这个文件还没有可预览的引用片段。请确认文件已完成入库。';
+      return;
+    }
+    panel.innerHTML = `
+      <div class="mb-3 rounded-lg bg-surface-container-lowest px-3 py-2">
+        <div class="font-semibold text-on-surface">为什么引用这些片段</div>
+        <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">这些内容来自本地索引中的真实 chunk，保留了页面、章节和文本预览，可用于核查回答证据。</div>
+      </div>
+      <div class="flex flex-col gap-2">
+        ${chunks.slice(0, 5).map((chunk, idx) => sourceChunkMarkup(chunk, idx, data.file)).join('')}
+      </div>`;
+    renderLocalIcons(panel);
+  } catch (e) {
+    panel.innerHTML = `<span class="text-error">读取失败：${escHtml(e.message)}</span>`;
+  }
+}
+
+function sourceChunkMarkup(chunk, idx, file) {
+  const page = chunk.page_num ? `第 ${chunk.page_num} 页` : '无页码';
+  const section = chunk.section || chunk.chunk_type || '片段';
+  const preview = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  return `
+    <div class="rounded-lg bg-surface-container-lowest px-3 py-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="font-semibold text-on-surface line-clamp-1">${escHtml(section)}</div>
+          <div class="text-[11px] text-on-surface-variant/60">${escHtml(page)} · ${chunk.char_count || 0} 字</div>
+        </div>
+        <button onclick="saveSourceChunkAsNote(${idx})" class="icon-button !w-8 !h-8" title="保存片段为笔记" aria-label="保存片段为笔记">
+          <span class="material-symbols-outlined" style="font-size:15px">note_add</span>
+        </button>
+      </div>
+      <p class="mt-2 text-[11px] leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(preview || '暂无文本预览')}</p>
+      <button onclick="openFilePreview(${file.id})" class="mt-2 text-[11px] font-bold text-primary hover:underline">打开原文</button>
+    </div>`;
+}
+
+async function saveSourceChunkAsNote(index) {
+  const chunk = librarySourceReview.chunks[index];
+  const file = libraryFiles.find(item => item.id === librarySourceReview.fileId);
+  if (!chunk || !file) return;
+  const text = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  if (!text.trim()) return;
+  try {
+    const r = await fetch(`${API}/api/notes`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        title: `Source Note - ${file.file_name}`,
+        content: `# ${file.file_name}\n\n来源：${file.file_path}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
+        collection: 'Saved Sources',
+        user_tags: ['source', 'citation'],
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const panel = document.getElementById('library-source-review');
+    if (panel) {
+      panel.insertAdjacentHTML('afterbegin', '<div class="mb-2 rounded-lg bg-tertiary-container px-3 py-2 text-[11px] font-bold text-on-tertiary-container">已保存为笔记，并加入入库队列。</div>');
+    }
+    setScanButtonState('queued');
+    startQueuePolling();
+  } catch (e) {
+    const panel = document.getElementById('library-source-review');
+    if (panel) panel.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(e.message)}</div>`);
+  }
+}
+
+async function loadLibraryFileActivity(file) {
+  const el = document.getElementById('library-recent-citations');
+  if (!el || !file) return;
+  try {
+    const history = await fetch(`${API}/api/history?limit=50`).then(r => r.json());
+    const matches = history.filter(item => (item.citations || []).some(c =>
+      c.file_path === file.file_path || c.file_name === file.file_name
+    )).slice(0, 3);
+    if (!matches.length) {
+      el.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3">暂无最近引用。</div>';
+      return;
+    }
+    el.innerHTML = matches.map(item => `
+      <button data-question="${escHtml(item.question || '')}" onclick="replayHistoryFromLibrary(this)" class="w-full text-left rounded-lg bg-surface-container-low px-3 py-3 hover:bg-surface-container transition-colors">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.question || '未命名问题')}</div>
+        <div class="mt-1 text-[11px] text-on-surface-variant/60">${(item.created_at || '').slice(0,16)}</div>
+      </button>`).join('');
+  } catch (e) {
+    el.innerHTML = `<span class="text-error">最近引用读取失败：${escHtml(e.message)}</span>`;
+  }
+}
+
+async function askWithLibraryFile(fileId) {
+  const file = libraryFiles.find(item => item.id === fileId);
+  switchView('chat');
+  await loadQueryScopeOptions(true);
+  const mode = document.getElementById('query-scope-mode');
+  const select = document.getElementById('query-scope-file');
+  if (mode) mode.value = 'file';
+  updateQueryScopeControls();
+  if (select) select.value = String(fileId);
+  updateQueryScopeControls();
+  const input = document.getElementById('input');
+  input.value = file ? `请基于《${file.file_name}》总结核心要点` : '';
+  autoResize(input);
+  input.focus();
+}
+
+function replayHistoryFromLibrary(button) {
+  const question = button?.dataset?.question || '';
+  switchView('chat');
+  const input = document.getElementById('input');
+  input.value = question;
+  autoResize(input);
+  input.focus();
 }
 
 function selectSingleAndRebuild(fileId) {

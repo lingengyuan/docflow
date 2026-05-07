@@ -41,12 +41,13 @@ def build_browser_acceptance_plan() -> list[ViewAcceptance]:
                 "#refresh-files-btn",
                 "#scan-folders-btn",
                 "#upload-zone",
+                "#library-group-controls",
                 "#library-status-filter",
                 "#library-collection-filter",
                 "#file-tbody",
                 "#library-context-panel",
             ),
-            expected_text=("文件库", "刷新列表", "扫描文件夹", "拖拽文件至此或点击上传"),
+            expected_text=("文件库", "刷新列表", "扫描文件夹", "全部文件", "最近导入", "拖拽文件至此或点击上传"),
         ),
         ViewAcceptance(
             id="notes",
@@ -189,6 +190,9 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
             f"{view.id}_text_{_text_id(text)}",
             lambda text=text: _assert_text(page, text, timeout_ms),
         )
+    if view.id == "library":
+        _run_check(checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms))
+        _run_check(checks, "library_source_review_opens", lambda: _check_library_source_review(page, timeout_ms))
 
 
 def _check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
@@ -210,6 +214,40 @@ def _assert_text(page: Any, text: str, timeout_ms: int) -> None:
     body = page.locator("body").inner_text(timeout=timeout_ms)
     if text not in body:
         raise AssertionError(f"missing text: {text}")
+
+
+def _check_library_groups(page: Any, timeout_ms: int) -> dict[str, str]:
+    page.locator("#library-group-pdf").click(timeout=timeout_ms)
+    page.locator("#library-group-all").click(timeout=timeout_ms)
+    return {"clicked": "pdf,all"}
+
+
+def _check_library_source_review(page: Any, timeout_ms: int) -> dict[str, Any]:
+    row = page.locator("#file-tbody tr[data-file-id]").first
+    if row.count() == 0:
+        return {"skipped": "no files"}
+    row.click(timeout=timeout_ms)
+    button = page.locator("#library-source-review-btn")
+    if button.count() == 0:
+        return {"skipped": "no active file"}
+    button.click(timeout=timeout_ms)
+    body = page.locator("#library-source-review")
+    body.wait_for(state="visible", timeout=timeout_ms)
+    page.wait_for_function(
+        """
+        () => {
+            const el = document.querySelector('#library-source-review');
+            if (!el) return false;
+            const text = el.innerText || '';
+            return ['为什么引用这些片段', '还没有可预览', '读取失败'].some(token => text.includes(token));
+        }
+        """,
+        timeout=timeout_ms,
+    )
+    text = body.inner_text(timeout=timeout_ms)
+    if not any(token in text for token in ("为什么引用这些片段", "还没有可预览", "读取失败")):
+        raise AssertionError("source review did not render a known state")
+    return {"state": text[:80]}
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -263,6 +301,8 @@ def _text_id(text: str) -> str:
         "文件库": "library_title",
         "刷新列表": "refresh_files",
         "扫描文件夹": "scan_folders",
+        "全部文件": "all_files_group",
+        "最近导入": "recent_group",
         "拖拽文件至此或点击上传": "upload_zone",
         "新建 Markdown 笔记": "new_markdown_note",
         "导入网页": "import_url",
