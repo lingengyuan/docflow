@@ -155,6 +155,18 @@ def test_phase18_frontend_uses_local_tailwind_build():
     assert "'.py','.rs','.ts','.css','.sh'" in html
 
 
+def test_phase20_frontend_uses_local_icons():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "fonts.googleapis.com" not in html
+    assert "fonts.gstatic.com" not in html
+    assert "Material+Symbols" not in html
+    assert "LOCAL_ICON_PATHS" in html
+    assert "function setIcon" in html
+    assert "initLocalIcons();" in html
+    assert "icon.textContent =" not in html
+
+
 def test_phase18_release_docs_are_linked_from_readme():
     readme = Path("README.md").read_text(encoding="utf-8")
 

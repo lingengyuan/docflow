@@ -361,7 +361,7 @@ This repository does not define Codex skills. The project is a standalone local 
 - Changelog: `CHANGELOG.md`.
 - License: `LICENSE`.
 
-External network use is visible and limited to setup or optional assets: dependency installation, model downloads, Ollama access, and the current Material Symbols font request from Google Fonts. Tailwind is no longer loaded from a runtime CDN.
+External network use is visible and limited to setup or optional runtime dependencies: dependency installation, model downloads, and Ollama access. The browser UI serves its styles and icons locally; it no longer loads Tailwind or icon fonts from runtime CDNs.
 
 ### Contributing
 
@@ -739,7 +739,7 @@ docflow/
 - 版本记录：`CHANGELOG.md`。
 - 许可证：`LICENSE`。
 
-外部网络使用已经明确标出，主要是依赖安装、模型下载、Ollama 访问，以及当前 Material Symbols 图标字体请求。Tailwind 运行时 CDN 已移除。
+外部网络使用已经明确标出，主要是依赖安装、模型下载和 Ollama 访问。浏览器界面的样式和图标都由本地提供，不再从运行时 CDN 加载 Tailwind 或图标字体。
 
 ### 贡献指南
 

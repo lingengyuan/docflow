@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 - 2026-05-07
+
+- Replaced the runtime Google Fonts Material Symbols request with local inline SVG icons.
+- Added static coverage to prevent remote icon font regressions.
+- Updated local deployment guidance to reflect fully local browser UI assets.
+
 ## 0.18.0 - 2026-05-06
 
 - Added local production CSS build assets and removed the runtime Tailwind CDN dependency.

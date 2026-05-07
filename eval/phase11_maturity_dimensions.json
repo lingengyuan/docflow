@@ -4,15 +4,16 @@
       "id": "local_privacy",
       "name": "本地隐私",
       "target_score": 9,
-      "current_score": 8.8,
-      "phase": "Phase 18",
+      "current_score": 9.0,
+      "phase": "Phase 18, Phase 20",
       "evidence": [
         "默认本地 SQLite、Qdrant、MLX/Ollama 模型。",
         "Settings 会展示核心健康、模型运行时、可选能力和本地维护命令。",
-        "Phase 18 移除了 Tailwind 运行时 CDN，并补充了本地部署隐私说明。"
+        "Phase 18 移除了 Tailwind 运行时 CDN，并补充了本地部署隐私说明。",
+        "Phase 20 将 Material Symbols 运行时字体请求替换为页面内本地图标渲染。"
       ],
       "next_steps": [
-        "把 Material Symbols 字体改成本地图标资源，减少最后一个运行时外部请求。"
+        "继续把外部网络使用限制在依赖安装、模型下载和用户配置的本地模型服务。"
       ]
     },
     {
@@ -175,16 +176,17 @@
       "id": "product_maturity",
       "name": "成熟产品感",
       "target_score": 9,
-      "current_score": 8.5,
-      "phase": "Phase 17, Phase 18",
+      "current_score": 8.6,
+      "phase": "Phase 17, Phase 18, Phase 20",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康、模型和恢复建议。",
         "Phase 17 让资料整理结果能直接沉淀为本地知识资产。",
-        "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。"
+        "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。",
+        "Phase 20 移除最后一个运行时远程 UI 资源，让页面更符合本地产品定位。"
       ],
       "next_steps": [
-        "补充桌面打包、截图资产、本地图标字体和更完整真实样本。"
+        "补充桌面打包、截图资产和更完整真实样本。"
       ]
     }
   ]

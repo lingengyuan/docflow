@@ -17,7 +17,7 @@ Visible external network use:
 
 - Python and Node dependencies are downloaded during setup.
 - Hugging Face and Ollama are contacted when pulling model files.
-- The current browser UI still requests the Material Symbols font from Google Fonts. The Tailwind runtime CDN has been removed; styles are served from `frontend/styles.css`.
+- The browser UI serves styles and icons locally. It should not request Tailwind, icon fonts, or Google Fonts during normal page use.
 
 ## First Run
 
