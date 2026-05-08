@@ -89,13 +89,13 @@ Result: overall score is `8.78 / 10`.
 
 ## Next Phase
 
-The current UI plan is complete through Phase 29.
+The current UI plan is complete through Phase 29, but the one-to-one reference comparison identified UI gaps that must be handled first.
 
-Proceed next to the post-review roadmap, starting with Phase 30: Real Workflow Browser Coverage.
+Proceed next to Phase 30: UI Reference Gap Repair. The real-workflow browser coverage work is shifted into the next roadmap phase after that.
 
 Recommended Phase 30 tasks:
 
-1. Add browser tests that create temporary Markdown notes, verify they enter Library, and clean them up.
-2. Exercise upload, scan folder, queue progress, batch metadata, favorite, and rebuild actions in a controlled test path.
+1. Use `docs/phase30-ui-reference-gap-analysis.md` as the Phase 30 input.
+2. Repair the most visible Chat, Library, Notes, Settings, and Source Preview differences before continuing later engineering phases.
 3. Keep the normal browser UI free of command-line and developer-only wording.
 4. Update the handoff, run full validation, commit, and push to GitHub before moving on.

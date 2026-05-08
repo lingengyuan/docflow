@@ -10,7 +10,7 @@ from src.quality.browser_acceptance import (
 def test_browser_acceptance_plan_covers_main_views_without_developer_language():
     plan = build_browser_acceptance_plan()
 
-    assert [view.id for view in plan] == ["chat", "library", "notes", "settings"]
+    assert [view.id for view in plan] == ["chat", "library", "source", "notes", "settings"]
     settings = plan[-1]
     assert "#settings-insights-list" in settings.visible_selectors
     assert "状态提示" in settings.expected_text

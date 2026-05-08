@@ -119,8 +119,10 @@ def test_phase15_app_shell_has_notes_and_settings():
 
     assert 'id="nav-chat"' in html
     assert 'id="nav-library"' in html
+    assert 'id="nav-source"' in html
     assert 'id="nav-notes"' in html
     assert 'id="nav-settings"' in html
+    assert 'id="view-source"' in html
     assert 'id="view-notes"' in html
     assert 'id="view-settings"' in html
     assert "createNoteFromNotesView" in html
@@ -209,6 +211,9 @@ def test_phase26_ui_redesign_shell_has_real_context_panels():
     assert 'id="global-search-input"' in html
     assert 'id="chat-context-sources"' in html
     assert 'id="library-context-panel"' in html
+    assert 'id="source-result-list"' in html
+    assert 'id="source-document-viewer"' in html
+    assert "openSourcePreview" in html
     assert 'id="settings-insights-list"' in html
     assert "renderLibraryContext" in html
     assert "renderChatContextSources" in html

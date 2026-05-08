@@ -391,6 +391,10 @@
       <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
       <span class="sidebar-label">资料库</span>
     </button>
+    <button id="nav-source" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('source')">
+      <span class="material-symbols-outlined" style="font-size:20px">article</span>
+      <span class="sidebar-label">来源预览</span>
+    </button>
     <button id="nav-notes" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('notes')">
       <span class="material-symbols-outlined" style="font-size:20px">edit_note</span>
       <span class="sidebar-label">笔记</span>
@@ -400,13 +404,22 @@
       <span class="sidebar-label">设置</span>
     </button>
   </nav>
-  <button onclick="switchView('settings')" class="soft-panel mx-2 flex items-center gap-3 px-3 py-3 text-left" title="查看本地运行状态" aria-label="查看本地运行状态">
-    <span id="status-dot" class="w-2 h-2 rounded-full bg-tertiary flex-shrink-0"></span>
-    <span class="sidebar-bottom-text min-w-0">
-      <span id="sidebar-status-label" class="block text-xs font-bold text-on-surface">本地运行</span>
-      <span class="block text-[11px] text-on-surface-variant/60">隐私数据仅在本机处理</span>
-    </span>
-  </button>
+  <div class="mx-2 flex flex-col gap-2">
+    <button onclick="switchView('library')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地资料库" aria-label="查看本地资料库">
+      <span class="material-symbols-outlined text-primary" style="font-size:17px">inventory_2</span>
+      <span class="sidebar-bottom-text min-w-0">
+        <span id="sidebar-storage-label" class="block text-xs font-bold text-on-surface">本地资料</span>
+        <span id="sidebar-storage-count" class="block text-[11px] text-on-surface-variant/60">正在读取</span>
+      </span>
+    </button>
+    <button onclick="switchView('settings')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地运行状态" aria-label="查看本地运行状态">
+      <span id="status-dot" class="w-2 h-2 rounded-full bg-tertiary flex-shrink-0"></span>
+      <span class="sidebar-bottom-text min-w-0">
+        <span id="sidebar-status-label" class="block text-xs font-bold text-on-surface">本地运行</span>
+        <span class="block text-[11px] text-on-surface-variant/60">隐私数据仅在本机处理</span>
+      </span>
+    </button>
+  </div>
 </aside>
 
 <!-- ── Main ── -->
@@ -480,7 +493,7 @@
           </div>
           <div class="text-sm text-on-surface leading-relaxed">
             你好，我是 DocFlow — 你的本地知识助手。<br>
-            将文件放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code>，或去 Notes 导入网页/写临时笔记，再回到这里选择范围提问。
+            把文件拖进资料库，或去笔记页导入网页、写临时笔记，再回到这里选择范围提问。
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <button onclick="switchView('library')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
                 <span class="block font-semibold text-on-surface">整理文件库</span>
@@ -625,15 +638,20 @@
         role="button"
         tabindex="0"
         aria-label="拖拽文件至此或点击上传"
-        class="border-2 border-dashed border-outline-variant/40 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-primary/40 hover:bg-surface-container/50 transition-all text-center"
+        class="border border-dashed border-outline-variant/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:border-primary/40 hover:bg-surface-container/50 transition-all text-left"
         onclick="document.getElementById('file-input').click()"
         onkeydown="handleUploadZoneKey(event)"
         ondragover="event.preventDefault();this.classList.add('border-primary/60','bg-surface-container')"
         ondragleave="this.classList.remove('border-primary/60','bg-surface-container')"
         ondrop="handleDrop(event)">
-        <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:32px">upload_file</span>
-        <div class="text-sm font-medium text-on-surface-variant">拖拽文件至此或点击上传</div>
-        <div class="text-xs text-on-surface-variant/60">支持 PDF · MD · TXT · DOCX · 图片 &nbsp;|&nbsp; 也可直接放入 ~/Documents/DocFlow/</div>
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="material-symbols-outlined text-primary" style="font-size:22px">upload_file</span>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-on-surface-variant">拖拽文件至此或点击上传</div>
+            <div class="text-xs text-on-surface-variant/60 line-clamp-1">支持 PDF、Markdown、文本、Word 和图片资料</div>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:18px">add</span>
       </div>
     </div>
 
@@ -749,7 +767,7 @@
           </button>
           <button onclick="rebuildSelected()" id="rebuild-selected-btn" class="toolbar-btn">
             <span class="material-symbols-outlined" style="font-size:15px">sync</span>
-            重建索引
+            重新整理
           </button>
           <datalist id="collection-options"></datalist>
           <datalist id="tag-options"></datalist>
@@ -767,7 +785,7 @@
                 <th class="text-left py-3 pr-4">类型</th>
                 <th class="text-left py-3 pr-4">状态</th>
                 <th class="text-left py-3 pr-4">页数</th>
-                <th class="text-left py-3 pr-4">Chunks</th>
+                <th class="text-left py-3 pr-4">片段</th>
                 <th class="text-left py-3 pr-4">更新时间</th>
                 <th class="text-left py-3"></th>
               </tr>
@@ -791,11 +809,61 @@
     </div>
   </div>
 
+  <!-- ── Source Preview View ── -->
+  <div id="view-source" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <div>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">来源预览</h1>
+        <p id="source-preview-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">从回答引用或资料库文件进入，核查每个片段的出处</p>
+      </div>
+      <button onclick="switchView('library')" title="返回资料库" aria-label="返回资料库" class="toolbar-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">folder_open</span>
+        返回资料库
+      </button>
+    </header>
+    <div class="workspace-shell">
+      <div class="workspace-card grid grid-cols-[300px_minmax(0,1fr)_320px] min-h-0 overflow-hidden">
+        <aside class="border-r border-outline-variant/10 p-4 overflow-y-auto custom-scrollbar">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <h2 class="panel-title">搜索与引用</h2>
+            <span id="source-preview-count" class="text-[11px] text-on-surface-variant/60">0 个片段</span>
+          </div>
+          <div id="source-result-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </aside>
+        <section class="min-h-0 flex flex-col">
+          <div class="h-14 flex-shrink-0 flex items-center justify-between gap-3 px-5 border-b border-outline-variant/10">
+            <div class="min-w-0">
+              <div id="source-document-title" class="text-sm font-semibold text-on-surface line-clamp-1">选择一个来源</div>
+              <div id="source-document-meta" class="text-[11px] text-on-surface-variant/60 mt-0.5">等待载入片段</div>
+            </div>
+            <button id="source-open-original-btn" onclick="openSourceOriginal()" class="toolbar-btn hidden" title="打开原文" aria-label="打开原文">
+              <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+              打开原文
+            </button>
+          </div>
+          <div id="source-document-viewer" class="flex-1 overflow-y-auto custom-scrollbar p-6 text-sm leading-7 text-on-surface">
+            <div class="mx-auto max-w-2xl rounded-xl bg-surface-container-low px-5 py-8 text-center text-on-surface-variant">
+              从对话引用或资料库文件进入来源预览。
+            </div>
+          </div>
+        </section>
+        <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
+          <section class="soft-panel p-4">
+            <h2 class="panel-title">引用详情</h2>
+            <div id="source-detail-panel" class="mt-3 text-xs leading-relaxed text-on-surface-variant">
+              选中左侧片段后，这里会显示页码、章节、字数和可执行操作。
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Notes View ── -->
   <div id="view-notes" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">Notes</h1>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">笔记</h1>
         <p class="text-[11px] text-on-surface-variant/60 mt-0.5">采集网页、临时想法和可复用回答</p>
       </div>
       <button onclick="refreshNotesView()" title="刷新笔记列表" aria-label="刷新笔记列表" class="toolbar-btn">
@@ -814,10 +882,23 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input id="notes-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
-            <input id="notes-collection-input" list="collection-options" placeholder="集合，默认 Notes" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-collection-input" list="collection-options" placeholder="集合，默认笔记" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="notes-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
-          <textarea id="notes-content-input" rows="9" placeholder="写下要入库的内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <div id="notes-editor-toolbar" class="mt-3 flex flex-wrap gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
+            <button onclick="insertMarkdownToken('# ', '')" class="toolbar-btn !px-2 !py-1" title="一级标题" aria-label="一级标题">H1</button>
+            <button onclick="insertMarkdownToken('## ', '')" class="toolbar-btn !px-2 !py-1" title="二级标题" aria-label="二级标题">H2</button>
+            <button onclick="insertMarkdownToken('**', '**')" class="toolbar-btn !px-2 !py-1" title="加粗" aria-label="加粗">
+              <span class="material-symbols-outlined" style="font-size:14px">bolt</span>
+            </button>
+            <button onclick="insertMarkdownToken('- ', '')" class="toolbar-btn !px-2 !py-1" title="列表" aria-label="列表">
+              <span class="material-symbols-outlined" style="font-size:14px">article</span>
+            </button>
+            <button onclick="insertMarkdownToken('> ', '')" class="toolbar-btn !px-2 !py-1" title="引用" aria-label="引用">
+              <span class="material-symbols-outlined" style="font-size:14px">format_quote</span>
+            </button>
+          </div>
+          <textarea id="notes-content-input" rows="9" placeholder="写下要入库的内容" class="mt-2 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
             <span id="notes-status" class="text-[11px] text-on-surface-variant/60"></span>
             <button id="notes-submit-btn" onclick="createNoteFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
@@ -835,7 +916,7 @@
           <input id="notes-url-input" placeholder="https://example.com/article" class="h-9 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input id="notes-url-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
-            <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认 Web Imports" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认网页采集" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="notes-url-tags-input" list="tag-options" placeholder="标签，默认 web" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
           <div class="mt-4 rounded-lg bg-surface-container-low px-3 py-3 text-xs leading-relaxed text-on-surface-variant">
@@ -864,14 +945,32 @@
               清除选中文件
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <select id="knowledge-output-type" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+          <div class="mb-3 grid grid-cols-2 lg:grid-cols-4 gap-2" id="knowledge-output-cards" aria-label="知识产物类型">
+            <button type="button" onclick="setKnowledgeOutputType('summary')" data-output-type="summary" class="knowledge-output-card rounded-lg bg-primary-container text-primary px-3 py-2 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">结构化总结</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">提炼脉络和要点</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('learning_cards')" data-output-type="learning_cards" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">学习卡片</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">适合复习整理</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('action_items')" data-output-type="action_items" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">行动项</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">转成待办清单</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('project_brief')" data-output-type="project_brief" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">项目简报</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">形成项目说明</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select id="knowledge-output-type" class="sr-only" aria-label="知识产物类型" onchange="syncKnowledgeOutputCards()">
               <option value="summary">结构化总结</option>
               <option value="learning_cards">学习卡片</option>
               <option value="action_items">行动项</option>
               <option value="project_brief">项目简报</option>
             </select>
-            <input id="knowledge-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20 md:col-span-1">
+            <input id="knowledge-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
@@ -892,7 +991,7 @@
           <div class="flex items-center justify-between gap-4 mb-3">
             <div>
               <h2 class="panel-title">最近采集</h2>
-              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自 Notes、Web Imports、Saved Answers 和 Knowledge Outputs 的本地文件</p>
+              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自笔记、网页采集、保存回答和知识产物的本地文件</p>
             </div>
             <span id="notes-count" class="text-[11px] text-on-surface-variant/60"></span>
           </div>
@@ -917,7 +1016,7 @@
   <div id="view-settings" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">Settings</h1>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">设置</h1>
         <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型和资料来源</p>
       </div>
       <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="toolbar-btn whitespace-nowrap">
@@ -960,7 +1059,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h2 class="text-sm font-semibold text-on-surface">本地模型</h2>
-              <p id="llm-status" class="text-[11px] text-on-surface-variant/60 mt-0.5">Local LLM</p>
+              <p id="llm-status" class="text-[11px] text-on-surface-variant/60 mt-0.5">本地模型</p>
             </div>
             <div class="relative">
               <button id="llm-btn" class="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
@@ -997,7 +1096,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div class="rounded-lg bg-surface-container-low px-3 py-3">
               <div class="font-semibold text-on-surface">默认本地优先</div>
-              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">资料、索引和历史都保存在本机。</div>
+              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">资料、整理结果和历史都保存在本机。</div>
             </div>
             <div class="rounded-lg bg-surface-container-low px-3 py-3">
               <div class="font-semibold text-on-surface">手动整理</div>
@@ -1020,6 +1119,12 @@
               </button>
             </div>
             <div id="settings-insights-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+          </section>
+          <section class="soft-panel p-4 mt-3">
+            <h2 class="panel-title">存储概览</h2>
+            <div id="settings-storage-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">正在读取本地资料统计…</div>
+            </div>
           </section>
           <section class="soft-panel p-4 mt-3">
             <h2 class="panel-title">资料范围</h2>
@@ -1090,6 +1195,7 @@ let libraryFilters = { status: '', collection: '', tag: '', favorite: false, kin
 let libraryWorkflowMode = 'note';
 let activeLibraryFileId = null;
 let librarySourceReview = { fileId: null, chunks: [] };
+let sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: false, error: '' };
 let lastCitations = [];
 let queryScopeFiles = [];
 let queuePollTimer = null;
@@ -1122,6 +1228,7 @@ const LOCAL_ICON_PATHS = {
   folder_managed: '<path d="M3 6h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="16" cy="14" r="2"/><path d="M16 10v1M16 17v1M12 14h1M19 14h1"/>',
   folder_open: '<path d="M3 7h7l2 2h9l-2 10H4L3 7Z"/><path d="M3 7v12"/>',
   folder_sync: '<path d="M3 7h7l2 2h9v4"/><path d="M4 19h8"/><path d="M18 14a4 4 0 1 0 2.8 1.2"/><path d="M21 14v3h-3"/>',
+  format_quote: '<path d="M7 7h5v5H9c0 2 1 3 3 4v2c-4-1-6-4-6-8V7ZM15 7h5v5h-3c0 2 1 3 3 4v2c-4-1-6-4-6-8V7Z"/>',
   forum: '<path d="M4 5h12v8H8l-4 4V5Z"/><path d="M10 15h6l4 4V9h-2"/>',
   history: '<path d="M4 12a8 8 0 1 0 3-6"/><path d="M4 4v5h5M12 8v5l3 2"/>',
   image: '<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 17 4-4 3 3 3-4 6 5"/>',
@@ -1245,6 +1352,7 @@ function switchView(view) {
 
   if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); }
   if (view === 'library') { refreshFiles(); pollQueueOnce(); }
+  if (view === 'source') renderSourcePreview();
   if (view === 'notes') refreshNotesView();
   if (view === 'settings') refreshSettings();
   if (view === 'history') refreshHistory();
@@ -1329,19 +1437,21 @@ function renderHealthGroup(group) {
   const rows = group.items.map(item => {
     const color = healthItemColor(item.status);
     const label = healthItemLabel(item.status);
-    return `<div class="flex items-start justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-      <div class="min-w-0">
+    return `<div class="min-h-[76px] rounded-lg bg-surface-container-low px-3 py-3">
+      <div class="flex items-center justify-between gap-3">
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
+          <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
+        </span>
+      </div>
+      <div class="mt-2 min-w-0">
         <div class="font-semibold text-on-surface">${escHtml(item.label || item.key)}</div>
         ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(settingsSafeDetail(item.detail))}</div>` : ''}
       </div>
-      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
-        <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
-      </span>
     </div>`;
   }).join('');
   return `<section>
     <div class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 mt-1">${escHtml(group.label)}</div>
-    <div class="flex flex-col gap-2">${rows}</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">${rows}</div>
   </section>`;
 }
 
@@ -1361,7 +1471,7 @@ function renderSettingsInsights(errorText = '') {
   const unavailableOptional = optionalItems.filter(item => item.status !== 'ok');
   const insights = [];
   if (healthSnapshot.status === 'ok') {
-    insights.push({ title: '核心功能正常', detail: '问答、入库和本地索引可以正常使用。' });
+    insights.push({ title: '核心功能正常', detail: '问答、入库和本地资料可以正常使用。' });
   } else if (healthSnapshot.status === 'degraded') {
     insights.push({ title: '核心功能可用', detail: '主要功能可用，部分增强能力暂未就绪。' });
   } else {
@@ -1446,6 +1556,7 @@ initLocalIcons();
 loadLLMOptions();
 loadConversations();
 loadQueryScopeOptions();
+syncKnowledgeOutputCards();
 
 document.getElementById('llm-btn').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -1479,7 +1590,7 @@ async function switchLLM(model) {
     }
     if (d.ok) {
       document.getElementById('llm-current').textContent = model;
-      renderLLMStatus({ state: 'idle', message: 'Local LLM' });
+      renderLLMStatus({ state: 'idle', message: '本地模型' });
       loadLLMOptions();
     }
   } catch (e) {
@@ -1501,7 +1612,7 @@ function renderLLMStatus(state) {
     el.textContent = state.message || '切换失败';
     el.classList.add('text-error');
   } else {
-    el.textContent = 'Local LLM';
+    el.textContent = '本地模型';
     el.classList.add('text-on-surface-variant');
   }
 }
@@ -1531,6 +1642,7 @@ async function refreshSettings() {
     checkHealth(),
     loadLLMOptions(),
     loadSettingsSources(),
+    loadSettingsStorage(),
   ]);
 }
 
@@ -1545,11 +1657,47 @@ async function loadSettingsSources() {
     }
     el.innerHTML = sources.map(source => `
       <div class="rounded-lg bg-surface-container-low px-3 py-2">
-        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(source.path)}</div>
-        <div class="text-[11px] text-on-surface-variant/60">${source.recursive ? '递归扫描' : '单层扫描'} · ${(source.extensions || []).join(' ')}</div>
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(sourceDisplayName(source.path))}</div>
+        <div class="text-[11px] text-on-surface-variant/60">${source.recursive ? '包含子文件夹' : '仅当前文件夹'} · ${(source.extensions || []).length || 0} 类文件</div>
       </div>`).join('');
   } catch (e) {
     el.innerHTML = `<div class="text-error">监控目录读取失败：${escHtml(e.message)}</div>`;
+  }
+}
+
+async function loadSettingsStorage() {
+  const el = document.getElementById('settings-storage-list');
+  if (!el) return;
+  try {
+    const [meta, allFiles] = await Promise.all([
+      fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
+      fetch(`${API}/api/files`).then(r => r.json()).catch(() => []),
+    ]);
+    libraryMeta = normalizeLibraryMeta(meta || libraryMeta, allFiles);
+    updateSidebarStorageSummary();
+    let browserStorage = '';
+    if (navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const used = formatBytes(estimate.usage || 0);
+      const quota = estimate.quota ? formatBytes(estimate.quota) : '可用空间';
+      browserStorage = `
+        <div class="rounded-lg bg-surface-container-low px-3 py-2">
+          <div class="font-semibold text-on-surface">浏览器缓存</div>
+          <div class="mt-1 text-[11px] text-on-surface-variant/60">${used} / ${quota}</div>
+        </div>`;
+    }
+    el.innerHTML = `
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="font-semibold text-on-surface">资料库文件</div>
+        <div class="mt-1 text-[11px] text-on-surface-variant/60">${libraryMeta.total_files || 0} 个文件 · ${libraryMeta.recent || 0} 个最近导入</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="font-semibold text-on-surface">收藏内容</div>
+        <div class="mt-1 text-[11px] text-on-surface-variant/60">${libraryMeta.favorites || 0} 个收藏 · ${(libraryMeta.collections || []).length} 个集合</div>
+      </div>
+      ${browserStorage}`;
+  } catch (e) {
+    el.innerHTML = `<div class="text-error">存储统计读取失败：${escHtml(e.message)}</div>`;
   }
 }
 
@@ -1670,7 +1818,7 @@ function welcomeHtml() {
     </div>
     <div class="text-sm text-on-surface leading-relaxed">
       你好，我是 DocFlow — 你的本地知识助手。<br>
-      将文件放入 <code class="bg-surface-container px-1.5 py-0.5 rounded text-xs">~/Documents/DocFlow/</code>，或去 Notes 导入网页/写临时笔记，再回到这里选择范围提问。
+      把文件拖进资料库，或去笔记页导入网页、写临时笔记，再回到这里选择范围提问。
       <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
         <button onclick="switchView('library')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
           <span class="block font-semibold text-on-surface">整理文件库</span>
@@ -1718,6 +1866,7 @@ async function loadQueryScopeOptions(force = false) {
       fetch(`${API}/api/files?status=done`).then(r => r.json()).catch(() => queryScopeFiles),
     ]);
     libraryMeta = meta || libraryMeta;
+    updateSidebarStorageSummary();
     queryScopeFiles = Array.isArray(files) ? files : [];
     renderQueryScopeOptions();
     if (status) status.textContent = queryScopeLabel();
@@ -1794,6 +1943,41 @@ function queryScopeLabel() {
 }
 
 // ── Notes workspace ──
+function insertMarkdownToken(prefix, suffix = '') {
+  const input = document.getElementById('notes-content-input');
+  if (!input) return;
+  const start = input.selectionStart || 0;
+  const end = input.selectionEnd || 0;
+  const selected = input.value.slice(start, end);
+  const before = input.value.slice(0, start);
+  const after = input.value.slice(end);
+  const needsLinePrefix = prefix.endsWith(' ') && before && !before.endsWith('\n');
+  const insertPrefix = needsLinePrefix ? `\n${prefix}` : prefix;
+  const nextText = `${insertPrefix}${selected || ''}${suffix}`;
+  input.value = `${before}${nextText}${after}`;
+  const cursor = start + insertPrefix.length + (selected ? selected.length : 0);
+  input.focus();
+  input.setSelectionRange(cursor, cursor);
+}
+
+function setKnowledgeOutputType(type) {
+  const select = document.getElementById('knowledge-output-type');
+  if (!select) return;
+  select.value = type;
+  syncKnowledgeOutputCards();
+}
+
+function syncKnowledgeOutputCards() {
+  const select = document.getElementById('knowledge-output-type');
+  const value = select?.value || 'summary';
+  document.querySelectorAll('.knowledge-output-card').forEach(card => {
+    const active = card.dataset.outputType === value;
+    card.classList.toggle('bg-primary-container', active);
+    card.classList.toggle('text-primary', active);
+    card.classList.toggle('bg-surface-container-low', !active);
+  });
+}
+
 async function createNoteFromNotesView() {
   const btn = document.getElementById('notes-submit-btn');
   const status = document.getElementById('notes-status');
@@ -1888,7 +2072,7 @@ function openKnowledgeFromSelectedFiles() {
   if (title && !title.value.trim()) title.value = `选中文件知识产物`;
   updateKnowledgeSourceFilesLabel();
   document.getElementById('knowledge-output-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  document.getElementById('knowledge-output-type')?.focus();
+  document.getElementById('knowledge-source-input')?.focus();
 }
 
 function clearKnowledgeSourceFiles() {
@@ -1974,6 +2158,7 @@ async function refreshNotesView() {
     libraryMeta = meta || libraryMeta;
     updateLibraryControls();
     updateKnowledgeSourceFilesLabel();
+    syncKnowledgeOutputCards();
     const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers', 'Knowledge Outputs']);
     const notes = files
       .filter(file => noteCollections.has(file.collection || ''))
@@ -2043,6 +2228,70 @@ function escHtml(s) {
     .replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
+}
+
+function sourceDisplayName(filePath) {
+  const parts = String(filePath || '').split(/[\\/]/).filter(Boolean);
+  return parts.at(-2) || parts.at(-1) || '本地资料';
+}
+
+function fileLocationLabel(file) {
+  const folder = sourceDisplayName(file?.file_path);
+  const collection = file?.collection || 'Inbox';
+  return `${folder} · ${collection}`;
+}
+
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let size = bytes / 1024;
+  let unit = units[0];
+  for (let i = 1; i < units.length && size >= 1024; i += 1) {
+    size /= 1024;
+    unit = units[i];
+  }
+  return `${size.toFixed(size >= 10 ? 0 : 1)} ${unit}`;
+}
+
+function updateSidebarStorageSummary() {
+  const count = document.getElementById('sidebar-storage-count');
+  if (!count) return;
+  const total = libraryMeta.total_files || 0;
+  const collections = (libraryMeta.collections || []).length;
+  count.textContent = `${total} 个文件 · ${collections} 个集合`;
+}
+
+function deriveLibraryMetaCounts(files = []) {
+  const rows = Array.isArray(files) ? files : [];
+  const types = { pdf: 0, markdown: 0, image: 0, code: 0 };
+  rows.forEach(file => {
+    const name = file?.file_name || '';
+    const ext = name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') types.pdf += 1;
+    else if (ext === 'md' || ext === 'markdown') types.markdown += 1;
+    else if (['jpg','jpeg','png','webp','heic','heif'].includes(ext)) types.image += 1;
+    else if (['py','rs','ts','tsx','js','jsx','css','sh'].includes(ext)) types.code += 1;
+  });
+  return {
+    total_files: rows.length,
+    favorites: rows.filter(file => file?.favorited).length,
+    recent: Math.min(rows.length, 30),
+    types,
+  };
+}
+
+function normalizeLibraryMeta(meta, files = []) {
+  const derived = deriveLibraryMetaCounts(files);
+  const incomingTypes = meta?.types || {};
+  const hasUsefulTypes = ['pdf', 'markdown', 'image', 'code'].some(key => Number(incomingTypes[key] || 0) > 0);
+  return {
+    ...(meta || {}),
+    total_files: Number.isFinite(meta?.total_files) ? meta.total_files : derived.total_files,
+    favorites: Number.isFinite(meta?.favorites) ? meta.favorites : derived.favorites,
+    recent: Number.isFinite(meta?.recent) ? meta.recent : derived.recent,
+    types: hasUsefulTypes ? incomingTypes : derived.types,
+  };
 }
 
 // Minimal markdown: bold, inline code, newlines
@@ -2379,14 +2628,177 @@ async function sendMessage() {
 }
 
 // ── Source Preview ──
-function openSourceByPath(filePath, pageNum = 1) {
-  fetch(`${API}/api/files`).then(r => r.json()).then(files => {
-    const f = files.find(f => f.file_path === filePath);
-    if (!f) return;
-    const suffix = (f.file_name || '').split('.').pop().toLowerCase();
-    const hash = suffix === 'pdf' ? `#page=${pageNum || 1}` : '';
-    window.open(`${API}/api/file/${f.id}/preview${hash}`, '_blank');
-  });
+async function openSourceByPath(filePath, pageNum = 1) {
+  try {
+    const files = await fetch(`${API}/api/files`).then(r => r.json());
+    const file = files.find(item => item.file_path === filePath);
+    if (file) await openSourcePreview(file.id, pageNum);
+  } catch {}
+}
+
+async function openSourcePreview(fileId, pageNum = 1) {
+  switchView('source');
+  sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: true, error: '' };
+  renderSourcePreview();
+  try {
+    const data = await fetch(`${API}/api/file/${fileId}/chunks?max_text_chars=1800`).then(r => {
+      if (!r.ok) throw new Error('来源读取失败');
+      return r.json();
+    });
+    const chunks = data.chunks || [];
+    const selectedIndex = Math.max(0, chunks.findIndex(chunk => Number(chunk.page_num || 0) === Number(pageNum || 0)));
+    sourcePreviewState = {
+      file: data.file,
+      chunks,
+      selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
+      loading: false,
+      error: '',
+    };
+  } catch (e) {
+    sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: false, error: e.message };
+  }
+  renderSourcePreview();
+}
+
+function renderSourcePreview() {
+  const list = document.getElementById('source-result-list');
+  const count = document.getElementById('source-preview-count');
+  const title = document.getElementById('source-document-title');
+  const meta = document.getElementById('source-document-meta');
+  const viewer = document.getElementById('source-document-viewer');
+  const detail = document.getElementById('source-detail-panel');
+  const openOriginal = document.getElementById('source-open-original-btn');
+  if (!list || !count || !title || !meta || !viewer || !detail || !openOriginal) return;
+
+  if (sourcePreviewState.loading) {
+    count.textContent = '读取中';
+    title.textContent = '正在载入来源';
+    meta.textContent = '读取本地片段';
+    openOriginal.classList.add('hidden');
+    list.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3"><span class="spinner"></span><span class="ml-2">正在读取片段…</span></div>';
+    viewer.innerHTML = '<div class="mx-auto max-w-2xl rounded-xl bg-surface-container-low px-5 py-8 text-center text-on-surface-variant">正在载入来源内容…</div>';
+    detail.textContent = '片段载入完成后显示详情。';
+    return;
+  }
+
+  if (sourcePreviewState.error) {
+    count.textContent = '读取失败';
+    title.textContent = '来源读取失败';
+    meta.textContent = '';
+    openOriginal.classList.add('hidden');
+    list.innerHTML = `<div class="rounded-lg bg-error/10 px-3 py-3 text-error">${escHtml(sourcePreviewState.error)}</div>`;
+    viewer.innerHTML = '<div class="mx-auto max-w-2xl rounded-xl bg-error/10 px-5 py-8 text-center text-error">无法读取这个来源。</div>';
+    detail.textContent = '可以回到资料库重新选择文件。';
+    return;
+  }
+
+  const file = sourcePreviewState.file;
+  const chunks = sourcePreviewState.chunks || [];
+  if (!file) {
+    count.textContent = '0 个片段';
+    title.textContent = '选择一个来源';
+    meta.textContent = '等待载入片段';
+    openOriginal.classList.add('hidden');
+    list.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3">从对话引用或资料库文件进入来源预览。</div>';
+    viewer.innerHTML = '<div class="mx-auto max-w-2xl rounded-xl bg-surface-container-low px-5 py-8 text-center text-on-surface-variant">从对话引用或资料库文件进入来源预览。</div>';
+    detail.textContent = '选中左侧片段后，这里会显示页码、章节、字数和可执行操作。';
+    return;
+  }
+
+  const selected = chunks[sourcePreviewState.selectedIndex] || null;
+  count.textContent = `${chunks.length} 个片段`;
+  title.textContent = file.file_name || '未命名来源';
+  meta.textContent = `${fileLocationLabel(file)} · ${fileTypeLabel(file.file_name, file.is_scanned)}`;
+  openOriginal.classList.remove('hidden');
+
+  if (!chunks.length) {
+    list.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3">这个文件还没有可预览片段。</div>';
+    viewer.innerHTML = '<div class="mx-auto max-w-2xl rounded-xl bg-surface-container-low px-5 py-8 text-center text-on-surface-variant">这个文件还没有完成入库，暂时没有片段可预览。</div>';
+    detail.textContent = '文件完成入库后会显示可核查片段。';
+    return;
+  }
+
+  list.innerHTML = chunks.map((chunk, index) => {
+    const active = index === sourcePreviewState.selectedIndex;
+    return `<button onclick="selectSourcePreviewChunk(${index})" class="w-full text-left rounded-lg px-3 py-3 transition-all active:scale-95 ${active ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-low hover:bg-surface-container'}">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-semibold line-clamp-1">${escHtml(chunk.section || chunk.chunk_type || `片段 ${index + 1}`)}</span>
+        <span class="text-[10px] font-bold">${chunk.page_num ? `第 ${chunk.page_num} 页` : `${index + 1}`}</span>
+      </div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(chunk.text_preview || chunk.raw_text || chunk.parent_text || '')}</div>
+    </button>`;
+  }).join('');
+
+  const text = selected?.text_preview || selected?.raw_text || selected?.parent_text || '暂无文本预览';
+  viewer.innerHTML = `
+    <article class="mx-auto max-w-3xl rounded-xl bg-surface-container-lowest px-6 py-6 shadow-sm">
+      <div class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">${escHtml(selected?.section || selected?.chunk_type || '引用片段')}</div>
+      <div class="mt-4 whitespace-pre-wrap">${escHtml(text)}</div>
+    </article>`;
+  detail.innerHTML = `
+    <div class="grid grid-cols-2 gap-2">
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="text-[10px] text-on-surface-variant/60">页码</div>
+        <div class="mt-1 font-bold text-on-surface">${selected?.page_num || '-'}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="text-[10px] text-on-surface-variant/60">字数</div>
+        <div class="mt-1 font-bold text-on-surface">${selected?.char_count || selected?.text_length || '-'}</div>
+      </div>
+    </div>
+    <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="font-semibold text-on-surface">${escHtml(selected?.section || '来源片段')}</div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(file.file_name || '')}</div>
+    </div>
+    <div class="mt-3 flex flex-col gap-2">
+      <button onclick="savePreviewChunkAsNote()" class="toolbar-btn" title="保存片段为笔记" aria-label="保存片段为笔记">
+        <span class="material-symbols-outlined" style="font-size:15px">note_add</span>
+        保存片段
+      </button>
+      <button onclick="askWithLibraryFile(${file.id})" class="toolbar-btn" title="用这个文件提问" aria-label="用这个文件提问">
+        <span class="material-symbols-outlined" style="font-size:15px">chat_bubble</span>
+        用它提问
+      </button>
+    </div>`;
+  renderLocalIcons(document.getElementById('view-source'));
+}
+
+function selectSourcePreviewChunk(index) {
+  sourcePreviewState.selectedIndex = index;
+  renderSourcePreview();
+}
+
+function openSourceOriginal() {
+  const file = sourcePreviewState.file;
+  if (file?.id) openFilePreview(file.id);
+}
+
+async function savePreviewChunkAsNote() {
+  const file = sourcePreviewState.file;
+  const chunk = sourcePreviewState.chunks[sourcePreviewState.selectedIndex];
+  if (!file || !chunk) return;
+  const text = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  if (!text.trim()) return;
+  try {
+    const r = await fetch(`${API}/api/notes`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        title: `Source Note - ${file.file_name}`,
+        content: `# ${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
+        collection: 'Saved Sources',
+        user_tags: ['source', 'citation'],
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const detail = document.getElementById('source-detail-panel');
+    if (detail) detail.insertAdjacentHTML('afterbegin', '<div class="mb-2 rounded-lg bg-tertiary-container px-3 py-2 text-[11px] font-bold text-on-tertiary-container">已保存为笔记。</div>');
+    setScanButtonState('queued');
+    startQueuePolling();
+  } catch (e) {
+    const detail = document.getElementById('source-detail-panel');
+    if (detail) detail.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(e.message)}</div>`);
+  }
 }
 
 // ── Library page ──
@@ -2612,12 +3024,14 @@ async function refreshFiles(options = {}) {
   const showLoading = Boolean(options.showLoading);
   if (showLoading) setRefreshButtonLoading(true);
   try {
-    const [files, meta] = await Promise.all([
+    const [files, meta, allFiles] = await Promise.all([
       fetch(`${API}/api/files${currentFileQuery()}`).then(r => r.json()),
       fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
+      fetch(`${API}/api/files`).then(r => r.json()).catch(() => []),
     ]);
     libraryFiles = files;
-    libraryMeta = meta || libraryMeta;
+    libraryMeta = normalizeLibraryMeta(meta || libraryMeta, allFiles);
+    updateSidebarStorageSummary();
     if (!files.some(file => file.id === activeLibraryFileId)) {
       activeLibraryFileId = files[0]?.id || null;
     }
@@ -2645,7 +3059,7 @@ async function refreshFiles(options = {}) {
         <td class="py-3 pr-4"><input type="checkbox" data-id="${f.id}" ${f.status !== 'done' ? 'disabled' : ''} onchange="toggleFileSelect(this)" onclick="event.stopPropagation()" class="rounded"></td>
         <td class="py-3 pr-4 min-w-[220px]">
           <div class="text-sm font-semibold text-on-surface line-clamp-1">${escHtml(f.file_name)}</div>
-          <div class="text-[11px] text-on-surface-variant/50 line-clamp-1">${escHtml(f.file_path)}</div>
+          <div class="text-[11px] text-on-surface-variant/50 line-clamp-1">${escHtml(fileLocationLabel(f))}</div>
         </td>
         <td class="py-3 pr-4 text-xs text-on-surface-variant">${collectionBadge(f.collection)}</td>
         <td class="py-3 pr-4 text-xs text-on-surface-variant">${tagPills(userTags)}</td>
@@ -2704,6 +3118,7 @@ function renderLibraryContext(state = {}) {
   }
   const tags = Array.isArray(file.user_tags) ? file.user_tags : [];
   const canRebuild = file.status === 'done';
+  const statusText = fileStatusLabel(file.status);
   panel.innerHTML = `
     <section class="soft-panel p-4">
       <div class="flex items-start justify-between gap-3">
@@ -2721,19 +3136,23 @@ function renderLibraryContext(state = {}) {
           <div class="mt-1 font-bold text-on-surface">${file.total_pages ?? '-'}</div>
         </div>
         <div class="rounded-lg bg-surface-container-low px-3 py-2">
-          <div class="panel-muted">Chunks</div>
+          <div class="panel-muted">片段</div>
           <div class="mt-1 font-bold text-on-surface">${file.chunk_count ?? '-'}</div>
         </div>
         <div class="rounded-lg bg-surface-container-low px-3 py-2">
           <div class="panel-muted">状态</div>
-          <div class="mt-1 font-bold text-on-surface">${escHtml(file.status || '-')}</div>
+          <div class="mt-1 font-bold text-on-surface">${escHtml(statusText)}</div>
         </div>
       </div>
     </section>
     <section class="soft-panel p-4">
       <h3 class="panel-title">来源预览</h3>
-      <p class="mt-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(file.preview || file.file_path || '暂无预览')}</p>
+      <p class="mt-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(file.preview || fileLocationLabel(file) || '暂无预览')}</p>
       <div class="mt-3 flex flex-col gap-2">
+        <button onclick="openSourcePreview(${file.id})" class="toolbar-btn toolbar-btn-primary" title="打开来源预览" aria-label="打开来源预览">
+          <span class="material-symbols-outlined" style="font-size:15px">article</span>
+          打开来源预览
+        </button>
         <button id="library-source-review-btn" onclick="openSourceReview(${file.id})" class="toolbar-btn" title="查看引用片段" aria-label="查看引用片段">
           <span class="material-symbols-outlined" style="font-size:15px">link</span>
           查看引用片段
@@ -2766,9 +3185,9 @@ function renderLibraryContext(state = {}) {
           <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>
           生成知识产物
         </button>
-        <button onclick="selectSingleAndRebuild(${file.id})" ${canRebuild ? '' : 'disabled'} class="toolbar-btn disabled:opacity-45" title="重建这个文件的索引" aria-label="重建这个文件的索引">
+        <button onclick="selectSingleAndRebuild(${file.id})" ${canRebuild ? '' : 'disabled'} class="toolbar-btn disabled:opacity-45" title="重新整理这个文件" aria-label="重新整理这个文件">
           <span class="material-symbols-outlined" style="font-size:15px">sync</span>
-          重建索引
+          重新整理
         </button>
       </div>
     </section>`;
@@ -2794,7 +3213,7 @@ async function openSourceReview(fileId) {
     panel.innerHTML = `
       <div class="mb-3 rounded-lg bg-surface-container-lowest px-3 py-2">
         <div class="font-semibold text-on-surface">为什么引用这些片段</div>
-        <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">这些内容来自本地索引中的真实 chunk，保留了页面、章节和文本预览，可用于核查回答证据。</div>
+        <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">这些内容来自已经入库的真实片段，保留了页面、章节和文本预览，可用于核查回答证据。</div>
       </div>
       <div class="flex flex-col gap-2">
         ${chunks.slice(0, 5).map((chunk, idx) => sourceChunkMarkup(chunk, idx, data.file)).join('')}
@@ -2821,7 +3240,7 @@ function sourceChunkMarkup(chunk, idx, file) {
         </button>
       </div>
       <p class="mt-2 text-[11px] leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(preview || '暂无文本预览')}</p>
-      <button onclick="openFilePreview(${file.id})" class="mt-2 text-[11px] font-bold text-primary hover:underline">打开原文</button>
+      <button onclick="openSourcePreview(${file.id}, ${chunk.page_num || 1})" class="mt-2 text-[11px] font-bold text-primary hover:underline">打开来源预览</button>
     </div>`;
 }
 
@@ -2837,7 +3256,7 @@ async function saveSourceChunkAsNote(index) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         title: `Source Note - ${file.file_name}`,
-        content: `# ${file.file_name}\n\n来源：${file.file_path}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
+        content: `# ${file.file_name}\n\n来源：${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
         collection: 'Saved Sources',
         user_tags: ['source', 'citation'],
       }),
@@ -2878,7 +3297,7 @@ async function loadLibraryFileActivity(file) {
 }
 
 async function askWithLibraryFile(fileId) {
-  const file = libraryFiles.find(item => item.id === fileId);
+  const file = libraryFiles.find(item => item.id === fileId) || (sourcePreviewState.file?.id === fileId ? sourcePreviewState.file : null);
   switchView('chat');
   await loadQueryScopeOptions(true);
   const mode = document.getElementById('query-scope-mode');
@@ -2942,9 +3361,20 @@ function statusBadge(status) {
   };
   const cls = map[status] || map.pending;
   const icon = icons[status] || 'schedule';
+  const label = fileStatusLabel(status);
   return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold ${cls}">
-    <span class="material-symbols-outlined" style="font-size:12px">${icon}</span>${status}
+    <span class="material-symbols-outlined" style="font-size:12px">${icon}</span>${escHtml(label)}
   </span>`;
+}
+
+function fileStatusLabel(status) {
+  const labels = {
+    done: '已入库',
+    processing: '处理中',
+    error: '失败',
+    pending: '等待中',
+  };
+  return labels[status] || status || '等待中';
 }
 
 function toggleFileSelect(cb) {
@@ -3063,9 +3493,9 @@ async function applyBatchMetadata() {
 async function rebuildSelected() {
   if (selectedFileIds.size === 0) return;
   const confirmed = await showConfirmDialog({
-    title: '重建选中文件索引？',
-    message: `将重新读取 ${selectedFileIds.size} 个源文件并更新索引。`,
-    confirmText: '开始重建',
+    title: '重新整理选中文件？',
+    message: `将重新读取 ${selectedFileIds.size} 个文件，并更新资料状态。`,
+    confirmText: '开始整理',
   });
   if (!confirmed) return;
   const btn = document.getElementById('rebuild-selected-btn');
@@ -3081,7 +3511,7 @@ async function rebuildSelected() {
     pollQueueOnce();
     await refreshFiles();
   } catch (e) {
-    alert(`重建索引失败: ${e.message}`);
+    alert(`整理失败: ${e.message}`);
   } finally {
     btn.disabled = false;
   }
@@ -3242,15 +3672,15 @@ async function pollQueueOnce() {
         queued: '排队中',
         preparing: '解析/切块',
         embedding: '向量化',
-        storing: '写入索引',
+        storing: '保存片段',
         processing: '处理中',
         paused: '前台问答中，后台让路',
       };
-      if (q.paused) parts.push('前台问答中，后台索引暂停');
+      if (q.paused) parts.push('前台问答中，后台整理暂停');
       if (q.processing) parts.push(`处理：${q.processing}`);
       if (q.progress?.stage) parts.push(`阶段：${stageLabels[q.progress.stage] || q.progress.stage}`);
       if (q.progress?.total_chunks > 0) {
-        parts.push(`chunks ${q.progress.processed_chunks}/${q.progress.total_chunks}`);
+        parts.push(`片段 ${q.progress.processed_chunks}/${q.progress.total_chunks}`);
       }
       if (q.progress?.batch_files?.length > 1) {
         parts.push(`微批 ${q.progress.batch_files.length} 个文件`);
