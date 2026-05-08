@@ -225,14 +225,19 @@ def test_phase18_release_docs_are_linked_from_readme():
         "docs/LOCAL_DEPLOYMENT.md",
         "docs/phase18-final-acceptance.md",
         "docs/phase18-handoff.md",
-        "docs/phase26-chat-desktop.png",
-        "docs/phase26-library-desktop.png",
+        "docs/phase29-chat-desktop.png",
+        "docs/phase29-library-desktop.png",
+        "docs/phase29-notes-desktop.png",
+        "docs/phase29-settings-desktop.png",
     ]:
         assert Path(path).exists()
 
     assert "docs/LOCAL_DEPLOYMENT.md" in readme
     assert "docs/phase18-final-acceptance.md" in readme
-    assert "docs/phase26-chat-desktop.png" in readme
+    assert "docs/phase29-chat-desktop.png" in readme
+    assert "docs/phase29-library-desktop.png" in readme
+    assert "docs/phase29-notes-desktop.png" in readme
+    assert "docs/phase29-settings-desktop.png" in readme
     assert "MIT. See `LICENSE`." in readme
     assert "MIT。见 `LICENSE`。" in readme
 

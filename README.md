@@ -4,13 +4,17 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.28.0`.
+Current release target: `0.29.0`.
 
 ## Product Screenshots
 
-![DocFlow chat workspace](docs/phase26-chat-desktop.png)
+![DocFlow chat workspace](docs/phase29-chat-desktop.png)
 
-![DocFlow library workspace](docs/phase26-library-desktop.png)
+![DocFlow library workspace](docs/phase29-library-desktop.png)
+
+![DocFlow notes workspace](docs/phase29-notes-desktop.png)
+
+![DocFlow settings workspace](docs/phase29-settings-desktop.png)
 
 ## English
 
@@ -36,6 +40,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Phase 26 workspace redesign: a wider local-first sidebar, global search, unified toolbar actions, and right-side context panels for citations, file details, recent captures, and status hints.
 - Phase 27 Library upgrade: real Library groups for all files, favorites, recent imports, PDFs, Markdown, images, and code, plus richer file details with source chunks, recent citations, and file-scoped question shortcuts.
 - Phase 28 UI cleanup: Settings is now a normal user-facing settings page; command-line recovery and repair workflows stay in docs, CLI, and tests.
+- Phase 29 UI acceptance: final Chat, Library, Notes, and Settings screenshots are checked into the README, and the UI redesign plan is closed with remaining gaps handed off to the post-review roadmap.
 - Local knowledge capture: import webpages, create quick Markdown notes, save answers back into the local library, and turn source text or selected files into reusable Markdown knowledge outputs.
 - Notes workspace: create Markdown notes, import webpages, generate summaries, learning cards, action items, and project briefs, then review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
@@ -73,7 +78,7 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
 - Local install is explicit: preview with `python main.py install-local`, then use `--apply` only when the plan is acceptable.
 - Browser acceptance is repeatable: with the service running, `python main.py browser-acceptance` verifies the four main pages and writes screenshots under `output/playwright/`.
-- The current browser UI follows the Phase 26/27 personal knowledge workspace style: quiet sidebar navigation, global search, primary work area, real Library groups, and context panels instead of decorative controls.
+- The current browser UI follows the Phase 26-29 personal knowledge workspace style: quiet sidebar navigation, global search, primary work area, real Library groups, ordinary user-facing Settings, and context panels instead of decorative controls.
 - Library file details now expose source chunks, recent citation history, open-original actions, save-as-note actions, and direct file-scoped question setup.
 - Foreground model work pauses background ingest, then resumes it after the user-facing task finishes.
 - Notes can generate Knowledge Outputs: summaries, learning cards, action items, and project briefs.
@@ -454,7 +459,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.28.0`。
+当前发布目标：`0.29.0`。
 
 ### 功能特性
 
@@ -472,6 +477,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - Phase 26 工作台改版：更稳定的本地侧栏、全局搜索、统一工具按钮，以及引用来源、文件详情、最近采集和状态提示等右侧上下文面板。
 - Phase 27 文件库升级：Library 支持全部、收藏、最近导入、PDF、Markdown、图片和代码等真实分组，文件详情里可以查看来源片段、最近引用，并一键进入指定文件提问。
 - Phase 28 界面清理：Settings 回到普通用户设置页，命令行恢复和修复流程保留在文档、CLI 和测试里。
+- Phase 29 界面验收：README 已更新 Chat、Library、Notes、Settings 四个最终截图，当前 UI 改版计划已收尾，剩余差距交给后续 review 路线图。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记、把回答保存回本地文件库，并把资料或选中文件生成可复用 Markdown 知识产物。
 - Notes 工作区：集中创建 Markdown 笔记、导入网页，生成总结、学习卡片、行动项、项目简报，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
@@ -509,7 +515,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
 - 本地安装默认先预览：运行 `python main.py install-local` 查看计划，确认后才用 `--apply` 执行。
 - 浏览器验收可以重复运行：服务启动后执行 `python main.py browser-acceptance`，会检查四个主页面，并把截图写到 `output/playwright/`。
-- 当前浏览器界面采用 Phase 26/27 个人知识工作台风格：安静侧栏、全局搜索、主工作区、真实资料分组和上下文面板，不放装饰性按钮。
+- 当前浏览器界面采用 Phase 26-29 个人知识工作台风格：安静侧栏、全局搜索、主工作区、真实资料分组、普通用户设置页和上下文面板，不放装饰性按钮。
 - Library 文件详情已经能展示来源片段、最近引用记录、打开原文、保存片段为笔记和指定文件提问入口。
 - 前台模型任务运行时会暂停后台入库，用户任务结束后再恢复。
 - Notes 工作区可以生成 Knowledge Outputs：总结、学习卡片、行动项和项目简报。

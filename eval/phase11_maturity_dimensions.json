@@ -69,7 +69,7 @@
       "name": "界面可用性",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 18, Phase 25, Phase 26, Phase 27, Phase 28",
+      "phase": "Phase 18, Phase 25, Phase 26, Phase 27, Phase 28, Phase 29",
       "evidence": [
         "Phase 15 将主入口整理为 Chat、Library、Notes、Settings。",
         "Notes 集中资料采集，Settings 集中模型、健康、路径和日常偏好。",
@@ -77,7 +77,8 @@
         "Phase 25 新增可重复浏览器验收，覆盖 Chat、Library、Notes、Settings 四个主页面和截图。",
         "Phase 26 按个人知识工作台风格统一侧栏、全局搜索、工具按钮和右侧上下文面板。",
         "Phase 27 将 Library 的分组、文件详情、来源片段和最近引用做成真实可操作入口。",
-        "Phase 28 移除 Settings 中的命令、恢复建议和 dry-run 口吻，让普通浏览器界面不再像开发者控制台。"
+        "Phase 28 移除 Settings 中的命令、恢复建议和 dry-run 口吻，让普通浏览器界面不再像开发者控制台。",
+        "Phase 29 将 Chat、Library、Notes、Settings 的最终验收截图纳入 README。"
       ],
       "next_steps": [
         "继续把真实上传、扫描、网页导入、笔记保存和知识产物生成纳入浏览器验收。"
@@ -174,7 +175,7 @@
       "name": "测试和交付纪律",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28",
+      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28, Phase 29",
       "evidence": [
         "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和用户界面语言。",
         "每个阶段都有交接文档规则。",
@@ -187,7 +188,8 @@
         "Phase 25 新增 `browser-acceptance` 命令，把四个主页面的浏览器检查和截图纳入可重复验收。",
         "Phase 26 将全局搜索、右侧上下文面板和新工作台结构加入浏览器验收，并补充桌面/窄屏截图检查。",
         "Phase 27 将 Library 分组点击和来源片段展开加入浏览器验收。",
-        "Phase 28 新增 Settings 禁止开发者口吻的浏览器验收和静态检查。"
+        "Phase 28 新增 Settings 禁止开发者口吻的浏览器验收和静态检查。",
+        "Phase 29 复跑最终浏览器验收，并把最终截图作为 README 证据。"
       ],
       "next_steps": [
         "继续把上传、扫描、网页导入、笔记保存和知识产物生成纳入浏览器验收。"
@@ -198,7 +200,7 @@
       "name": "成熟产品感",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28",
+      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28, Phase 29",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
         "Phase 16 增加可读的健康和模型状态。",
@@ -211,7 +213,8 @@
         "Phase 25 增加可重复浏览器验收和截图输出，让发布前页面检查更接近成熟产品流程。",
         "Phase 26 把四个主页面统一到更接近成熟个人知识库助手的工作台界面，并更新 README 截图。",
         "Phase 27 让资料库从静态列表更接近可复核、可继续提问、可沉淀片段的日常工作区。",
-        "Phase 28 将恢复、修复和命令行说明从普通界面移回 CLI 与文档，让浏览器界面更像面向普通用户的成品。"
+        "Phase 28 将恢复、修复和命令行说明从普通界面移回 CLI 与文档，让浏览器界面更像面向普通用户的成品。",
+        "Phase 29 以 README 四图和最终验收文档收尾当前 UI 改版计划。"
       ],
       "next_steps": [
         "继续补齐真实上传、扫描、导入和批量任务进度的浏览器级验收。"

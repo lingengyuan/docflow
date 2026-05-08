@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.29.0 - 2026-05-08
+
+- Added final checked-in screenshots for Chat, Library, Notes, and Settings.
+- Closed the current UI redesign plan with browser acceptance evidence and a Phase 29 handoff.
+- Documented that remaining maturity gaps move to the post-review roadmap after the UI plan.
+
 ## 0.28.0 - 2026-05-08
 
 - Reworked Settings into a normal user-facing page with status hints, local model state, watched folders, and daily-use preferences.
