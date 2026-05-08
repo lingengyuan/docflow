@@ -99,12 +99,16 @@ The first browser run exposed a source review timing/state mismatch. The UI now 
 
 ## Next Phase
 
-Proceed to Phase 28: Real Workflow Browser Coverage.
+Proceed to Phase 28: User-Facing UI Cleanup.
 
 Recommended Phase 28 tasks:
 
-1. Add browser acceptance steps that create temporary Markdown files through Notes or upload, verify they enter the Library, and clean them up afterward.
-2. Exercise scan folders and queue progress in a controlled test path.
-3. Exercise batch metadata, favorite, and rebuild actions from the Library table.
-4. Use the in-app browser or Playwright screenshots to verify the updated Library states on desktop and narrow viewports.
-5. Update the handoff, README/CHANGELOG if user-visible behavior changes, and rerun the full test suite.
+1. Remove maintenance commands, recovery-advice wording, dry-run wording, and copyable terminal commands from the normal browser UI.
+2. Rework Settings into an ordinary personal-knowledge settings page: local status, model status, monitored folders, usage preferences, and clear user-facing state hints.
+3. Update browser acceptance and static checks so the normal UI fails if command-line or developer-console language becomes visible again.
+4. Update README/CHANGELOG and the maturity scorecard to reflect the product/CLI separation.
+5. Update the Phase 28 handoff, rerun validation, commit the phase, and push to GitHub before starting Phase 29.
+
+Project rule update for later sessions:
+
+- Every phase must now end with a handoff document, a focused commit, and a successful push to GitHub before the next phase begins.

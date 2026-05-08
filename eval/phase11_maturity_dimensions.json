@@ -8,7 +8,7 @@
       "phase": "Phase 18, Phase 20",
       "evidence": [
         "默认本地 SQLite、Qdrant、MLX/Ollama 模型。",
-        "Settings 会展示核心健康、模型运行时、可选能力和本地维护命令。",
+        "Settings 会展示核心健康、模型运行时和可选能力状态，但不在普通界面暴露终端命令。",
         "Phase 18 移除了 Tailwind 运行时 CDN，并补充了本地部署隐私说明。",
         "Phase 20 将 Material Symbols 运行时字体请求替换为页面内本地图标渲染。"
       ],
@@ -68,15 +68,16 @@
       "id": "ui_usability",
       "name": "界面可用性",
       "target_score": 9,
-      "current_score": 8.9,
-      "phase": "Phase 18, Phase 25, Phase 26, Phase 27",
+      "current_score": 9.0,
+      "phase": "Phase 18, Phase 25, Phase 26, Phase 27, Phase 28",
       "evidence": [
         "Phase 15 将主入口整理为 Chat、Library、Notes、Settings。",
-        "Notes 集中资料采集，Settings 集中模型、健康、路径和维护入口。",
+        "Notes 集中资料采集，Settings 集中模型、健康、路径和日常偏好。",
         "Phase 18 改为本地构建的浏览器样式，并补充最终页面验收。",
         "Phase 25 新增可重复浏览器验收，覆盖 Chat、Library、Notes、Settings 四个主页面和截图。",
         "Phase 26 按个人知识工作台风格统一侧栏、全局搜索、工具按钮和右侧上下文面板。",
-        "Phase 27 将 Library 的分组、文件详情、来源片段和最近引用做成真实可操作入口。"
+        "Phase 27 将 Library 的分组、文件详情、来源片段和最近引用做成真实可操作入口。",
+        "Phase 28 移除 Settings 中的命令、恢复建议和 dry-run 口吻，让普通浏览器界面不再像开发者控制台。"
       ],
       "next_steps": [
         "继续把真实上传、扫描、网页导入、笔记保存和知识产物生成纳入浏览器验收。"
@@ -123,7 +124,7 @@
       "phase": "Phase 18, Phase 22, Phase 23, Phase 24",
       "evidence": [
         "已有 doctor、start、launchd service、check、rebuild、backup。",
-        "Settings 页面集中展示监控目录、健康状态、维护命令和可复制恢复建议。",
+        "CLI 和文档集中承载安装、恢复和修复流程，普通浏览器界面只展示用户能直接理解的状态。",
         "Phase 18 新增本地部署、重建 CSS、备份恢复和故障处理说明。",
         "Phase 22 新增 `restore-drill`，把备份恢复、重复向量 ID 和 ID 计数安全检查变成可重复命令。",
         "Phase 23 新增 `repair-ids --dry-run`，可先检查落后计数和重复向量 ID，再决定是否修复。",
@@ -173,19 +174,20 @@
       "name": "测试和交付纪律",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23, Phase 24, Phase 25, Phase 26, Phase 27",
+      "phase": "Phase 11, Phase 18, Phase 19, Phase 21, Phase 22, Phase 23, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28",
       "evidence": [
-        "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和维护命令。",
+        "已有自动化测试覆盖核心 API、解析、检索、UI 静态结构和用户界面语言。",
         "每个阶段都有交接文档规则。",
         "Phase 18 将最终验收报告、浏览器验证、备份恢复演练和发布检查纳入交付。",
         "Phase 19 将固定检索评测扩展为可刷新来源、可区分全库检索和指定来源证据检查。",
         "Phase 21 新增 `sample-suite` 命令，把真实样本验证变成可重复的一键检查。",
         "Phase 22 新增恢复演练测试，覆盖正常恢复和源文件缺失的失败提示。",
         "Phase 23 新增编号锁、编号下限、修复 dry-run 和存储最大 ID 的测试。",
-        "Phase 24 新增本地安装计划和 Settings 维护命令覆盖测试。",
+        "Phase 24 新增本地安装计划覆盖测试。",
         "Phase 25 新增 `browser-acceptance` 命令，把四个主页面的浏览器检查和截图纳入可重复验收。",
         "Phase 26 将全局搜索、右侧上下文面板和新工作台结构加入浏览器验收，并补充桌面/窄屏截图检查。",
-        "Phase 27 将 Library 分组点击和来源片段展开加入浏览器验收。"
+        "Phase 27 将 Library 分组点击和来源片段展开加入浏览器验收。",
+        "Phase 28 新增 Settings 禁止开发者口吻的浏览器验收和静态检查。"
       ],
       "next_steps": [
         "继续把上传、扫描、网页导入、笔记保存和知识产物生成纳入浏览器验收。"
@@ -196,19 +198,20 @@
       "name": "成熟产品感",
       "target_score": 9,
       "current_score": 9.0,
-      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22, Phase 24, Phase 25, Phase 26, Phase 27",
+      "phase": "Phase 17, Phase 18, Phase 20, Phase 21, Phase 22, Phase 24, Phase 25, Phase 26, Phase 27, Phase 28",
       "evidence": [
         "Phase 15 将页面整理成更接近成熟个人知识库助手的工作台。",
-        "Phase 16 增加可读的健康、模型和恢复建议。",
+        "Phase 16 增加可读的健康和模型状态。",
         "Phase 17 让资料整理结果能直接沉淀为本地知识资产。",
         "Phase 18 补齐 LICENSE、CHANGELOG、本地部署说明、生产样式构建和最终验收报告。",
         "Phase 20 移除最后一个运行时远程 UI 资源，让页面更符合本地产品定位。",
         "Phase 21 增加真实样本验收入口，降低发布前遗漏多格式能力问题的风险。",
         "Phase 22 增加可运行的恢复演练入口，让本地个人资料库的灾备能力更接近成熟产品。",
-        "Phase 24 增加默认安全的本地安装计划和 Settings 可见维护命令，让新机器落地路径更接近成熟产品。",
+        "Phase 24 增加默认安全的本地安装计划，让新机器落地路径更接近成熟产品。",
         "Phase 25 增加可重复浏览器验收和截图输出，让发布前页面检查更接近成熟产品流程。",
         "Phase 26 把四个主页面统一到更接近成熟个人知识库助手的工作台界面，并更新 README 截图。",
-        "Phase 27 让资料库从静态列表更接近可复核、可继续提问、可沉淀片段的日常工作区。"
+        "Phase 27 让资料库从静态列表更接近可复核、可继续提问、可沉淀片段的日常工作区。",
+        "Phase 28 将恢复、修复和命令行说明从普通界面移回 CLI 与文档，让浏览器界面更像面向普通用户的成品。"
       ],
       "next_steps": [
         "继续补齐真实上传、扫描、导入和批量任务进度的浏览器级验收。"

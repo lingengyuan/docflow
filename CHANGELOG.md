@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.0 - 2026-05-08
+
+- Reworked Settings into a normal user-facing page with status hints, local model state, watched folders, and daily-use preferences.
+- Removed command-line recovery, repair, dry-run, and copy-command wording from the normal browser UI.
+- Added browser acceptance and static checks to prevent developer-only wording from reappearing in Settings.
+
 ## 0.27.0 - 2026-05-08
 
 - Added real Library groups for all files, favorites, recent imports, PDFs, Markdown, images, and code.

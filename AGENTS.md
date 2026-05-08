@@ -22,6 +22,7 @@ DocFlow is a local-first Python document Q&A app. `main.py` is the entry point. 
 - Easy Change: keep modules small, clear, and localized.
 - Orthogonality: keep ingestion, storage, retrieval, API, and UI separate.
 - No masking fallbacks: fallback behavior must not hide failures, data loss, stale data, or reduced answer quality. In project-rule terms, the fallback principle is to expose failures clearly instead of masking reduced answer quality.
+- User-facing UI must feel like a finished personal knowledge product, not a developer console or prototype. Follow the saved UI references exactly for information architecture, visual hierarchy, spacing, and wording. Do not expose code, shell commands, script names, dry-run/repair/restore/install/doctor/browser-acceptance wording, maintenance commands, recovery advice, or copyable terminal commands in the normal browser UI. Keep those capabilities in docs, CLI, tests, or internal implementation only.
 - Unit tests are required for behavior changes.
 - End-to-end testing is required after feature work; exercise the user flow before handoff.
 
@@ -35,7 +36,7 @@ Tests use `pytest`. Name files `test_*.py`, name test functions `test_*`, and ke
 
 ## Phase Handoff Rule
 
-When working from a phased plan, finish phases in order. After completing each phase, write or update a phase handoff document under `docs/` before reporting completion. The handoff must state the completed scope, changed files, validation commands and results, known limitations, and the exact next phase tasks so a later session can resume without rediscovering context.
+When working from a phased plan, finish phases in order. After completing each phase, write or update a phase handoff document under `docs/`, commit the completed phase, and push it to GitHub before reporting completion or starting the next phase. The handoff must state the completed scope, changed files, validation commands and results, known limitations, and the exact next phase tasks so a later session can resume without rediscovering context.
 
 ## Commit & Pull Request Guidelines
 

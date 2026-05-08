@@ -7,15 +7,15 @@ from src.quality.browser_acceptance import (
 )
 
 
-def test_browser_acceptance_plan_covers_main_views_and_commands():
+def test_browser_acceptance_plan_covers_main_views_without_developer_language():
     plan = build_browser_acceptance_plan()
 
     assert [view.id for view in plan] == ["chat", "library", "notes", "settings"]
     settings = plan[-1]
-    assert "#settings-actions-list" in settings.visible_selectors
-    assert "python main.py install-local" in settings.expected_text
-    assert "python main.py restore-drill" in settings.expected_text
-    assert "python main.py repair-ids --dry-run" in settings.expected_text
+    assert "#settings-insights-list" in settings.visible_selectors
+    assert "状态提示" in settings.expected_text
+    assert "使用偏好" in settings.expected_text
+    assert all("python main.py" not in text for text in settings.expected_text)
 
 
 def test_browser_acceptance_report_formats_failures():

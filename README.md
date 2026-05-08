@@ -4,7 +4,7 @@ Local, private document Q&A for PDFs, Markdown notes, Word files, text files, co
 
 DocFlow watches local folders, parses supported files, indexes them into local search stores, and answers questions from a browser UI. Data stays on the machine.
 
-Current release target: `0.27.0`.
+Current release target: `0.28.0`.
 
 ## Product Screenshots
 
@@ -33,16 +33,17 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Multi-turn conversations: conversations and messages persist locally, and follow-up questions use recent context.
 - Browser conversation controls: create, switch, and delete conversations from the chat header.
 - Product workspace shell: Chat, Library, Notes, and Settings are separated into focused daily-use areas.
-- Phase 26 workspace redesign: a wider local-first sidebar, global search, unified toolbar actions, and right-side context panels for citations, file details, recent captures, and recovery guidance.
+- Phase 26 workspace redesign: a wider local-first sidebar, global search, unified toolbar actions, and right-side context panels for citations, file details, recent captures, and status hints.
 - Phase 27 Library upgrade: real Library groups for all files, favorites, recent imports, PDFs, Markdown, images, and code, plus richer file details with source chunks, recent citations, and file-scoped question shortcuts.
+- Phase 28 UI cleanup: Settings is now a normal user-facing settings page; command-line recovery and repair workflows stay in docs, CLI, and tests.
 - Local knowledge capture: import webpages, create quick Markdown notes, save answers back into the local library, and turn source text or selected files into reusable Markdown knowledge outputs.
 - Notes workspace: create Markdown notes, import webpages, generate summaries, learning cards, action items, and project briefs, then review recent captured knowledge.
 - Safer daily use: long model-backed actions have bounded waits, model switching keeps the previous model if the new one cannot be loaded, and destructive actions require in-app confirmation.
 - Foreground priority: background ingest pauses while a user-facing model task is active, then resumes automatically.
 - Clearer source handling: citations show PDF pages or Markdown sections and can open the source preview; Library file details can open chunk-level source review and save a chunk as a local note.
 - Daily-use controls: answer copy/export, grouped dependency status panel, query elapsed time, and visible ingest queue progress.
-- Settings view: model status, dependency health, watched folders, history access, and maintenance commands are visible in one place.
-- Runtime and recovery guidance: Settings shows core health, model readiness, OCR/VLM status, and safe copyable repair or dry-run commands.
+- Settings view: model status, dependency health, watched folders, history access, status hints, and daily-use preferences are visible in one place.
+- Runtime status guidance: Settings shows core health, model readiness, OCR/VLM status, and user-facing state hints without exposing terminal commands.
 - Restore drill: `python main.py restore-drill` creates a disposable backup rehearsal and checks restored SQLite, chunks, duplicate vector IDs, the ID counter, source paths, and restore-plan readiness.
 - ID safety repair: `python main.py repair-ids --dry-run` reports stale vector ID counters and duplicate vector IDs before any repair is applied.
 - Browser acceptance: `python main.py browser-acceptance` opens the running app in Chromium, checks Chat, Library, Notes, and Settings, and saves screenshots.
@@ -66,8 +67,8 @@ The current implementation uses FastAPI, SQLite, Qdrant, local embedding and rer
 - Source handling: answers show citations, PDF page numbers, Markdown sections, and source previews.
 - Retrieval debugging uses `/api/debug/retrieve`, including router decisions, candidate stages, and `reranked` results.
 - Health checks separate core capabilities from optional capabilities; missing optional capabilities can show `degraded` without marking core query or ingest as broken.
-- Settings shows model status, dependency health, watched folders, maintenance commands, model readiness, OCR, and VLM status.
-- Recovery guidance includes safe checks, backup preview, repair suggestions, and copyable commands; the browser displays them and does not auto-run them.
+- Settings shows model status, dependency health, watched folders, daily-use preferences, model readiness, OCR, and VLM status.
+- Recovery and repair workflows remain available through the CLI and documentation; the normal browser UI does not expose terminal commands or developer-only wording.
 - Backup recovery can be rehearsed without touching live data by running `python main.py restore-drill`.
 - Index ID checks compare SQLite rows, Qdrant points, and the local ID counter so new ingests start from a safe next ID.
 - Local install is explicit: preview with `python main.py install-local`, then use `--apply` only when the plan is acceptable.
@@ -253,7 +254,7 @@ Main endpoints:
 | `/api/sources` | GET | Watched source folders |
 | `/api/health` | GET | Dependency and capability health |
 
-`/api/health` returns `ok`, `degraded`, or `unavailable`. The browser displays this as grouped core, model runtime, and optional capability status. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama, enhanced local models, VLM image parsing, and contextual-prefix support are reported as optional capabilities, so a missing image model can show the app as degraded while core query and ingest remain available. The response also includes safe recommended actions such as `python main.py check --json`, `python main.py backup --dry-run`, `ollama pull glm-ocr`, or model-cache preparation guidance. The browser only displays and copies these commands; it does not auto-run repair actions.
+`/api/health` returns `ok`, `degraded`, or `unavailable`. The browser displays this as grouped core, model runtime, optional capability status, and short user-facing state hints. SQLite and Qdrant are critical checks. The live API uses a lightweight SQLite read/write check so background indexing does not trigger false integrity failures; use `python main.py doctor --strict` when a full SQLite integrity check is needed. Ollama, enhanced local models, VLM image parsing, and contextual-prefix support are reported as optional capabilities, so a missing image model can show the app as degraded while core query and ingest remain available. The API response can include diagnostic actions for CLI and documentation use, but the normal browser UI does not expose copyable terminal commands.
 
 Model-backed API work uses a bounded foreground task runner. If a query, summary, debug retrieval, or model switch times out, the API returns a clear timeout error and the next request can use a fresh worker instead of waiting behind a stuck task. While foreground model work is active, the background ingest queue pauses and `/api/queue` reports the pause state.
 
@@ -453,7 +454,7 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 
 当前实现使用 FastAPI、SQLite、Qdrant、本地向量模型、本地精排模型，以及默认的 MLX 本地大模型。
 
-当前发布目标：`0.27.0`。
+当前发布目标：`0.28.0`。
 
 ### 功能特性
 
@@ -468,16 +469,17 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 多轮对话：本地保存对话和消息，追问会结合最近上下文。
 - 页面内对话管理：可以在聊天页新建、切换和删除对话。
 - 产品级工作台：Chat、Library、Notes、Settings 分成四个清晰入口。
-- Phase 26 工作台改版：更稳定的本地侧栏、全局搜索、统一工具按钮，以及引用来源、文件详情、最近采集和恢复建议等右侧上下文面板。
+- Phase 26 工作台改版：更稳定的本地侧栏、全局搜索、统一工具按钮，以及引用来源、文件详情、最近采集和状态提示等右侧上下文面板。
 - Phase 27 文件库升级：Library 支持全部、收藏、最近导入、PDF、Markdown、图片和代码等真实分组，文件详情里可以查看来源片段、最近引用，并一键进入指定文件提问。
+- Phase 28 界面清理：Settings 回到普通用户设置页，命令行恢复和修复流程保留在文档、CLI 和测试里。
 - 本地知识采集：支持导入网页、新建临时 Markdown 笔记、把回答保存回本地文件库，并把资料或选中文件生成可复用 Markdown 知识产物。
 - Notes 工作区：集中创建 Markdown 笔记、导入网页，生成总结、学习卡片、行动项、项目简报，并查看最近采集内容。
 - 更安全的日常使用：长时间模型任务有等待上限，模型切换失败时保留原模型，清空历史和删除对话需要页面内确认。
 - 前台优先：用户正在提问、摘要或调试检索时，后台入库会暂停，任务结束后自动恢复。
 - 引用来源更清楚：PDF 显示页码，Markdown 显示章节，并可打开来源预览；Library 文件详情可以查看 chunk 级来源片段，并把片段保存为本地笔记。
 - 日用控件：答案复制/导出、分组依赖状态面板、查询耗时和入库队列进度。
-- Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口和维护命令。
-- 运行和恢复建议：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，以及可复制的安全检查、备份预览和修复建议。
+- Settings 页面：集中展示模型状态、依赖健康、监控目录、历史入口、状态提示和日常偏好。
+- 运行状态提示：Settings 会展示核心健康、模型就绪、OCR/VLM 状态，但不会暴露终端命令。
 - 恢复演练：`python main.py restore-drill` 会在临时目录做备份恢复检查，验证恢复后的 SQLite、chunk、重复向量 ID、ID 计数、源文件路径和恢复步骤。
 - 编号安全修复：`python main.py repair-ids --dry-run` 会先报告落后的向量编号计数和重复向量 ID，不会直接改数据。
 - 浏览器验收：`python main.py browser-acceptance` 会用 Chromium 打开正在运行的页面，检查 Chat、Library、Notes、Settings，并保存截图。
@@ -501,8 +503,8 @@ DocFlow 是一个本地优先的文档问答助手，面向个人文档库和 Ob
 - 引用来源支持 PDF 页码、Markdown 章节、引用列表和来源预览。
 - 检索调试使用 `/api/debug/retrieve`，展示 router 判断、候选阶段和 `reranked` 结果。
 - 健康检查会区分核心能力和可选能力；可选能力缺失时可以显示 `degraded`，但不会把核心问答或入库判坏。
-- Settings 页面集中展示模型状态、依赖健康、监控目录、维护命令、模型就绪、OCR 和 VLM 状态。
-- 恢复建议包括安全检查、备份预览、修复建议和可复制命令；页面只展示和复制，不会自动执行。
+- Settings 页面集中展示模型状态、依赖健康、监控目录、日常偏好、模型就绪、OCR 和 VLM 状态。
+- 恢复和修复流程仍然保留在 CLI 与文档里；普通浏览器界面不展示终端命令或开发者口吻。
 - 可以用 `python main.py restore-drill` 在不触碰现有数据的情况下演练备份恢复。
 - 索引编号检查会同时比较 SQLite 记录、Qdrant 点和本地编号计数，确保新入库从安全的下一位开始。
 - 本地安装默认先预览：运行 `python main.py install-local` 查看计划，确认后才用 `--apply` 执行。
@@ -688,7 +690,7 @@ paths:
 | `/api/sources` | GET | 查看监控来源目录 |
 | `/api/health` | GET | 依赖和能力健康状态 |
 
-`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。浏览器会把状态分成核心功能、模型运行时和可选能力展示。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama、增强本地模型、图片理解和上下文前缀作为可选能力展示，所以缺少图片模型时，页面可以显示为 degraded，但核心问答和入库仍然可用。返回结果也会带上安全建议，例如 `python main.py check --json`、`python main.py backup --dry-run`、`ollama pull glm-ocr` 或模型缓存准备说明。页面只展示和复制这些命令，不会自动执行修复操作。
+`/api/health` 会返回 `ok`、`degraded` 或 `unavailable`。浏览器会把状态分成核心功能、模型运行时、可选能力和简短状态提示。SQLite 和 Qdrant 是关键检查；运行中的 API 使用轻量 SQLite 读写检查，避免后台入库时误报索引损坏；如果需要完整 SQLite 检查，使用 `python main.py doctor --strict`。Ollama、增强本地模型、图片理解和上下文前缀作为可选能力展示，所以缺少图片模型时，页面可以显示为 degraded，但核心问答和入库仍然可用。接口返回里仍可包含供 CLI 和文档使用的诊断动作，但普通浏览器界面不会展示可复制的终端命令。
 
 模型相关接口使用有等待上限的前台任务管理。如果问答、摘要、检索调试或模型切换超时，接口会返回明确的超时信息，后续请求会使用新的执行通道，不会一直排在卡住的任务后面。前台模型任务运行时，后台入库队列会暂停，`/api/queue` 会显示暂停状态。
 

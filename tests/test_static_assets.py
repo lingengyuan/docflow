@@ -130,14 +130,18 @@ def test_phase15_app_shell_has_notes_and_settings():
     assert "settings-model-list" in html
 
 
-def test_phase16_settings_exposes_runtime_and_recovery_guidance():
+def test_phase16_settings_exposes_runtime_without_developer_guidance():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
-    assert "settings-actions-list" in html
-    assert "renderHealthActions" in html
+    assert "settings-insights-list" in html
+    assert "renderSettingsInsights" in html
+    assert "settingsSafeDetail" in html
     assert "'runtime'" in html
-    assert "恢复建议" in html
-    assert "复制命令" in html
+    assert "状态提示" in html
+    assert "使用偏好" in html
+    assert "恢复建议" not in html
+    assert "维护命令" not in html
+    assert "复制命令" not in html
 
 
 def test_phase17_notes_exposes_knowledge_outputs():
@@ -177,12 +181,18 @@ def test_phase20_frontend_uses_local_icons():
     assert "icon.textContent =" not in html
 
 
-def test_phase24_settings_surfaces_local_install_and_recovery_commands():
+def test_phase28_settings_hides_local_install_and_recovery_commands():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
-    assert "python main.py install-local" in html
-    assert "python main.py restore-drill" in html
-    assert "python main.py repair-ids --dry-run" in html
+    for forbidden in [
+        "python main.py install-local",
+        "python main.py restore-drill",
+        "python main.py repair-ids --dry-run",
+        "copyLiteralCommand",
+        "dry-run",
+        "browser-acceptance",
+    ]:
+        assert forbidden not in html
 
 
 def test_phase25_browser_acceptance_command_is_documented():
@@ -199,7 +209,7 @@ def test_phase26_ui_redesign_shell_has_real_context_panels():
     assert 'id="global-search-input"' in html
     assert 'id="chat-context-sources"' in html
     assert 'id="library-context-panel"' in html
-    assert 'id="settings-actions-list"' in html
+    assert 'id="settings-insights-list"' in html
     assert "renderLibraryContext" in html
     assert "renderChatContextSources" in html
     assert "handleGlobalSearchKey" in html

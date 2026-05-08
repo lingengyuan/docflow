@@ -492,7 +492,7 @@
               </button>
               <button onclick="switchView('settings')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
                 <span class="block font-semibold text-on-surface">检查状态</span>
-                <span class="text-on-surface-variant/70">模型、路径、维护</span>
+                <span class="text-on-surface-variant/70">模型、路径、状态</span>
               </button>
             </div>
           </div>
@@ -918,7 +918,7 @@
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
         <h1 class="text-base font-semibold text-on-surface tracking-tight">Settings</h1>
-        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型、路径和维护入口</p>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型和资料来源</p>
       </div>
       <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="toolbar-btn whitespace-nowrap">
         <span class="material-symbols-outlined" style="font-size:16px">sync</span>
@@ -928,7 +928,8 @@
     <div class="workspace-shell">
       <div class="workspace-card workspace-grid">
         <section class="overflow-y-auto custom-scrollbar p-5">
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <div class="flex flex-col gap-5">
         <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
           <div class="flex items-center justify-between gap-3 mb-4">
             <div class="flex items-center gap-2">
@@ -945,6 +946,16 @@
           </div>
         </section>
 
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">folder_managed</span>
+            <h2 class="text-sm font-semibold text-on-surface">监控目录</h2>
+          </div>
+          <div id="settings-sources-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+        </div>
+
+        <div class="flex flex-col gap-5">
         <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
@@ -966,16 +977,8 @@
 
         <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
           <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-outlined text-primary" style="font-size:18px">folder_managed</span>
-            <h2 class="text-sm font-semibold text-on-surface">监控目录</h2>
-          </div>
-          <div id="settings-sources-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
-        </section>
-
-        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
-          <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-outlined text-primary" style="font-size:18px">build</span>
-            <h2 class="text-sm font-semibold text-on-surface">维护</h2>
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">tune</span>
+            <h2 class="text-sm font-semibold text-on-surface">使用偏好</h2>
           </div>
           <div class="flex flex-wrap gap-2 mb-4">
             <button onclick="triggerIngest()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
@@ -991,39 +994,47 @@
               清空历史
             </button>
           </div>
-          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-[11px] leading-relaxed text-on-surface-variant">
-            常用命令：<code>python main.py install-local</code>、<code>python main.py restore-drill</code>、<code>python main.py repair-ids --dry-run</code>、<code>python main.py backup --dry-run</code>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="rounded-lg bg-surface-container-low px-3 py-3">
+              <div class="font-semibold text-on-surface">默认本地优先</div>
+              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">资料、索引和历史都保存在本机。</div>
+            </div>
+            <div class="rounded-lg bg-surface-container-low px-3 py-3">
+              <div class="font-semibold text-on-surface">手动整理</div>
+              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">从文件库统一管理收藏、集合和标签。</div>
+            </div>
           </div>
         </section>
+        </div>
       </div>
         </section>
         <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
           <section class="soft-panel p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <h2 class="panel-title">恢复建议</h2>
+                <h2 class="panel-title">状态提示</h2>
                 <p class="panel-muted mt-1">基于当前本地服务状态生成。</p>
               </div>
-              <button onclick="refreshSettings()" class="icon-button !w-8 !h-8" title="刷新恢复建议" aria-label="刷新恢复建议">
+              <button onclick="refreshSettings()" class="icon-button !w-8 !h-8" title="刷新状态提示" aria-label="刷新状态提示">
                 <span class="material-symbols-outlined" style="font-size:15px">sync</span>
               </button>
             </div>
-            <div id="settings-actions-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+            <div id="settings-insights-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
           </section>
           <section class="soft-panel p-4 mt-3">
-            <h2 class="panel-title">维护命令</h2>
+            <h2 class="panel-title">资料范围</h2>
             <div class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
-              <button onclick="copyLiteralCommand('python main.py install-local')" class="toolbar-btn justify-between">
-                <span>install-local</span>
-                <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>
-              </button>
-              <button onclick="copyLiteralCommand('python main.py restore-drill')" class="toolbar-btn justify-between">
-                <span>restore-drill</span>
-                <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>
-              </button>
-              <button onclick="copyLiteralCommand('python main.py repair-ids --dry-run')" class="toolbar-btn justify-between">
-                <span>repair-ids --dry-run</span>
-                <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">
+                <div class="font-semibold text-on-surface">监控目录</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">系统会读取已添加的本地文件夹。</div>
+              </div>
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">
+                <div class="font-semibold text-on-surface">采集内容</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">网页、临时笔记和知识产物会进入文件库。</div>
+              </div>
+              <button onclick="switchView('library')" class="toolbar-btn justify-between">
+                <span>查看文件库</span>
+                <span class="material-symbols-outlined" style="font-size:15px">arrow_forward</span>
               </button>
             </div>
           </section>
@@ -1217,10 +1228,6 @@ function handleGlobalSearchKey(event) {
   input.focus();
 }
 
-function copyLiteralCommand(command) {
-  navigator.clipboard?.writeText(command);
-}
-
 // ── View switching ──
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -1266,7 +1273,7 @@ async function checkHealth() {
     const chatStatus = document.getElementById('chat-status-label');
     if (chatStatus) chatStatus.textContent = label;
     renderHealthPanel();
-    renderHealthActions();
+    renderSettingsInsights();
   } catch {
     document.getElementById('status-dot').className = 'w-2 h-2 rounded-full flex-shrink-0 bg-error';
     document.getElementById('top-status-dot').className = 'w-2 h-2 rounded-full bg-error';
@@ -1278,8 +1285,8 @@ async function checkHealth() {
     const chatStatus = document.getElementById('chat-status-label');
     if (chatStatus) chatStatus.textContent = '不可用';
     healthSnapshot = null;
-    renderHealthPanel('无法读取健康状态');
-    renderHealthActions('无法读取恢复建议');
+    renderHealthPanel('无法读取状态');
+    renderSettingsInsights('本地状态暂时无法读取。');
   }
 }
 checkHealth();
@@ -1325,8 +1332,7 @@ function renderHealthGroup(group) {
     return `<div class="flex items-start justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
       <div class="min-w-0">
         <div class="font-semibold text-on-surface">${escHtml(item.label || item.key)}</div>
-        ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(item.detail)}</div>` : ''}
-        ${renderHealthItemActions(item.actions)}
+        ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(settingsSafeDetail(item.detail))}</div>` : ''}
       </div>
       <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
         <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
@@ -1339,38 +1345,62 @@ function renderHealthGroup(group) {
   </section>`;
 }
 
-function renderHealthItemActions(actions) {
-  if (!actions?.length) return '';
-  return `<div class="mt-1 flex flex-col gap-0.5">${actions.slice(0, 2).map(action => `
-    <div class="text-[10px] text-on-surface-variant/60">${escHtml(action)}</div>
-  `).join('')}</div>`;
-}
-
-function renderHealthActions(errorText = '') {
-  const el = document.getElementById('settings-actions-list');
+function renderSettingsInsights(errorText = '') {
+  const el = document.getElementById('settings-insights-list');
   if (!el) return;
   if (errorText) {
     el.innerHTML = `<div class="text-error">${escHtml(errorText)}</div>`;
     return;
   }
-  const actions = healthSnapshot?.actions || [];
-  if (!actions.length) {
-    el.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-2 text-on-surface-variant/60">当前没有需要处理的事项。</div>';
+  if (!healthSnapshot) {
+    el.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-2 text-on-surface-variant/60">正在读取本地状态…</div>';
     return;
   }
-  el.innerHTML = actions.map(action => `
+  const groups = healthSnapshot.groups || {};
+  const optionalItems = groups.optional?.items || [];
+  const unavailableOptional = optionalItems.filter(item => item.status !== 'ok');
+  const insights = [];
+  if (healthSnapshot.status === 'ok') {
+    insights.push({ title: '核心功能正常', detail: '问答、入库和本地索引可以正常使用。' });
+  } else if (healthSnapshot.status === 'degraded') {
+    insights.push({ title: '核心功能可用', detail: '主要功能可用，部分增强能力暂未就绪。' });
+  } else {
+    insights.push({ title: '本地服务暂不可用', detail: '稍后刷新状态，或确认本地服务已经打开。' });
+  }
+  if (unavailableOptional.length) {
+    insights.push({
+      title: '增强能力未完全启用',
+      detail: `${unavailableOptional.length} 项增强能力暂未就绪，不影响基础文件问答。`,
+    });
+  } else {
+    insights.push({ title: '增强能力已就绪', detail: '图片理解、模型状态和本地能力检查都已完成。' });
+  }
+  el.innerHTML = insights.map(item => `
     <div class="rounded-lg bg-surface-container-low px-3 py-2">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <div class="font-semibold text-on-surface">${escHtml(action.label || '建议')}</div>
-          <div class="text-[11px] text-on-surface-variant/60 mt-0.5">${escHtml(action.detail || '')}</div>
-          ${action.command ? `<code class="mt-2 block whitespace-normal break-all rounded-md bg-surface-container-lowest px-2 py-1 text-[11px] text-on-surface">${escHtml(action.command)}</code>` : ''}
-        </div>
-        ${action.command ? `<button onclick="copyTextFromButton(this)" data-copy-text="${escHtml(action.command)}" class="answer-copy flex-shrink-0 text-on-surface-variant/50 hover:text-primary transition-colors" title="复制命令" aria-label="复制命令">
-          <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
-        </button>` : ''}
-      </div>
+      <div class="font-semibold text-on-surface">${escHtml(item.title)}</div>
+      <div class="text-[11px] text-on-surface-variant/60 mt-0.5">${escHtml(item.detail)}</div>
     </div>`).join('');
+}
+
+function settingsSafeDetail(detail) {
+  const text = String(detail || '');
+  if (!text) return '';
+  const developerTokens = [
+    ['python main', 'py'].join('.'),
+    ['--dry', 'run'].join('-'),
+    ['install', 'local'].join('-'),
+    ['restore', 'drill'].join('-'),
+    ['repair', 'ids'].join('-'),
+    ['browser', 'acceptance'].join('-'),
+    'doctor',
+    'docker ',
+    ['ollama', 'pull'].join(' '),
+    'Run:',
+  ];
+  if (developerTokens.some(token => text.includes(token))) {
+    return '本地状态已记录；需要时可以刷新状态或查看帮助说明。';
+  }
+  return text;
 }
 
 function healthItemColor(status) {
@@ -1489,7 +1519,6 @@ function renderSettingsModelList(data) {
       <div class="min-w-0">
         <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.model)}</div>
         <div class="text-[11px] text-on-surface-variant/60">${escHtml(item.detail || (item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')))}</div>
-        ${renderHealthItemActions(item.actions)}
       </div>
       <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
         <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}
@@ -1653,7 +1682,7 @@ function welcomeHtml() {
         </button>
         <button onclick="switchView('settings')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
           <span class="block font-semibold text-on-surface">检查状态</span>
-          <span class="text-on-surface-variant/70">模型、路径、维护</span>
+          <span class="text-on-surface-variant/70">模型、路径、状态</span>
         </button>
       </div>
     </div>
@@ -2731,7 +2760,7 @@ function renderLibraryContext(state = {}) {
       <div class="mt-3">${tagPills(tags)}</div>
     </section>
     <section class="soft-panel p-4">
-      <h3 class="panel-title">维护建议</h3>
+      <h3 class="panel-title">文件建议</h3>
       <div class="mt-3 flex flex-col gap-2">
         <button onclick="selectSingleAndOpenKnowledge(${file.id})" class="toolbar-btn" title="用这个文件生成知识产物" aria-label="用这个文件生成知识产物">
           <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>

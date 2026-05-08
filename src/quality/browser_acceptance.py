@@ -73,16 +73,16 @@ def build_browser_acceptance_plan() -> list[ViewAcceptance]:
                 "#health-btn",
                 "#settings-model-list",
                 "#settings-sources-list",
-                "#settings-actions-list",
+                "#settings-insights-list",
                 "#top-local-status",
             ),
             expected_text=(
                 "系统状态",
                 "本地模型",
-                "维护",
-                "python main.py install-local",
-                "python main.py restore-drill",
-                "python main.py repair-ids --dry-run",
+                "监控目录",
+                "使用偏好",
+                "状态提示",
+                "资料范围",
             ),
         ),
     ]
@@ -190,6 +190,8 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
             f"{view.id}_text_{_text_id(text)}",
             lambda text=text: _assert_text(page, text, timeout_ms),
         )
+    if view.id == "settings":
+        _run_check(checks, "settings_has_no_developer_language", lambda: _assert_no_settings_developer_language(page, timeout_ms))
     if view.id == "library":
         _run_check(checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms))
         _run_check(checks, "library_source_review_opens", lambda: _check_library_source_review(page, timeout_ms))
@@ -214,6 +216,26 @@ def _assert_text(page: Any, text: str, timeout_ms: int) -> None:
     body = page.locator("body").inner_text(timeout=timeout_ms)
     if text not in body:
         raise AssertionError(f"missing text: {text}")
+
+
+def _assert_no_settings_developer_language(page: Any, timeout_ms: int) -> None:
+    body = page.locator("#view-settings").inner_text(timeout=timeout_ms)
+    forbidden_terms = (
+        "python main.py",
+        "install-local",
+        "restore-drill",
+        "repair-ids",
+        "dry-run",
+        "browser-acceptance",
+        "doctor",
+        "维护",
+        "恢复建议",
+        "维护命令",
+        "复制命令",
+    )
+    found = [term for term in forbidden_terms if term in body]
+    if found:
+        raise AssertionError(f"settings exposes developer language: {', '.join(found)}")
 
 
 def _check_library_groups(page: Any, timeout_ms: int) -> dict[str, str]:
@@ -310,9 +332,9 @@ def _text_id(text: str) -> str:
         "最近采集": "recent_notes",
         "系统状态": "health",
         "本地模型": "local_models",
-        "维护": "maintenance",
-        "python main.py install-local": "install_local",
-        "python main.py restore-drill": "restore_drill",
-        "python main.py repair-ids --dry-run": "repair_ids",
+        "监控目录": "sources",
+        "使用偏好": "preferences",
+        "状态提示": "status_insights",
+        "资料范围": "source_scope",
     }
     return tokens.get(text, text[:24].replace(" ", "_").replace("/", "_"))
