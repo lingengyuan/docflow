@@ -146,6 +146,17 @@ def test_phase16_settings_exposes_runtime_without_developer_guidance():
     assert "复制命令" not in html
 
 
+def test_settings_storage_uses_real_local_usage():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "存储使用" in html
+    assert "/api/storage/usage" in html
+    assert 'id="sidebar-storage-meter"' in html
+    assert "storageUsage" in html
+    assert "本地存储" in html
+    assert "模型缓存" in html
+
+
 def test_phase17_notes_exposes_knowledge_outputs():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 

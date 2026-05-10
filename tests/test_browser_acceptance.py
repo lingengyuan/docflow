@@ -13,7 +13,9 @@ def test_browser_acceptance_plan_covers_main_views_without_developer_language():
     assert [view.id for view in plan] == ["chat", "library", "source", "notes", "settings"]
     settings = plan[-1]
     assert "#settings-insights-list" in settings.visible_selectors
+    assert "#settings-storage-list" in settings.visible_selectors
     assert "状态提示" in settings.expected_text
+    assert "存储使用" in settings.expected_text
     assert "使用偏好" in settings.expected_text
     assert all("python main.py" not in text for text in settings.expected_text)
 
