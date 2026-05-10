@@ -208,6 +208,8 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
     if view.id == "library":
         _run_check(checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms))
         _run_check(checks, "library_source_review_opens", lambda: _check_library_source_review(page, timeout_ms))
+    if view.id == "source":
+        _run_check(checks, "source_preview_loaded", lambda: _check_source_preview_loaded(page, timeout_ms))
 
 
 def _check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
@@ -283,6 +285,26 @@ def _check_library_source_review(page: Any, timeout_ms: int) -> dict[str, Any]:
     if not any(token in text for token in ("为什么引用这些片段", "还没有可预览", "读取失败")):
         raise AssertionError("source review did not render a known state")
     return {"state": text[:80]}
+
+
+def _check_source_preview_loaded(page: Any, timeout_ms: int) -> dict[str, Any]:
+    page.wait_for_function(
+        """
+        () => {
+            const detail = document.querySelector('#source-detail-panel');
+            const viewer = document.querySelector('#source-document-viewer');
+            if (!detail || !viewer) return false;
+            const text = `${detail.innerText || ''} ${viewer.innerText || ''}`;
+            return !text.includes('正在载入') && !text.includes('正在读取') && (
+                text.includes('引用关系') ||
+                text.includes('从对话引用') ||
+                text.includes('没有片段')
+            );
+        }
+        """,
+        timeout=timeout_ms,
+    )
+    return {"state": page.locator("#source-detail-panel").inner_text(timeout=timeout_ms)[:80]}
 
 
 def _assert(condition: bool, message: str) -> None:

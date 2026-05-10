@@ -259,6 +259,63 @@
       background: #eaf7f6;
       box-shadow: inset 3px 0 0 #0e8f8d;
     }
+    .answer-card {
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(20, 38, 47, 0.05), inset 0 0 0 1px rgba(20, 38, 47, 0.10);
+    }
+    .answer-action {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #ffffff;
+      color: #536171;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(20, 38, 47, 0.05), inset 0 0 0 1px rgba(20, 38, 47, 0.10);
+      transition: background-color 160ms, color 160ms, transform 160ms;
+    }
+    .answer-action:hover {
+      background: #eef7f7;
+      color: #0e8f8d;
+    }
+    .reference-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(20, 38, 47, 0.10);
+    }
+    .reference-table th,
+    .reference-table td {
+      border: 1px solid rgba(20, 38, 47, 0.10);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .reference-table th {
+      background: #f4f8f8;
+      color: #253443;
+      font-size: 12px;
+    }
+    .source-highlight {
+      background: linear-gradient(180deg, rgba(14, 143, 141, 0.18), rgba(14, 143, 141, 0.18));
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      border-radius: 4px;
+      padding: 1px 3px;
+    }
+    .source-timeline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #0e8f8d;
+      box-shadow: 0 0 0 5px rgba(14, 143, 141, 0.12);
+    }
     .icon-button {
       width: 36px;
       height: 36px;
@@ -567,6 +624,17 @@
             </div>
           </section>
           <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="panel-title">来源预览</h2>
+              <button id="chat-source-open-btn" onclick="openSourceFromChatPreview()" class="icon-button !w-8 !h-8 hidden" title="打开来源预览" aria-label="打开来源预览">
+                <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+              </button>
+            </div>
+            <div id="chat-context-preview" class="mt-3 text-xs leading-relaxed text-on-surface-variant rounded-lg bg-surface-container-low px-3 py-3">
+              选择回答中的引用后，这里会显示可核查片段。
+            </div>
+          </section>
+          <section class="soft-panel p-4">
             <h2 class="panel-title">模型状态</h2>
             <div class="mt-4 grid grid-cols-3 gap-3 text-xs">
               <div>
@@ -715,6 +783,14 @@
             <span id="library-group-code-count">0</span>
           </button>
         </div>
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">集合</div>
+        <div id="library-collection-list" class="flex flex-col gap-1.5 text-xs mb-6">
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">正在读取集合…</div>
+        </div>
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">标签</div>
+        <div id="library-tag-list" class="flex flex-col gap-1.5 text-xs mb-6">
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">正在读取标签…</div>
+        </div>
         <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">筛选</div>
         <div class="flex flex-col gap-2 text-xs">
           <select id="library-status-filter" onchange="applyLibraryFilters()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
@@ -794,6 +870,9 @@
             </tbody>
           </table>
         </div>
+        <div id="library-pagination" class="h-12 flex-shrink-0 px-5 border-t border-outline-variant/10 flex items-center justify-between gap-3 text-xs text-on-surface-variant">
+          <span>正在读取文件…</span>
+        </div>
       </section>
 
       <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
@@ -813,7 +892,7 @@
   <div id="view-source" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">来源预览</h1>
+        <h1 class="text-base font-semibold text-on-surface tracking-tight">来源预览与引用详情</h1>
         <p id="source-preview-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">从回答引用或资料库文件进入，核查每个片段的出处</p>
       </div>
       <button onclick="switchView('library')" title="返回资料库" aria-label="返回资料库" class="toolbar-btn">
@@ -875,32 +954,49 @@
       <div class="workspace-card workspace-grid">
         <section class="overflow-y-auto custom-scrollbar p-5">
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
           <div class="flex items-center gap-2 mb-4">
             <span class="material-symbols-outlined text-primary" style="font-size:18px">edit_note</span>
             <h2 class="text-sm font-semibold text-on-surface">新建 Markdown 笔记</h2>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input id="notes-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-title-input" placeholder="标题" maxlength="200" oninput="updateNotesEditorStats()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="notes-collection-input" list="collection-options" placeholder="集合，默认笔记" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="notes-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
           <div id="notes-editor-toolbar" class="mt-3 flex flex-wrap gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
             <button onclick="insertMarkdownToken('# ', '')" class="toolbar-btn !px-2 !py-1" title="一级标题" aria-label="一级标题">H1</button>
             <button onclick="insertMarkdownToken('## ', '')" class="toolbar-btn !px-2 !py-1" title="二级标题" aria-label="二级标题">H2</button>
+            <button onclick="insertMarkdownToken('### ', '')" class="toolbar-btn !px-2 !py-1" title="三级标题" aria-label="三级标题">H3</button>
             <button onclick="insertMarkdownToken('**', '**')" class="toolbar-btn !px-2 !py-1" title="加粗" aria-label="加粗">
               <span class="material-symbols-outlined" style="font-size:14px">bolt</span>
             </button>
+            <button onclick="insertMarkdownToken('*', '*')" class="toolbar-btn !px-2 !py-1" title="斜体" aria-label="斜体">I</button>
+            <button onclick="insertMarkdownToken('`', '`')" class="toolbar-btn !px-2 !py-1" title="行内代码" aria-label="行内代码">&lt;/&gt;</button>
             <button onclick="insertMarkdownToken('- ', '')" class="toolbar-btn !px-2 !py-1" title="列表" aria-label="列表">
               <span class="material-symbols-outlined" style="font-size:14px">article</span>
+            </button>
+            <button onclick="insertMarkdownToken('- [ ] ', '')" class="toolbar-btn !px-2 !py-1" title="待办" aria-label="待办">
+              <span class="material-symbols-outlined" style="font-size:14px">check_box</span>
             </button>
             <button onclick="insertMarkdownToken('> ', '')" class="toolbar-btn !px-2 !py-1" title="引用" aria-label="引用">
               <span class="material-symbols-outlined" style="font-size:14px">format_quote</span>
             </button>
+            <button onclick="insertMarkdownToken('[', '](url)')" class="toolbar-btn !px-2 !py-1" title="链接" aria-label="链接">
+              <span class="material-symbols-outlined" style="font-size:14px">link</span>
+            </button>
+            <button onclick="insertMarkdownToken('\\n| 列 | 值 |\\n| --- | --- |\\n|  |  |\\n', '')" class="toolbar-btn !px-2 !py-1" title="表格" aria-label="表格">
+              <span class="material-symbols-outlined" style="font-size:14px">table</span>
+            </button>
           </div>
-          <textarea id="notes-content-input" rows="9" placeholder="写下要入库的内容" class="mt-2 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <textarea id="notes-content-input" rows="13" placeholder="写下要入库的内容，支持 Markdown…" oninput="updateNotesEditorStats()" class="mt-2 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
-            <span id="notes-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <div class="flex items-center gap-3 text-[11px] text-on-surface-variant/60">
+              <span id="notes-word-count">0 字</span>
+              <span id="notes-title-count">0/200</span>
+              <span>Markdown</span>
+              <span id="notes-status"></span>
+            </div>
             <button id="notes-submit-btn" onclick="createNoteFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
               <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
               保存并入库
@@ -908,7 +1004,8 @@
           </div>
         </section>
 
-        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+        <div class="flex flex-col gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
           <div class="flex items-center gap-2 mb-4">
             <span class="material-symbols-outlined text-primary" style="font-size:18px">language</span>
             <h2 class="text-sm font-semibold text-on-surface">导入网页</h2>
@@ -919,7 +1016,21 @@
             <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认网页采集" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="notes-url-tags-input" list="tag-options" placeholder="标签，默认 web" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
-          <div class="mt-4 rounded-lg bg-surface-container-low px-3 py-3 text-xs leading-relaxed text-on-surface-variant">
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-on-surface-variant">
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-extract-main" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              提取正文
+            </label>
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-keep-source" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              保留来源信息
+            </label>
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-queue-index" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              加入资料库
+            </label>
+          </div>
+          <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">
             导入会把网页正文保存成 Markdown 文件，再进入本地入库队列。适合公开文章、文档页和短网页。
           </div>
           <div class="mt-3 flex items-center justify-between gap-3">
@@ -931,7 +1042,7 @@
           </div>
         </section>
 
-        <section id="knowledge-output-panel" class="xl:col-span-2 rounded-xl bg-surface-container-lowest shadow-sm p-5">
+        <section id="knowledge-output-panel" class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary" style="font-size:18px">lightbulb</span>
@@ -946,19 +1057,19 @@
             </button>
           </div>
           <div class="mb-3 grid grid-cols-2 lg:grid-cols-4 gap-2" id="knowledge-output-cards" aria-label="知识产物类型">
-            <button type="button" onclick="setKnowledgeOutputType('summary')" data-output-type="summary" class="knowledge-output-card rounded-lg bg-primary-container text-primary px-3 py-2 text-left active:scale-95 transition-all">
+            <button type="button" onclick="setKnowledgeOutputType('summary')" data-output-type="summary" class="knowledge-output-card rounded-lg bg-primary-container text-primary px-3 py-1.5 text-left active:scale-95 transition-all">
               <span class="block text-xs font-bold">结构化总结</span>
               <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">提炼脉络和要点</span>
             </button>
-            <button type="button" onclick="setKnowledgeOutputType('learning_cards')" data-output-type="learning_cards" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+            <button type="button" onclick="setKnowledgeOutputType('learning_cards')" data-output-type="learning_cards" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
               <span class="block text-xs font-bold">学习卡片</span>
               <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">适合复习整理</span>
             </button>
-            <button type="button" onclick="setKnowledgeOutputType('action_items')" data-output-type="action_items" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+            <button type="button" onclick="setKnowledgeOutputType('action_items')" data-output-type="action_items" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
               <span class="block text-xs font-bold">行动项</span>
               <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">转成待办清单</span>
             </button>
-            <button type="button" onclick="setKnowledgeOutputType('project_brief')" data-output-type="project_brief" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-2 text-left active:scale-95 transition-all">
+            <button type="button" onclick="setKnowledgeOutputType('project_brief')" data-output-type="project_brief" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
               <span class="block text-xs font-bold">项目简报</span>
               <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">形成项目说明</span>
             </button>
@@ -974,38 +1085,67 @@
             <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
-          <textarea id="knowledge-source-input" rows="7" placeholder="粘贴会议记录、文章片段、项目说明，或先在 Library 选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <textarea id="knowledge-source-input" rows="3" placeholder="粘贴会议记录、文章片段、项目说明，或先在 Library 选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
-            <span id="knowledge-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <div class="flex items-center gap-2 text-[11px] text-on-surface-variant/60">
+              <span>模型</span>
+              <select id="knowledge-model-select" onchange="handleKnowledgeModelSelect()" class="h-8 min-w-[160px] rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+                <option>读取中</option>
+              </select>
+              <span id="knowledge-status"></span>
+            </div>
             <button id="knowledge-submit-btn" onclick="createKnowledgeOutputFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
               <span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span>
               生成并入库
             </button>
           </div>
         </section>
+        </div>
 
       </div>
+      <section class="mt-5 rounded-xl bg-surface-container-lowest shadow-sm p-5">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="text-sm font-semibold text-on-surface">最近采集</h2>
+          <span id="notes-recent-count" class="text-[11px] text-on-surface-variant/60"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[680px] text-xs">
+            <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+              <tr>
+                <th class="text-left py-2 pr-3">类型</th>
+                <th class="text-left py-2 pr-3">标题</th>
+                <th class="text-left py-2 pr-3">集合</th>
+                <th class="text-left py-2 pr-3">标签</th>
+                <th class="text-left py-2 pr-3">状态</th>
+                <th class="text-left py-2">时间</th>
+              </tr>
+            </thead>
+            <tbody id="notes-recent-table" class="divide-y divide-surface-container"></tbody>
+          </table>
+        </div>
+      </section>
         </section>
         <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
         <section class="soft-panel p-4">
           <div class="flex items-center justify-between gap-4 mb-3">
             <div>
-              <h2 class="panel-title">最近采集</h2>
-              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自笔记、网页采集、保存回答和知识产物的本地文件</p>
+              <h2 class="panel-title">今日知识产物</h2>
+              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自本地文件和最近生成内容</p>
             </div>
             <span id="notes-count" class="text-[11px] text-on-surface-variant/60"></span>
           </div>
           <div id="notes-list" class="flex flex-col gap-3"></div>
         </section>
         <section class="soft-panel p-4 mt-3">
-          <h2 class="panel-title">处理提示</h2>
-          <div class="mt-3 text-xs leading-relaxed text-on-surface-variant">
-            新笔记、网页导入和知识产物都会先保存到本地目录，再进入入库队列。
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="panel-title">已保存的回答</h2>
+            <button onclick="switchView('history')" class="text-[11px] font-bold text-primary">查看全部</button>
           </div>
-          <button onclick="switchView('library')" class="toolbar-btn mt-3" title="查看入库状态" aria-label="查看入库状态">
-            <span class="material-symbols-outlined" style="font-size:15px">folder_open</span>
-            查看资料库
-          </button>
+          <div id="saved-answers-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+        <section class="soft-panel p-4 mt-3">
+          <h2 class="panel-title">处理进度</h2>
+          <div id="notes-processing-timeline" class="mt-3 flex flex-col gap-3 text-xs text-on-surface-variant"></div>
         </section>
         </aside>
       </div>
@@ -1040,7 +1180,7 @@
               <span class="material-symbols-outlined" style="font-size:14px">refresh</span>
             </button>
           </div>
-          <div id="health-panel" class="rounded-lg bg-surface-container-low p-3">
+          <div id="health-panel" class="max-h-[340px] overflow-y-auto custom-scrollbar rounded-lg bg-surface-container-low p-3">
             <div id="health-details" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
           </div>
         </section>
@@ -1079,18 +1219,18 @@
             <span class="material-symbols-outlined text-primary" style="font-size:18px">tune</span>
             <h2 class="text-sm font-semibold text-on-surface">使用偏好</h2>
           </div>
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button onclick="triggerIngest()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            <button onclick="triggerIngest()" class="toolbar-btn toolbar-btn-primary justify-center">
               <span class="material-symbols-outlined" style="font-size:15px">folder_sync</span>
               扫描文件夹
             </button>
-            <button onclick="switchView('history')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+            <button onclick="switchView('history')" class="toolbar-btn justify-center">
               <span class="material-symbols-outlined" style="font-size:15px">history</span>
-              查看历史
+              历史记录
             </button>
-            <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 active:scale-95 transition-all">
-              <span class="material-symbols-outlined" style="font-size:15px">delete_sweep</span>
-              清空历史
+            <button onclick="switchView('library')" class="toolbar-btn justify-center">
+              <span class="material-symbols-outlined" style="font-size:15px">folder_open</span>
+              文件库
             </button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -1192,11 +1332,15 @@ let favoritedIds = new Set();
 let libraryFiles = [];
 let libraryMeta = { collections: [], user_tags: [] };
 let libraryFilters = { status: '', collection: '', tag: '', favorite: false, kind: '', recent: false };
+let libraryPage = 1;
+const libraryPageSize = 14;
 let libraryWorkflowMode = 'note';
 let activeLibraryFileId = null;
+let libraryContextTab = 'details';
 let librarySourceReview = { fileId: null, chunks: [] };
 let sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: false, error: '' };
 let lastCitations = [];
+let chatPreviewCitation = null;
 let queryScopeFiles = [];
 let queuePollTimer = null;
 let llmOptions = [];
@@ -1207,6 +1351,8 @@ const LOCAL_ICON_PATHS = {
   add_circle: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
   add_link: '<path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1"/><path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1"/><path d="M17 16v5M14.5 18.5h5"/>',
   add_task: '<path d="M5 6h8M5 12h5M5 18h14"/><path d="m13 12 2 2 5-6"/>',
+  arrow_back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  arrow_forward: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   arrow_upward: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   article: '<path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 11h6M9 15h6M9 19h4"/>',
   auto_awesome: '<path class="local-icon-fill" d="m12 2 1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2Z"/><path d="M5 14v4M3 16h4M18 15v3M16.5 16.5h3"/>',
@@ -1214,6 +1360,7 @@ const LOCAL_ICON_PATHS = {
   build: '<path d="m14.7 6.3 3-3a4 4 0 0 1-5 5L5 16a2 2 0 1 0 3 3l7.7-7.7a4 4 0 0 1-1-5Z"/>',
   chat_bubble: '<path d="M5 5h14v10H9l-4 4V5Z"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
+  check_box: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/>',
   check_circle: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   code: '<path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/>',
@@ -1242,11 +1389,13 @@ const LOCAL_ICON_PATHS = {
   schedule: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/>',
   sell: '<path d="M4 12V5h7l9 9-7 7-9-9Z"/><circle cx="8" cy="8" r="1"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/>',
+  table: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M4 15h16M10 5v14M15 5v14"/>',
   star: '<path class="local-icon-fill" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2 7.5 14 3 9.6l6.2-.9L12 3Z"/>',
   summarize: '<path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 11h6M9 15h4M9 19h6"/>',
   sync: '<path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6 9a7 7 0 0 1 11.5-2M18 15a7 7 0 0 1-11.5 2"/>',
   tune: '<path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h8M16 17h4"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="14" cy="17" r="2"/>',
   upload_file: '<path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M12 18V10M8 14l4-4 4 4"/>',
+  visibility: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
   warning: '<path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 18h.01"/>',
 };
 
@@ -1350,9 +1499,9 @@ function switchView(view) {
     btn.classList.remove('opacity-80');
   }
 
-  if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); }
+  if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); loadLatestAnswerPreview(); }
   if (view === 'library') { refreshFiles(); pollQueueOnce(); }
-  if (view === 'source') renderSourcePreview();
+  if (view === 'source') loadDefaultSourcePreview();
   if (view === 'notes') refreshNotesView();
   if (view === 'settings') refreshSettings();
   if (view === 'history') refreshHistory();
@@ -1437,21 +1586,21 @@ function renderHealthGroup(group) {
   const rows = group.items.map(item => {
     const color = healthItemColor(item.status);
     const label = healthItemLabel(item.status);
-    return `<div class="min-h-[76px] rounded-lg bg-surface-container-low px-3 py-3">
+    return `<div class="min-h-[58px] rounded-lg bg-surface-container-low px-3 py-2">
       <div class="flex items-center justify-between gap-3">
         <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
           <span class="w-1.5 h-1.5 rounded-full ${color}"></span>${label}
         </span>
       </div>
-      <div class="mt-2 min-w-0">
-        <div class="font-semibold text-on-surface">${escHtml(item.label || item.key)}</div>
+      <div class="mt-1 min-w-0">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.label || item.key)}</div>
         ${item.detail ? `<div class="text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(settingsSafeDetail(item.detail))}</div>` : ''}
       </div>
     </div>`;
   }).join('');
   return `<section>
     <div class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 mb-2 mt-1">${escHtml(group.label)}</div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">${rows}</div>
+    <div class="grid grid-cols-2 xl:grid-cols-3 gap-2">${rows}</div>
   </section>`;
 }
 
@@ -1538,6 +1687,13 @@ async function loadLLMOptions() {
     document.getElementById('llm-current').textContent = d.current || 'LLM';
     const chatModel = document.getElementById('chat-context-model');
     if (chatModel) chatModel.textContent = d.current || 'LLM';
+    const knowledgeModel = document.getElementById('knowledge-model-select');
+    if (knowledgeModel) {
+      knowledgeModel.innerHTML = models
+        .filter(item => item.available)
+        .map(item => `<option value="${escHtml(item.model)}" ${item.current ? 'selected' : ''}>${escHtml(item.model)}</option>`)
+        .join('') || `<option>${escHtml(d.current || '本地模型')}</option>`;
+    }
     renderLLMStatus(d.switch);
     renderSettingsModelList(d);
 
@@ -1556,6 +1712,7 @@ initLocalIcons();
 loadLLMOptions();
 loadConversations();
 loadQueryScopeOptions();
+loadLatestAnswerPreview();
 syncKnowledgeOutputCards();
 
 document.getElementById('llm-btn').addEventListener('click', (e) => {
@@ -1601,6 +1758,11 @@ async function switchLLM(model) {
   }
 }
 
+function handleKnowledgeModelSelect() {
+  const model = document.getElementById('knowledge-model-select')?.value || '';
+  if (model) switchLLM(model);
+}
+
 function renderLLMStatus(state) {
   const el = document.getElementById('llm-status');
   if (!el) return;
@@ -1625,16 +1787,44 @@ function renderSettingsModelList(data) {
     el.innerHTML = '<div class="text-on-surface-variant/60">暂无模型信息</div>';
     return;
   }
-  el.innerHTML = models.map(item => `
-    <div class="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2">
-      <div class="min-w-0">
-        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.model)}</div>
-        <div class="text-[11px] text-on-surface-variant/60">${escHtml(item.detail || (item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')))}</div>
-      </div>
-      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
-        <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}
-      </span>
-    </div>`).join('');
+  el.innerHTML = `
+    <div class="overflow-x-auto rounded-lg bg-surface-container-low">
+      <table class="w-full min-w-[560px] text-xs">
+        <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+          <tr>
+            <th class="text-left px-3 py-2">模型类型</th>
+            <th class="text-left px-3 py-2">状态</th>
+            <th class="text-left px-3 py-2">当前模型</th>
+            <th class="text-left px-3 py-2">缓存</th>
+            <th class="text-left px-3 py-2">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/10">
+          ${models.map(item => `
+            <tr>
+              <td class="px-3 py-2 font-semibold text-on-surface">${settingsModelTypeLabel(item.model)}</td>
+              <td class="px-3 py-2">
+                <span class="inline-flex items-center gap-1.5 font-bold ${item.available ? 'text-tertiary' : 'text-primary'}">
+                  <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}
+                </span>
+              </td>
+              <td class="px-3 py-2 text-on-surface-variant">${escHtml(item.model)}</td>
+              <td class="px-3 py-2 text-on-surface-variant">${escHtml(item.size || item.detail || '-')}</td>
+              <td class="px-3 py-2">
+                <button onclick="switchLLM(decodeURIComponent('${encodeURIComponent(item.model)}'))" ${item.available && !item.current ? '' : 'disabled'} class="text-primary font-bold disabled:text-on-surface-variant/35">${item.current ? '已启用' : '切换'}</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function settingsModelTypeLabel(model) {
+  const value = String(model || '').toLowerCase();
+  if (value.includes('embed') || value.includes('nomic')) return 'Embedding（嵌入）';
+  if (value.includes('rerank') || value.includes('bge')) return 'Reranker（重排）';
+  if (value.includes('vl') || value.includes('vision') || value.includes('ocr')) return '图片理解';
+  return 'LLM（大语言模型）';
 }
 
 async function refreshSettings() {
@@ -1655,11 +1845,28 @@ async function loadSettingsSources() {
       el.innerHTML = '<div class="text-on-surface-variant/60">暂无监控目录</div>';
       return;
     }
-    el.innerHTML = sources.map(source => `
-      <div class="rounded-lg bg-surface-container-low px-3 py-2">
-        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(sourceDisplayName(source.path))}</div>
-        <div class="text-[11px] text-on-surface-variant/60">${source.recursive ? '包含子文件夹' : '仅当前文件夹'} · ${(source.extensions || []).length || 0} 类文件</div>
-      </div>`).join('');
+    el.innerHTML = `
+      <div class="overflow-x-auto rounded-lg bg-surface-container-low">
+        <table class="w-full min-w-[520px] text-xs">
+          <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+            <tr>
+              <th class="text-left px-3 py-2">目录</th>
+              <th class="text-left px-3 py-2">路径</th>
+              <th class="text-left px-3 py-2">状态</th>
+              <th class="text-left px-3 py-2">包含子目录</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/10">
+            ${sources.map(source => `
+              <tr>
+                <td class="px-3 py-2 font-semibold text-on-surface">${escHtml(sourceDisplayName(source.path))}</td>
+                <td class="px-3 py-2 text-on-surface-variant line-clamp-1">${escHtml(source.path || '')}</td>
+                <td class="px-3 py-2 text-tertiary font-bold">监控中</td>
+                <td class="px-3 py-2 text-on-surface-variant">${source.recursive ? '开启' : '关闭'} · ${(source.extensions || []).length || 0} 类文件</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
   } catch (e) {
     el.innerHTML = `<div class="text-error">监控目录读取失败：${escHtml(e.message)}</div>`;
   }
@@ -1686,9 +1893,25 @@ async function loadSettingsStorage() {
           <div class="mt-1 text-[11px] text-on-surface-variant/60">${used} / ${quota}</div>
         </div>`;
     }
+    const typeCounts = libraryMeta.types || {};
+    const totalTyped = Math.max(1, Object.values(typeCounts).reduce((sum, value) => sum + Number(value || 0), 0));
+    const pdfDeg = Math.round((Number(typeCounts.pdf || 0) / totalTyped) * 360);
+    const markdownDeg = pdfDeg + Math.round((Number(typeCounts.markdown || 0) / totalTyped) * 360);
+    const imageDeg = markdownDeg + Math.round((Number(typeCounts.image || 0) / totalTyped) * 360);
     el.innerHTML = `
-      <div class="rounded-lg bg-surface-container-low px-3 py-2">
-        <div class="font-semibold text-on-surface">资料库文件</div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-3">
+        <div class="flex items-center gap-4">
+          <div class="w-20 h-20 rounded-full flex-shrink-0" style="background: conic-gradient(#0e8f8d 0 ${pdfDeg}deg, #6ea4d8 ${pdfDeg}deg ${markdownDeg}deg, #54b98d ${markdownDeg}deg ${imageDeg}deg, #9aa7b6 ${imageDeg}deg 360deg);">
+            <div class="m-4 w-12 h-12 rounded-full bg-surface-container-low"></div>
+          </div>
+          <div class="min-w-0 flex-1 grid grid-cols-2 gap-2 text-[11px]">
+            <div><span class="inline-block w-2 h-2 rounded-full bg-primary mr-1"></span>PDF ${typeCounts.pdf || 0}</div>
+            <div><span class="inline-block w-2 h-2 rounded-full bg-[#6ea4d8] mr-1"></span>Markdown ${typeCounts.markdown || 0}</div>
+            <div><span class="inline-block w-2 h-2 rounded-full bg-[#54b98d] mr-1"></span>图片 ${typeCounts.image || 0}</div>
+            <div><span class="inline-block w-2 h-2 rounded-full bg-[#9aa7b6] mr-1"></span>其他 ${Math.max(0, (libraryMeta.total_files || 0) - totalTyped)}</div>
+          </div>
+        </div>
+        <div class="mt-3 font-semibold text-on-surface">资料库文件</div>
         <div class="mt-1 text-[11px] text-on-surface-variant/60">${libraryMeta.total_files || 0} 个文件 · ${libraryMeta.recent || 0} 个最近导入</div>
       </div>
       <div class="rounded-lg bg-surface-container-low px-3 py-2">
@@ -1801,10 +2024,13 @@ async function loadConversationMessages(id) {
 
 function resetChatMessages() {
   const inner = document.querySelector('#messages .max-w-2xl');
+  inner.dataset.latestPreview = '';
   inner.innerHTML = welcomeHtml();
   document.getElementById('messages').scrollTop = 0;
   lastCitations = [];
+  chatPreviewCitation = null;
   renderChatContextSources([]);
+  renderChatSourcePreview(null);
   updateConversationLabel();
 }
 
@@ -1843,8 +2069,10 @@ function renderConversationMessages(messages) {
   inner.innerHTML = '';
   if (!messages.length) {
     inner.innerHTML = welcomeHtml();
+    if (!currentConversationId) loadLatestAnswerPreview();
     return;
   }
+  inner.dataset.latestPreview = '';
   messages.forEach(message => {
     if (message.role === 'user') appendUserMessage(message.content, false);
     if (message.role === 'assistant') appendAssistantMessage(message.content, message.citations || [], {
@@ -1852,6 +2080,72 @@ function renderConversationMessages(messages) {
     });
   });
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function loadLatestAnswerPreview() {
+  if (currentConversationId !== null) return;
+  const view = document.getElementById('view-chat');
+  const inner = document.querySelector('#messages .max-w-2xl');
+  if (!view || view.classList.contains('hidden') || !inner || inner.dataset.latestPreview === 'loaded') return;
+  try {
+    const items = await fetch(`${API}/api/history?limit=1`).then(r => r.json());
+    const item = Array.isArray(items) ? items[0] : null;
+    if (!item?.question || !item?.answer) return;
+    renderLatestAnswerPreview(item);
+  } catch {}
+}
+
+function renderLatestAnswerPreview(item) {
+  const msgs = document.getElementById('messages');
+  const inner = msgs.querySelector('.max-w-2xl');
+  const citations = item.citations || [];
+  const answer = item.answer || '';
+  const createdAt = (item.created_at || '').slice(0, 16);
+  inner.dataset.latestPreview = 'loaded';
+  inner.innerHTML = `
+    <div class="flex flex-col items-end gap-2">
+      <div class="max-w-[86%] bg-primary text-on-primary px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm">
+        <p class="text-sm leading-relaxed">${escHtml(item.question)}</p>
+      </div>
+      <span class="text-[10px] font-bold text-on-surface-variant/40 tracking-wider">${escHtml(createdAt || '最近提问')}</span>
+    </div>
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+          <span class="material-symbols-outlined icon-fill" style="font-size:16px">auto_awesome</span>
+        </div>
+        <div>
+          <span class="block text-sm font-bold text-on-surface">DocFlow</span>
+          <span class="block text-[11px] text-on-surface-variant/60">${escHtml(createdAt || '最近回答')}</span>
+        </div>
+      </div>
+      <div class="answer-card px-5 py-4">
+        <div class="text-sm font-bold text-on-surface">回答摘要</div>
+        <div class="prose mt-3 text-sm text-on-surface max-w-none">${renderMarkdown(answer)}</div>
+      </div>
+      <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap gap-2">
+          <button onclick="copyTextFromButton(this)" data-copy-text="${escHtml(answer)}" class="answer-action" title="复制答案" aria-label="复制答案">
+            <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>复制
+          </button>
+          <button onclick="saveAnswerFromButton(this)" data-answer-text="${escHtml(answer)}" class="answer-action" title="保存为笔记" aria-label="保存为笔记">
+            <span class="material-symbols-outlined" style="font-size:15px">note_add</span>保存为笔记
+          </button>
+          <button onclick="exportAnswerFromButton(this)" data-answer-text="${escHtml(answer)}" class="answer-action" title="导出 Markdown" aria-label="导出 Markdown">
+            <span class="material-symbols-outlined" style="font-size:15px">download</span>导出
+          </button>
+          <button onclick="switchView('notes')" class="answer-action" title="生成知识产物" aria-label="生成知识产物">
+            <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>生成知识产物
+          </button>
+        </div>
+        <span class="text-[11px] text-on-surface-variant/60">${citations.length ? `基于 ${citations.length} 个来源` : '暂无引用来源'}</span>
+      </div>
+    </div>`;
+  lastCitations = citations;
+  renderChatContextSources(citations);
+  renderLocalIcons(inner);
+  msgs.scrollTop = 0;
 }
 
 // ── Query scope controls ──
@@ -1958,6 +2252,19 @@ function insertMarkdownToken(prefix, suffix = '') {
   const cursor = start + insertPrefix.length + (selected ? selected.length : 0);
   input.focus();
   input.setSelectionRange(cursor, cursor);
+  updateNotesEditorStats();
+}
+
+function updateNotesEditorStats() {
+  const title = document.getElementById('notes-title-input');
+  const content = document.getElementById('notes-content-input');
+  const words = document.getElementById('notes-word-count');
+  const titleCount = document.getElementById('notes-title-count');
+  if (words && content) {
+    const count = (content.value || '').trim().replace(/\s+/g, '').length;
+    words.textContent = `${count} 字`;
+  }
+  if (titleCount && title) titleCount.textContent = `${(title.value || '').length}/200`;
 }
 
 function setKnowledgeOutputType(type) {
@@ -2009,6 +2316,7 @@ async function createNoteFromNotesView() {
     document.getElementById('notes-content-input').value = '';
     document.getElementById('notes-collection-input').value = '';
     document.getElementById('notes-tags-input').value = '';
+    updateNotesEditorStats();
     status.textContent = '已加入入库队列';
     setScanButtonState('queued');
     startQueuePolling();
@@ -2030,6 +2338,13 @@ async function importUrlFromNotesView() {
   const userTags = parseTagsInput(document.getElementById('notes-url-tags-input').value);
   if (!url) {
     status.textContent = '请输入网页地址';
+    status.classList.add('text-error');
+    return;
+  }
+  const extractMain = document.getElementById('notes-url-extract-main')?.checked;
+  const queueIndex = document.getElementById('notes-url-queue-index')?.checked;
+  if (!extractMain || !queueIndex) {
+    status.textContent = '网页导入当前需要提取正文并加入资料库';
     status.classList.add('text-error');
     return;
   }
@@ -2151,41 +2466,111 @@ async function refreshNotesView() {
   const count = document.getElementById('notes-count');
   if (!list) return;
   try {
-    const [files, meta] = await Promise.all([
+    const [files, meta, history, queue] = await Promise.all([
       fetch(`${API}/api/files?status=done`).then(r => r.json()),
       fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
+      fetch(`${API}/api/history?limit=10`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/api/queue`).then(r => r.json()).catch(() => null),
     ]);
+    historyItems = Array.isArray(history) ? history : historyItems;
     libraryMeta = meta || libraryMeta;
     updateLibraryControls();
     updateKnowledgeSourceFilesLabel();
     syncKnowledgeOutputCards();
+    updateNotesEditorStats();
     const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers', 'Knowledge Outputs']);
     const notes = files
       .filter(file => noteCollections.has(file.collection || ''))
       .slice(0, 12);
-    if (count) count.textContent = `${notes.length} 个`;
-    if (!notes.length) {
-      list.innerHTML = `
-        <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-surface-container-lowest shadow-sm px-5 py-10 text-center">
-          <div class="text-sm font-semibold text-on-surface">还没有采集内容</div>
-          <div class="text-xs text-on-surface-variant/60 mt-1">先写一条笔记，或导入一个网页。</div>
-        </div>`;
-      return;
-    }
-    list.innerHTML = notes.map(file => `
-      <button onclick="openFilePreview(${file.id})" class="text-left rounded-xl bg-surface-container-lowest shadow-sm px-4 py-3 hover:bg-surface-container active:scale-95 transition-all">
+    const recentCaptures = notes.length ? notes : files.slice(0, 12);
+    const knowledge = files.filter(file => file.collection === 'Knowledge Outputs').slice(0, 4);
+    const savedAnswers = files.filter(file => file.collection === 'Saved Answers').slice(0, 4);
+    const displayKnowledge = knowledge.length ? knowledge : notes.slice(0, 4);
+    if (count) count.textContent = `${displayKnowledge.length} 个`;
+    list.innerHTML = displayKnowledge.length ? displayKnowledge.map(file => `
+      <button onclick="openFilePreview(${file.id})" class="text-left rounded-lg bg-surface-container-low px-3 py-3 hover:bg-surface-container active:scale-95 transition-all">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="text-sm font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
+            <div class="text-xs font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
             <div class="text-[11px] text-on-surface-variant/60 mt-1 line-clamp-1">${escHtml(file.collection || 'Inbox')}</div>
           </div>
           <span class="material-symbols-outlined text-primary" style="font-size:16px">open_in_new</span>
         </div>
-        <div class="mt-3 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(file.preview || file.file_path || '')}</div>
-      </button>`).join('');
+      </button>`).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-8 text-center">还没有知识产物。</div>';
+
+    const savedList = document.getElementById('saved-answers-list');
+    if (savedList) {
+      const answerItems = savedAnswers.length
+        ? savedAnswers.map(file => ({
+            title: file.file_name,
+            meta: `${file.collection || 'Saved Answers'} · ${(file.updated_at || '').slice(0, 10)}`,
+            action: `openFilePreview(${file.id})`,
+          }))
+        : (historyItems || []).slice(0, 3).map((item, idx) => ({
+            title: item.question || '未命名回答',
+            meta: `来自对话 · ${(item.created_at || '').slice(0, 10)}`,
+            action: `replayHistory(${idx})`,
+          }));
+      savedList.innerHTML = answerItems.length ? answerItems.map(item => `
+        <button onclick="${item.action}" class="w-full text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors">
+          <div class="font-semibold text-on-surface line-clamp-1">${escHtml(item.title)}</div>
+          <div class="mt-0.5 text-[11px] text-on-surface-variant/60">${escHtml(item.meta)}</div>
+        </button>`).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3">还没有保存回答。</div>';
+    }
+
+    renderNotesTimeline(queue, recentCaptures);
+    renderNotesRecentTable(recentCaptures);
   } catch (e) {
     list.innerHTML = `<div class="text-error text-sm">笔记列表加载失败：${escHtml(e.message)}</div>`;
   }
+}
+
+function renderNotesTimeline(queue, notes) {
+  const el = document.getElementById('notes-processing-timeline');
+  if (!el) return;
+  if (queue?.queue_size > 0 || queue?.processing) {
+    const stage = queue.progress?.stage || 'processing';
+    el.innerHTML = `
+      <div class="flex gap-3">
+        <span class="source-timeline-dot mt-1"></span>
+        <div class="min-w-0">
+          <div class="font-semibold text-on-surface">${queue.processing ? `正在整理：${escHtml(queue.processing)}` : '等待整理'}</div>
+          <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(stage)} · 队列 ${queue.queue_size || 0} 个</div>
+        </div>
+      </div>`;
+    return;
+  }
+  const recent = (notes || []).slice(0, 4);
+  el.innerHTML = recent.length ? recent.map(file => `
+    <div class="flex gap-3">
+      <span class="source-timeline-dot mt-1"></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
+        <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(file.collection || 'Inbox')} · ${fileStatusLabel(file.status)}</div>
+      </div>
+    </div>`).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3">暂无处理记录。</div>';
+}
+
+function renderNotesRecentTable(notes) {
+  const table = document.getElementById('notes-recent-table');
+  const count = document.getElementById('notes-recent-count');
+  if (!table) return;
+  const rows = (notes || []).slice(0, 6);
+  if (count) count.textContent = `${rows.length} 条`;
+  if (!rows.length) {
+    table.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-on-surface-variant/60">暂无最近采集。</td></tr>';
+    return;
+  }
+  table.innerHTML = rows.map(file => `
+    <tr class="hover:bg-surface-container/50">
+      <td class="py-2 pr-3">${fileTypeLabel(file.file_name, file.is_scanned)}</td>
+      <td class="py-2 pr-3 font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</td>
+      <td class="py-2 pr-3">${escHtml(file.collection || 'Inbox')}</td>
+      <td class="py-2 pr-3">${tagPills(Array.isArray(file.user_tags) ? file.user_tags : [])}</td>
+      <td class="py-2 pr-3">${statusBadge(file.status)}</td>
+      <td class="py-2 text-on-surface-variant/60">${(file.updated_at || '').slice(0, 16) || '-'}</td>
+    </tr>`).join('');
+  renderLocalIcons(table);
 }
 
 // ── Chat ──
@@ -2294,18 +2679,64 @@ function normalizeLibraryMeta(meta, files = []) {
   };
 }
 
-// Minimal markdown: bold, inline code, newlines
-function renderMarkdown(text) {
-  return text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+function renderInlineMarkdown(line) {
+  return line
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function splitMarkdownTableRow(line) {
+  return line.replace(/^\s*\|?|\|?\s*$/g, '').split('|').map(cell => cell.trim());
+}
+
+function isMarkdownTableSeparator(line) {
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function renderMarkdown(text) {
+  const lines = escHtml(text || '').split('\n');
+  const html = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const next = lines[i + 1] || '';
+    if (line.includes('|') && isMarkdownTableSeparator(next)) {
+      const headers = splitMarkdownTableRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
+        rows.push(splitMarkdownTableRow(lines[i]));
+        i += 1;
+      }
+      html.push(`<table class="reference-table my-3"><thead><tr>${headers.map(cell => `<th>${renderInlineMarkdown(cell)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${renderInlineMarkdown(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ''));
+        i += 1;
+      }
+      html.push(`<ul>${items.map(item => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</ul>`);
+      continue;
+    }
+    if (!line.trim()) {
+      html.push('<br>');
+    } else {
+      html.push(`<p>${renderInlineMarkdown(line)}</p>`);
+    }
+    i += 1;
+  }
+  return html.join('');
 }
 
 function appendUserMessage(question, scroll = true) {
   const msgs = document.getElementById('messages');
   const inner = msgs.querySelector('.max-w-2xl');
+  if (inner.dataset.latestPreview === 'loaded' || inner.textContent.includes('你好，我是 DocFlow')) {
+    inner.dataset.latestPreview = '';
+    inner.innerHTML = '';
+  }
   const div = document.createElement('div');
   div.className = 'flex flex-col items-end gap-2';
   div.innerHTML = `
@@ -2367,6 +2798,12 @@ function createAIMessageContainer() {
     </div>`;
   inner.appendChild(div);
   return div;
+}
+
+function citationScoreLabel(score) {
+  const value = Number(score || 0);
+  const pct = Math.round(value * 100);
+  return pct > 0 ? `${pct}%` : '';
 }
 
 function citationMarkup(citations) {
@@ -2439,6 +2876,7 @@ function renderChatContextSources(citations = lastCitations) {
   if (!citations?.length) {
     count.textContent = '等待提问后显示';
     list.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3">回答生成后，这里会显示本次引用的文件和片段。</div>';
+    renderChatSourcePreview(null);
     return;
   }
   count.textContent = `${citations.length} 个来源`;
@@ -2448,11 +2886,42 @@ function renderChatContextSources(citations = lastCitations) {
       title="打开来源" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}">
       <div class="flex items-center justify-between gap-2">
         <span class="font-semibold text-on-surface line-clamp-1">${escHtml(c.file_name || '未知文件')}</span>
-        <span class="text-[11px] font-bold text-primary">${c.score ? `${Math.round(c.score * 100)}%` : ''}</span>
+        <span class="text-[11px] font-bold text-primary">${citationScoreLabel(c.score)}</span>
       </div>
       <div class="mt-1 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(c.section || c.snippet || '')}</div>
     </button>
   `).join('');
+  renderChatSourcePreview(citations[0]);
+  renderLocalIcons(list);
+}
+
+function renderChatSourcePreview(citation) {
+  const panel = document.getElementById('chat-context-preview');
+  const btn = document.getElementById('chat-source-open-btn');
+  if (!panel || !btn) return;
+  chatPreviewCitation = citation || null;
+  if (!citation) {
+    btn.classList.add('hidden');
+    panel.innerHTML = '选择回答中的引用后，这里会显示可核查片段。';
+    return;
+  }
+  btn.classList.remove('hidden');
+  panel.innerHTML = `
+    <div class="flex items-start gap-2">
+      <span class="material-symbols-outlined text-primary" style="font-size:16px">${(citation.file_name || '').toLowerCase().endsWith('.md') ? 'article' : 'description'}</span>
+      <div class="min-w-0">
+        <div class="font-semibold text-on-surface line-clamp-1">${escHtml(citation.file_name || '未知文件')}</div>
+        <div class="mt-0.5 text-[11px] text-on-surface-variant/60">${citation.page_num ? `第 ${citation.page_num} 页` : escHtml(citation.section || '来源片段')}</div>
+      </div>
+    </div>
+    <p class="mt-3 line-clamp-5">${escHtml(citation.snippet || citation.section || '暂无片段预览')}</p>
+    ${citationScoreLabel(citation.score) ? `<div class="mt-3 inline-flex items-center rounded-lg bg-primary-container px-2 py-1 text-[11px] font-bold text-primary">相关度 ${citationScoreLabel(citation.score)}</div>` : ''}`;
+  renderLocalIcons(panel);
+}
+
+function openSourceFromChatPreview() {
+  if (!chatPreviewCitation) return;
+  openSourceByPath(chatPreviewCitation.file_path || '', chatPreviewCitation.page_num || 1);
 }
 
 function copyTextFromButton(btn) {
@@ -2636,9 +3105,33 @@ async function openSourceByPath(filePath, pageNum = 1) {
   } catch {}
 }
 
+async function loadDefaultSourcePreview() {
+  if (sourcePreviewState.loading || sourcePreviewState.file || sourcePreviewState.error) {
+    renderSourcePreview();
+    return;
+  }
+  try {
+    const files = await fetch(`${API}/api/files?status=done`).then(r => r.json());
+    const sourceScore = file => {
+      const chunks = Number(file?.chunk_count || 0);
+      const pages = Number(file?.total_pages || 0);
+      const tooFragmentedPenalty = chunks > 180 ? 200 : 0;
+      return Math.min(chunks, 120) + pages * 4 - tooFragmentedPenalty;
+    };
+    const file = Array.isArray(files)
+      ? [...files].sort((a, b) => sourceScore(b) - sourceScore(a))[0]
+      : null;
+    if (file?.id) {
+      await openSourcePreview(file.id);
+      return;
+    }
+  } catch {}
+  renderSourcePreview();
+}
+
 async function openSourcePreview(fileId, pageNum = 1) {
-  switchView('source');
   sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: true, error: '' };
+  switchView('source');
   renderSourcePreview();
   try {
     const data = await fetch(`${API}/api/file/${fileId}/chunks?max_text_chars=1800`).then(r => {
@@ -2658,6 +3151,63 @@ async function openSourcePreview(fileId, pageNum = 1) {
     sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: false, error: e.message };
   }
   renderSourcePreview();
+}
+
+function sourceConfidence(chunk, index) {
+  const raw = Number(chunk?.score || chunk?.similarity || 0);
+  if (raw > 0) return Math.min(0.99, raw);
+  return null;
+}
+
+function confidenceLabel(value) {
+  if (value === null || value === undefined) return '来源片段';
+  if (value >= 0.88) return '高置信度';
+  if (value >= 0.65) return '中等置信度';
+  return '低置信度';
+}
+
+function sourceKeywords(text) {
+  const tokens = String(text || '').match(/[A-Za-z0-9_\u4e00-\u9fa5]{2,14}/g) || [];
+  const blocked = new Set(['the','and','for','with','this','that','from','一个','可以','以及','这些','我们','进行','内容','文件']);
+  return [...new Set(tokens.filter(token => !blocked.has(token.toLowerCase())))].slice(0, 10);
+}
+
+function sourceChunkText(chunk) {
+  const values = [chunk?.raw_text, chunk?.parent_text, chunk?.text_preview];
+  return values.find(value => value && !String(value).includes('暂无文本预览')) || chunk?.text_preview || '';
+}
+
+function highlightedSourceText(text) {
+  const lines = String(text || '暂无文本预览').split(/\n+/).map(line => line.trim()).filter(Boolean).slice(0, 14);
+  return lines.map((line, idx) => {
+    const body = escHtml(line);
+    if (idx < 5) return `<p><span class="source-highlight">${body}</span></p>`;
+    return `<p>${body}</p>`;
+  }).join('');
+}
+
+function renderSourceTimeline(chunks, selectedIndex) {
+  if (!chunks.length) return '';
+  const selected = chunks[selectedIndex] || chunks[0];
+  const pageNums = chunks.map(chunk => Number(chunk.page_num || 0)).filter(Boolean);
+  const first = pageNums.length ? Math.min(...pageNums) : 1;
+  const last = pageNums.length ? Math.max(...pageNums) : chunks.length;
+  const selectedPage = Number(selected?.page_num || selectedIndex + 1);
+  return `
+    <div class="mt-5 rounded-lg bg-surface-container-lowest px-4 py-3 shadow-sm">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-semibold text-on-surface">来源时间线</span>
+        <span class="text-on-surface-variant/60">第 ${selectedPage || selectedIndex + 1} 页</span>
+      </div>
+      <div class="mt-4 flex items-center gap-2">
+        ${chunks.slice(0, 12).map((chunk, idx) => `<button onclick="selectSourcePreviewChunk(${idx})" class="${idx === selectedIndex ? 'source-timeline-dot' : 'w-2 h-2 rounded-full bg-on-surface-variant/25'}" title="片段 ${idx + 1}" aria-label="片段 ${idx + 1}"></button>`).join('')}
+      </div>
+      <div class="mt-3 flex justify-between text-[11px] text-on-surface-variant/60">
+        <span>${first}</span>
+        <span>${selectedPage || selectedIndex + 1}</span>
+        <span>${last}</span>
+      </div>
+    </div>`;
 }
 
 function renderSourcePreview() {
@@ -2720,35 +3270,93 @@ function renderSourcePreview() {
 
   list.innerHTML = chunks.map((chunk, index) => {
     const active = index === sourcePreviewState.selectedIndex;
-    return `<button onclick="selectSourcePreviewChunk(${index})" class="w-full text-left rounded-lg px-3 py-3 transition-all active:scale-95 ${active ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-low hover:bg-surface-container'}">
-      <div class="flex items-center justify-between gap-2">
-        <span class="font-semibold line-clamp-1">${escHtml(chunk.section || chunk.chunk_type || `片段 ${index + 1}`)}</span>
-        <span class="text-[10px] font-bold">${chunk.page_num ? `第 ${chunk.page_num} 页` : `${index + 1}`}</span>
+    const confidence = sourceConfidence(chunk, index);
+    return `<button onclick="selectSourcePreviewChunk(${index})" class="w-full text-left rounded-lg px-3 py-3 transition-all active:scale-95 ${active ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container-low hover:bg-surface-container'}">
+      <div class="flex items-start gap-3">
+        <span class="mt-0.5 w-5 h-5 rounded-md bg-surface-container-lowest flex items-center justify-center text-[11px] font-bold">${index + 1}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold line-clamp-1">${escHtml(file.file_name || '来源')}</span>
+            <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>
+          </div>
+          <div class="mt-1 text-[11px] text-on-surface-variant/70 line-clamp-1">${chunk.page_num ? `第 ${chunk.page_num} 页` : `片段 ${index + 1}`} · ${escHtml(chunk.section || chunk.chunk_type || '正文片段')}</div>
+          <div class="mt-2 inline-flex items-center gap-1 rounded-lg bg-surface-container-lowest px-2 py-1 text-[11px] font-bold text-primary">${confidenceLabel(confidence)}${confidence ? ` ${confidence.toFixed(2)}` : ''}</div>
+        </div>
       </div>
-      <div class="mt-1 text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(chunk.text_preview || chunk.raw_text || chunk.parent_text || '')}</div>
     </button>`;
   }).join('');
 
-  const text = selected?.text_preview || selected?.raw_text || selected?.parent_text || '暂无文本预览';
+  const text = sourceChunkText(selected) || '暂无文本预览';
+  const confidence = sourceConfidence(selected, sourcePreviewState.selectedIndex);
+  const keywords = sourceKeywords(text);
+  const selectedPage = selected?.page_num || sourcePreviewState.selectedIndex + 1;
   viewer.innerHTML = `
-    <article class="mx-auto max-w-3xl rounded-xl bg-surface-container-lowest px-6 py-6 shadow-sm">
-      <div class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">${escHtml(selected?.section || selected?.chunk_type || '引用片段')}</div>
-      <div class="mt-4 whitespace-pre-wrap">${escHtml(text)}</div>
-    </article>`;
+    <div class="mx-auto max-w-3xl">
+      <div class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-surface-container-lowest px-3 py-2 shadow-sm">
+        <div class="flex items-center gap-2 text-xs">
+          <button onclick="selectSourcePreviewChunk(${Math.max(0, sourcePreviewState.selectedIndex - 1)})" class="icon-button !w-8 !h-8" title="上一个片段" aria-label="上一个片段">
+            <span class="material-symbols-outlined" style="font-size:14px">arrow_back</span>
+          </button>
+          <span class="rounded-lg bg-surface-container-low px-3 py-1 font-bold text-on-surface">第 ${selectedPage} 页</span>
+          <button onclick="selectSourcePreviewChunk(${Math.min(chunks.length - 1, sourcePreviewState.selectedIndex + 1)})" class="icon-button !w-8 !h-8" title="下一个片段" aria-label="下一个片段">
+            <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="rounded-lg bg-surface-container-low px-3 py-1 font-bold">100%</span>
+          <button onclick="savePreviewChunkAsNote()" class="toolbar-btn" title="保存片段为笔记" aria-label="保存片段为笔记">
+            <span class="material-symbols-outlined" style="font-size:14px">note_add</span>保存
+          </button>
+        </div>
+      </div>
+      <article class="rounded-xl bg-surface-container-lowest px-8 py-7 shadow-sm">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">${escHtml(selected?.section || selected?.chunk_type || '引用片段')}</div>
+        <div class="mt-4 prose text-sm text-on-surface max-w-none">${highlightedSourceText(text)}</div>
+      </article>
+      ${renderSourceTimeline(chunks, sourcePreviewState.selectedIndex)}
+    </div>`;
   detail.innerHTML = `
     <div class="grid grid-cols-2 gap-2">
       <div class="rounded-lg bg-surface-container-low px-3 py-2">
-        <div class="text-[10px] text-on-surface-variant/60">页码</div>
-        <div class="mt-1 font-bold text-on-surface">${selected?.page_num || '-'}</div>
+        <div class="text-[10px] text-on-surface-variant/60">相似度</div>
+        <div class="mt-1 font-bold text-on-surface">${confidence ? confidence.toFixed(2) : '-'}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="text-[10px] text-on-surface-variant/60">证据强度</div>
+        <div class="mt-1 font-bold text-primary">${confidence ? (confidence >= 0.75 ? '强' : '中') : '可核查'}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="text-[10px] text-on-surface-variant/60">位置权重</div>
+        <div class="mt-1 font-bold text-on-surface">${selected?.section ? '高' : '中'}</div>
       </div>
       <div class="rounded-lg bg-surface-container-low px-3 py-2">
         <div class="text-[10px] text-on-surface-variant/60">字数</div>
-        <div class="mt-1 font-bold text-on-surface">${selected?.char_count || selected?.text_length || '-'}</div>
+        <div class="mt-1 font-bold text-on-surface">${selected?.char_count || selected?.text_length || text.length}</div>
       </div>
     </div>
     <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2">
-      <div class="font-semibold text-on-surface">${escHtml(selected?.section || '来源片段')}</div>
-      <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(file.file_name || '')}</div>
+      <div class="font-semibold text-on-surface">引用关系</div>
+      <div class="mt-2 text-[11px] leading-relaxed text-on-surface-variant/70">这个片段来自当前文件的可核查内容，可用于回答中对应事实和段落。</div>
+      <div class="mt-3 grid grid-cols-1 gap-2">
+        <div class="rounded-lg bg-surface-container-lowest px-3 py-2">
+          <div class="text-[10px] text-on-surface-variant/60">贡献内容</div>
+          <div class="mt-1 text-on-surface line-clamp-2">${escHtml(text.slice(0, 120))}</div>
+        </div>
+        <div class="rounded-lg bg-surface-container-lowest px-3 py-2">
+          <div class="text-[10px] text-on-surface-variant/60">在答案中的位置</div>
+          <div class="mt-1 text-on-surface">第 ${sourcePreviewState.selectedIndex + 1} 段 · ${escHtml(selected?.section || '正文')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="font-semibold text-on-surface">关键词命中</div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        ${keywords.length ? keywords.map(keyword => `<span class="rounded-lg bg-primary-container/70 px-2 py-1 text-[11px] font-bold text-primary">${escHtml(keyword)}</span>`).join('') : '<span class="text-on-surface-variant/60">暂无关键词</span>'}
+      </div>
+    </div>
+    <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2">
+      <div class="font-semibold text-on-surface">父级上下文</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">${escHtml(file.file_name || '')} · ${selected?.page_num ? `第 ${selected.page_num} 页` : '当前片段'} · ${escHtml(selected?.section || '正文')}</div>
     </div>
     <div class="mt-3 flex flex-col gap-2">
       <button onclick="savePreviewChunkAsNote()" class="toolbar-btn" title="保存片段为笔记" aria-label="保存片段为笔记">
@@ -2758,6 +3366,10 @@ function renderSourcePreview() {
       <button onclick="askWithLibraryFile(${file.id})" class="toolbar-btn" title="用这个文件提问" aria-label="用这个文件提问">
         <span class="material-symbols-outlined" style="font-size:15px">chat_bubble</span>
         用它提问
+      </button>
+      <button onclick="openSourceOriginal()" class="toolbar-btn" title="打开原文" aria-label="打开原文">
+        <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+        打开原文
       </button>
     </div>`;
   renderLocalIcons(document.getElementById('view-source'));
@@ -2777,7 +3389,7 @@ async function savePreviewChunkAsNote() {
   const file = sourcePreviewState.file;
   const chunk = sourcePreviewState.chunks[sourcePreviewState.selectedIndex];
   if (!file || !chunk) return;
-  const text = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  const text = sourceChunkText(chunk);
   if (!text.trim()) return;
   try {
     const r = await fetch(`${API}/api/notes`, {
@@ -2856,6 +3468,7 @@ function currentFileQuery() {
 }
 
 function applyLibraryFilters() {
+  libraryPage = 1;
   libraryFilters = {
     status: document.getElementById('library-status-filter')?.value || '',
     collection: document.getElementById('library-collection-filter')?.value || '',
@@ -2868,6 +3481,7 @@ function applyLibraryFilters() {
 }
 
 function setLibraryGroup(group) {
+  libraryPage = 1;
   libraryFilters.kind = '';
   libraryFilters.recent = false;
   libraryFilters.favorite = false;
@@ -2886,6 +3500,7 @@ function setLibraryGroup(group) {
 }
 
 function clearLibraryFilters() {
+  libraryPage = 1;
   document.getElementById('library-status-filter').value = '';
   document.getElementById('library-collection-filter').value = '';
   document.getElementById('library-tag-filter').value = '';
@@ -2900,6 +3515,8 @@ function updateLibraryControls() {
   const tagSelect = document.getElementById('library-tag-filter');
   const collectionOptions = document.getElementById('collection-options');
   const tagOptions = document.getElementById('tag-options');
+  const collectionList = document.getElementById('library-collection-list');
+  const tagList = document.getElementById('library-tag-list');
   if (collectionSelect) {
     const value = collectionSelect.value;
     collectionSelect.innerHTML = '<option value="">全部集合</option>' + (libraryMeta.collections || [])
@@ -2924,7 +3541,48 @@ function updateLibraryControls() {
       .map(item => `<option value="${escHtml(item.name)}"></option>`)
       .join('');
   }
+  if (collectionList) {
+    const items = (libraryMeta.collections || []).slice(0, 8);
+    collectionList.innerHTML = items.length
+      ? items.map(item => libraryFacetButton('collection', item.name, item.count)).join('')
+      : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">暂无集合</div>';
+  }
+  if (tagList) {
+    const items = (libraryMeta.user_tags || []).slice(0, 8);
+    tagList.innerHTML = items.length
+      ? items.map(item => libraryFacetButton('tag', item.name, item.count)).join('')
+      : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">暂无标签</div>';
+  }
   updateLibraryGroupControls();
+  renderLocalIcons(document.getElementById('view-library'));
+}
+
+function libraryFacetButton(type, name, count) {
+  const active = type === 'collection' ? libraryFilters.collection === name : libraryFilters.tag === name;
+  const action = type === 'collection' ? 'setLibraryCollectionFilter' : 'setLibraryTagFilter';
+  return `<button onclick="${action}(decodeURIComponent('${encodeURIComponent(name)}'))" class="w-full min-h-9 rounded-lg px-3 flex items-center justify-between gap-2 text-left transition-all active:scale-95 ${active ? 'bg-primary-container text-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'}">
+    <span class="inline-flex items-center gap-2 min-w-0">
+      <span class="material-symbols-outlined" style="font-size:13px">${type === 'collection' ? 'inventory_2' : 'sell'}</span>
+      <span class="truncate">${escHtml(name)}</span>
+    </span>
+    <span class="text-[11px] font-bold">${count || 0}</span>
+  </button>`;
+}
+
+function setLibraryCollectionFilter(name) {
+  libraryPage = 1;
+  const select = document.getElementById('library-collection-filter');
+  if (select) select.value = name;
+  libraryFilters.collection = name;
+  refreshFiles({ preserveFilters: true });
+}
+
+function setLibraryTagFilter(name) {
+  libraryPage = 1;
+  const select = document.getElementById('library-tag-filter');
+  if (select) select.value = name;
+  libraryFilters.tag = name;
+  refreshFiles({ preserveFilters: true });
 }
 
 function currentLibraryGroup() {
@@ -3044,13 +3702,18 @@ async function refreshFiles(options = {}) {
     updateSummarizeBar();
 
     const tbody = document.getElementById('file-tbody');
+    const totalPages = Math.max(1, Math.ceil(files.length / libraryPageSize));
+    libraryPage = Math.min(Math.max(1, libraryPage), totalPages);
+    const start = (libraryPage - 1) * libraryPageSize;
+    const visibleFiles = files.slice(start, start + libraryPageSize);
     document.getElementById('library-count').textContent = `显示 ${files.length} / ${libraryMeta.total_files ?? files.length} 个文件`;
     if (!files.length) {
       tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-on-surface-variant/60 text-sm">暂无匹配文件，请调整筛选或上传文件</td></tr>`;
+      renderLibraryPagination(0, 0, 0);
       renderLibraryContext();
       return;
     }
-    tbody.innerHTML = files.map(f => {
+    tbody.innerHTML = visibleFiles.map(f => {
       const isStarred = Boolean(f.favorited) || favoritedIds.has(f.id);
       const favoriteLabel = isStarred ? `取消收藏 ${f.file_name}` : `收藏 ${f.file_name}`;
       const userTags = Array.isArray(f.user_tags) ? f.user_tags : [];
@@ -3081,6 +3744,7 @@ async function refreshFiles(options = {}) {
       </tr>`;
     }).join('');
     document.getElementById('select-all').checked = false;
+    renderLibraryPagination(files.length, start + 1, Math.min(start + libraryPageSize, files.length));
     renderLibraryContext();
   } catch (e) {
     document.getElementById('file-tbody').innerHTML =
@@ -3089,6 +3753,36 @@ async function refreshFiles(options = {}) {
   } finally {
     if (showLoading) setRefreshButtonLoading(false);
   }
+}
+
+function renderLibraryPagination(total, start, end) {
+  const el = document.getElementById('library-pagination');
+  if (!el) return;
+  if (!total) {
+    el.innerHTML = '<span>暂无文件</span><span>每页 14 条</span>';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / libraryPageSize));
+  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, idx) => idx + 1);
+  el.innerHTML = `
+    <span>共 ${total} 个文件，显示 ${start}-${end}</span>
+    <div class="flex items-center gap-1">
+      <button onclick="setLibraryPage(${Math.max(1, libraryPage - 1)})" ${libraryPage <= 1 ? 'disabled' : ''} class="icon-button !w-8 !h-8 disabled:opacity-40" title="上一页" aria-label="上一页">
+        <span class="material-symbols-outlined" style="font-size:14px">arrow_back</span>
+      </button>
+      ${pages.map(page => `<button onclick="setLibraryPage(${page})" class="w-8 h-8 rounded-lg text-xs font-bold ${page === libraryPage ? 'bg-primary-container text-primary' : 'hover:bg-surface-container'}">${page}</button>`).join('')}
+      ${totalPages > 5 ? `<span class="px-2">… ${totalPages}</span>` : ''}
+      <button onclick="setLibraryPage(${Math.min(totalPages, libraryPage + 1)})" ${libraryPage >= totalPages ? 'disabled' : ''} class="icon-button !w-8 !h-8 disabled:opacity-40" title="下一页" aria-label="下一页">
+        <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>
+      </button>
+      <span class="ml-3 text-[11px]">每页 ${libraryPageSize} 条</span>
+    </div>`;
+  renderLocalIcons(el);
+}
+
+function setLibraryPage(page) {
+  libraryPage = page;
+  refreshFiles({ preserveFilters: true });
 }
 
 function setLibraryActiveFile(fileId) {
@@ -3145,7 +3839,24 @@ function renderLibraryContext(state = {}) {
         </div>
       </div>
     </section>
-    <section class="soft-panel p-4">
+    <section class="soft-panel p-2">
+      <div class="grid grid-cols-4 gap-1 text-xs font-bold text-on-surface-variant">
+        <button onclick="document.getElementById('library-detail-details')?.scrollIntoView({block:'nearest'})" class="rounded-lg bg-primary-container text-primary px-2 py-2">详情</button>
+        <button onclick="document.getElementById('library-detail-preview')?.scrollIntoView({block:'nearest'})" class="rounded-lg hover:bg-surface-container px-2 py-2">预览</button>
+        <button onclick="document.getElementById('library-detail-content')?.scrollIntoView({block:'nearest'})" class="rounded-lg hover:bg-surface-container px-2 py-2">内容</button>
+        <button onclick="document.getElementById('library-detail-related')?.scrollIntoView({block:'nearest'})" class="rounded-lg hover:bg-surface-container px-2 py-2">关联</button>
+      </div>
+    </section>
+    <section id="library-detail-details" class="soft-panel p-4">
+      <h3 class="panel-title">所属集合</h3>
+      <div class="mt-3 flex items-center justify-between gap-2 rounded-lg bg-surface-container-low px-3 py-3 text-xs">
+        <span class="inline-flex items-center gap-2 font-semibold text-on-surface"><span class="material-symbols-outlined text-primary" style="font-size:15px">inventory_2</span>${escHtml(file.collection || 'Inbox')}</span>
+        <button onclick="selectSingleAndOpenKnowledge(${file.id})" class="toolbar-btn !h-8" title="基于这个文件生成内容" aria-label="基于这个文件生成内容">使用</button>
+      </div>
+      <h3 class="panel-title mt-4">标签</h3>
+      <div class="mt-3">${tagPills(tags)}</div>
+    </section>
+    <section id="library-detail-preview" class="soft-panel p-4">
       <h3 class="panel-title">来源预览</h3>
       <p class="mt-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">${escHtml(file.preview || fileLocationLabel(file) || '暂无预览')}</p>
       <div class="mt-3 flex flex-col gap-2">
@@ -3164,7 +3875,7 @@ function renderLibraryContext(state = {}) {
       </div>
       <div id="library-source-review" class="mt-3 rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">打开引用片段后，可查看切块、来源位置，并保存片段为笔记。</div>
     </section>
-    <section class="soft-panel p-4">
+    <section id="library-detail-content" class="soft-panel p-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="panel-title">最近引用</h3>
         <button onclick="askWithLibraryFile(${file.id})" class="toolbar-btn" title="用这个文件提问" aria-label="用这个文件提问">
@@ -3174,11 +3885,7 @@ function renderLibraryContext(state = {}) {
       </div>
       <div id="library-recent-citations" class="mt-3 text-xs text-on-surface-variant">正在读取最近引用…</div>
     </section>
-    <section class="soft-panel p-4">
-      <h3 class="panel-title">标签</h3>
-      <div class="mt-3">${tagPills(tags)}</div>
-    </section>
-    <section class="soft-panel p-4">
+    <section id="library-detail-related" class="soft-panel p-4">
       <h3 class="panel-title">文件建议</h3>
       <div class="mt-3 flex flex-col gap-2">
         <button onclick="selectSingleAndOpenKnowledge(${file.id})" class="toolbar-btn" title="用这个文件生成知识产物" aria-label="用这个文件生成知识产物">
@@ -3227,7 +3934,7 @@ async function openSourceReview(fileId) {
 function sourceChunkMarkup(chunk, idx, file) {
   const page = chunk.page_num ? `第 ${chunk.page_num} 页` : '无页码';
   const section = chunk.section || chunk.chunk_type || '片段';
-  const preview = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  const preview = sourceChunkText(chunk);
   return `
     <div class="rounded-lg bg-surface-container-lowest px-3 py-3">
       <div class="flex items-center justify-between gap-2">
@@ -3248,7 +3955,7 @@ async function saveSourceChunkAsNote(index) {
   const chunk = librarySourceReview.chunks[index];
   const file = libraryFiles.find(item => item.id === librarySourceReview.fileId);
   if (!chunk || !file) return;
-  const text = chunk.text_preview || chunk.raw_text || chunk.parent_text || '';
+  const text = sourceChunkText(chunk);
   if (!text.trim()) return;
   try {
     const r = await fetch(`${API}/api/notes`, {
