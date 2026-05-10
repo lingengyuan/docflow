@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 from src.quality.browser_acceptance import (
     build_browser_acceptance_plan,
     format_browser_acceptance_report,
@@ -48,3 +50,10 @@ def test_browser_acceptance_fails_fast_when_server_is_unreachable():
     assert report["checks"][0]["id"] == "server_reachable"
     assert report["checks"][0]["passed"] is False
     assert report["screenshots"] == []
+
+
+def test_browser_acceptance_supports_optional_mutation_flow():
+    signature = inspect.signature(run_browser_acceptance)
+
+    assert "include_mutation_flow" in signature.parameters
+    assert signature.parameters["include_mutation_flow"].default is False

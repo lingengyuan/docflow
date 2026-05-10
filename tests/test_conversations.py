@@ -158,6 +158,44 @@ def test_query_creates_conversation_and_rewrites_followup(monkeypatch, tmp_path)
     assert conversations[0]["message_count"] == 4
 
 
+def test_independent_english_question_is_not_rewritten_as_followup(monkeypatch, tmp_path):
+    active_store = DocStore(tmp_path / "docflow.db")
+    fake_engine = FakeQueryEngine()
+    monkeypatch.setattr(api_app, "store", active_store)
+    monkeypatch.setattr(api_app, "query_engine", fake_engine)
+    client = TestClient(api_app.app)
+
+    first = client.post("/api/query", json={"question": "summarize docflow"})
+    conversation_id = first.json()["conversation_id"]
+
+    second = client.post(
+        "/api/query",
+        json={"question": "what is bitcoin", "conversation_id": conversation_id},
+    )
+
+    assert second.status_code == 200
+    assert fake_engine.calls[-1]["retrieval_query"] == "what is bitcoin"
+
+
+def test_english_followup_uses_whole_word_marker(monkeypatch, tmp_path):
+    active_store = DocStore(tmp_path / "docflow.db")
+    fake_engine = FakeQueryEngine()
+    monkeypatch.setattr(api_app, "store", active_store)
+    monkeypatch.setattr(api_app, "query_engine", fake_engine)
+    client = TestClient(api_app.app)
+
+    first = client.post("/api/query", json={"question": "summarize docflow"})
+    conversation_id = first.json()["conversation_id"]
+
+    second = client.post(
+        "/api/query",
+        json={"question": "what about it", "conversation_id": conversation_id},
+    )
+
+    assert second.status_code == 200
+    assert fake_engine.calls[-1]["retrieval_query"] == "summarize docflow\nwhat about it"
+
+
 def test_query_timeout_recovers_without_restart(monkeypatch):
     controller = ModelTaskController(thread_name_prefix="test-api-model-task")
     monkeypatch.setattr(api_app, "model_tasks", controller)

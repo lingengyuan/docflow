@@ -227,7 +227,7 @@ class DocStore:
             ).fetchone()
         if row is None:
             return True, None
-        if row["status"] in ("error", "processing"):
+        if row["status"] in ("pending", "error", "processing"):
             return True, None
         # mtime 快跳：未变则大概率不需要重新 ingest
         current_mtime = path.stat().st_mtime_ns

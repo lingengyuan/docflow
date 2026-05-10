@@ -8,6 +8,7 @@ import logging
 import os
 import asyncio
 import queue
+import re
 import shutil
 import sqlite3
 import threading
@@ -841,11 +842,14 @@ def _build_retrieval_query(question: str, conversation_context: list[dict]) -> s
 
 def _looks_like_followup(question: str) -> bool:
     q = question.strip().lower()
-    markers = (
+    chinese_markers = (
         "展开", "继续", "上面", "刚才", "前面", "这个", "那个", "这点", "第二点",
-        "第三点", "第一点", "it", "that", "this", "above", "previous",
+        "第三点", "第一点",
     )
-    return any(marker in q for marker in markers)
+    if any(marker in q for marker in chinese_markers):
+        return True
+    english_markers = ("it", "that", "this", "above", "previous")
+    return any(re.search(rf"\b{re.escape(marker)}\b", q) for marker in english_markers)
 
 
 @app.get("/api/conversations")

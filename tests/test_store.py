@@ -48,6 +48,12 @@ class TestDocStore:
         need, _ = db.needs_ingest(pdf)
         assert need is True
 
+    def test_needs_ingest_pending_status(self, db, pdf):
+        h = DocStore.compute_hash(pdf)
+        db.upsert_file(pdf, pdf.name, h, status="pending", mtime_ns=pdf.stat().st_mtime_ns)
+        need, _ = db.needs_ingest(pdf)
+        assert need is True
+
     def test_needs_ingest_changed_file(self, db, pdf):
         # Store with a fake hash
         db.upsert_file(pdf, pdf.name, "fakehash000", status="done")

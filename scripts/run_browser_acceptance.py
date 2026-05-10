@@ -31,6 +31,7 @@ def main() -> int:
     parser.add_argument("--no-screenshots", action="store_true", help="Do not write screenshots")
     parser.add_argument("--headed", action="store_true", help="Run browser with a visible window")
     parser.add_argument("--timeout-ms", type=int, default=8000, help="Per-check timeout in milliseconds")
+    parser.add_argument("--with-mutation-flow", action="store_true", help="Also create, query, and clean up a temporary note")
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 
@@ -39,6 +40,7 @@ def main() -> int:
         screenshot_dir=None if args.no_screenshots else args.screenshots_dir,
         headless=not args.headed,
         timeout_ms=args.timeout_ms,
+        include_mutation_flow=args.with_mutation_flow,
     )
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))

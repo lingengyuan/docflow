@@ -170,6 +170,30 @@ def test_phase31_supplemental_polish_stays_in_place():
     assert 'border-outline-variant/35 rounded-lg px-3 py-2' in html
 
 
+def test_phase32_queue_polling_refreshes_only_on_state_change():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    start = html.index("async function pollQueueOnce")
+    end = html.index("async function triggerIngest")
+    poll_body = html[start:end]
+
+    assert "function maybeRefreshFilesForQueue" in html
+    assert "function queueFilesRefreshKey" in html
+    assert "lastQueueFilesRefreshKey" in html
+    assert "maybeRefreshFilesForQueue(q)" in poll_body
+    assert "refreshFiles();" not in poll_body
+
+
+def test_phase32_chat_errors_are_user_facing():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    assert "function userFacingErrorMessage" in html
+    assert "这次回答耗时太久" in html
+    assert "暂时连接不上本地服务" in html
+    assert "本地服务还在准备" in html
+    assert "错误: ${e.message}" not in html
+    assert "JSON.parse(eventData))}</span>" not in html
+
+
 def test_phase17_notes_exposes_knowledge_outputs():
     html = Path("frontend/index.html").read_text(encoding="utf-8")
 
