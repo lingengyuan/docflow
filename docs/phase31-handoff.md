@@ -13,6 +13,7 @@ Completed repairs:
 - Notes now matches the reference layout more closely: editor, web import, knowledge-output controls, saved answers, processing timeline, and recent capture table are present.
 - Settings now uses compact system cards, a model table, monitored-folder table, true local storage usage, and user-facing guidance without command-line or recovery wording.
 - The reference storage block gap was repaired after review: the sidebar and Settings page now show real disk usage, local file usage, model cache usage, app data usage, and other local usage instead of only file counts.
+- A follow-up missing-information audit found and fixed a Library refresh race where rapid group switching could leave the main table empty even though the side rail showed 268 files.
 - Source Preview now opens to a complete evidence-reading page, waits for real content before acceptance screenshots, and shows document text, highlighted evidence, relationship context, keywords, actions, and timeline controls.
 
 ## Changed Files
@@ -24,6 +25,7 @@ Completed repairs:
 - `tests/test_api_storage.py`
 - `tests/test_browser_acceptance.py`
 - `tests/test_static_assets.py`
+- `docs/phase31-missing-info-audit.md`
 - `docs/phase31-handoff.md`
 
 ## Visual Evidence
@@ -36,6 +38,8 @@ Browser screenshots:
 - `output/playwright/phase31-browser-acceptance/04-notes.png`
 - `output/playwright/phase31-browser-acceptance/05-settings.png`
 - `output/playwright/phase31-storage-browser-acceptance/05-settings.png`
+- `output/playwright/phase31-missing-info-audit/browser-acceptance/02-library.png`
+- `output/playwright/phase31-missing-info-audit/all-pages-side-by-side-updated.png`
 
 Reference comparison sheets:
 
@@ -54,6 +58,7 @@ npm run build:css
 .venv/bin/python -m pytest
 .venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8000 --screenshots-dir output/playwright/phase31-browser-acceptance --json
 .venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8010 --screenshots-dir output/playwright/phase31-storage-browser-acceptance --json
+.venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8010 --screenshots-dir output/playwright/phase31-missing-info-audit/browser-acceptance --json
 curl -s http://127.0.0.1:8010/api/storage/usage
 ```
 
@@ -62,6 +67,8 @@ Results:
 - CSS build passed.
 - Full test suite passed: 208 passed, 5 warnings.
 - Browser acceptance passed on the clean Phase31 storage server: 68 passed, 0 failed.
+- Missing-information audit browser acceptance passed after the Library refresh-race fix: 73 passed, 0 failed.
+- Library audit confirmed the table now renders real rows after rapid group switching: 14 rows shown, 268 / 268 files counted.
 - Storage API returned real local values during validation: 248 GB used of 926 GB, 268 existing files, about 38 GB model cache, about 1.0 GB app data, and no missing source files.
 - Settings acceptance confirmed no developer or command-line language is exposed in the normal UI.
 - A separate check against `127.0.0.1:8000` initially hit an older already-running service and returned a storage API 404, so final browser validation was rerun on `127.0.0.1:8010` with the current code.

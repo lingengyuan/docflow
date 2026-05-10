@@ -151,6 +151,7 @@ def run_browser_acceptance(
         )
         for index, view in enumerate(build_browser_acceptance_plan(), start=1):
             _run_view_checks(page, view, checks, timeout_ms)
+            _run_check(checks, f"{view.id}_ready_for_screenshot", lambda view=view: _wait_for_view_ready(page, view, timeout_ms))
             if output_dir:
                 screenshot = output_dir / f"{index:02d}-{view.id}.png"
                 page.screenshot(path=str(screenshot), full_page=True)
@@ -257,11 +258,14 @@ def _assert_no_settings_developer_language(page: Any, timeout_ms: int) -> None:
 
 def _check_library_groups(page: Any, timeout_ms: int) -> dict[str, str]:
     page.locator("#library-group-pdf").click(timeout=timeout_ms)
+    _wait_for_library_loaded(page, timeout_ms)
     page.locator("#library-group-all").click(timeout=timeout_ms)
+    _wait_for_library_loaded(page, timeout_ms, expect_rows=True)
     return {"clicked": "pdf,all"}
 
 
 def _check_library_source_review(page: Any, timeout_ms: int) -> dict[str, Any]:
+    _wait_for_library_loaded(page, timeout_ms, expect_rows=True)
     row = page.locator("#file-tbody tr[data-file-id]").first
     if row.count() == 0:
         return {"skipped": "no files"}
@@ -307,6 +311,62 @@ def _check_source_preview_loaded(page: Any, timeout_ms: int) -> dict[str, Any]:
         timeout=timeout_ms,
     )
     return {"state": page.locator("#source-detail-panel").inner_text(timeout=timeout_ms)[:80]}
+
+
+def _wait_for_view_ready(page: Any, view: ViewAcceptance, timeout_ms: int) -> dict[str, Any]:
+    if view.id == "library":
+        return _wait_for_library_loaded(page, timeout_ms, expect_rows=True)
+    if view.id == "source":
+        return _check_source_preview_loaded(page, timeout_ms)
+    if view.id == "settings":
+        page.wait_for_function(
+            """
+            () => {
+                const storage = document.querySelector('#settings-storage-list');
+                const insights = document.querySelector('#settings-insights-list');
+                if (!storage || !insights) return false;
+                const text = `${storage.innerText || ''} ${insights.innerText || ''}`;
+                return !text.includes('正在读取') && !text.includes('正在检查');
+            }
+            """,
+            timeout=timeout_ms,
+        )
+        return {"ready": "settings data loaded"}
+    if view.id == "notes":
+        page.wait_for_function(
+            """
+            () => {
+                const list = document.querySelector('#notes-list');
+                const outputs = document.querySelector('#knowledge-output-panel');
+                return Boolean(list && outputs && (list.innerText || '').trim());
+            }
+            """,
+            timeout=timeout_ms,
+        )
+        return {"ready": "notes data loaded"}
+    return {"ready": "static view"}
+
+
+def _wait_for_library_loaded(page: Any, timeout_ms: int, *, expect_rows: bool = False) -> dict[str, Any]:
+    page.wait_for_function(
+        """
+        ({ expectRows }) => {
+            const tbody = document.querySelector('#file-tbody');
+            if (!tbody) return false;
+            const text = tbody.innerText || '';
+            const rows = tbody.querySelectorAll('tr[data-file-id]').length;
+            const total = Number((document.querySelector('#library-group-all-count')?.innerText || '0').trim()) || 0;
+            if (expectRows && total > 0) return rows > 0;
+            return rows > 0 || text.includes('暂无匹配文件') || text.includes('加载失败');
+        }
+        """,
+        arg={"expectRows": expect_rows},
+        timeout=timeout_ms,
+    )
+    return {
+        "rows": page.locator("#file-tbody tr[data-file-id]").count(),
+        "count": page.locator("#library-count").inner_text(timeout=timeout_ms),
+    }
 
 
 def _assert(condition: bool, message: str) -> None:

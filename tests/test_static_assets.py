@@ -87,6 +87,8 @@ def test_library_view_has_filters_and_batch_actions():
     assert "favoriteSelected" in html
     assert "applyBatchMetadata" in html
     assert "rebuildSelected" in html
+    assert "refreshFilesRequestId" in html
+    assert "requestId !== refreshFilesRequestId" in html
 
 
 def test_phase13_import_and_note_actions_are_visible():
