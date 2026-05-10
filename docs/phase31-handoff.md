@@ -14,6 +14,7 @@ Completed repairs:
 - Settings now uses compact system cards, a model table, monitored-folder table, true local storage usage, and user-facing guidance without command-line or recovery wording.
 - The reference storage block gap was repaired after review: the sidebar and Settings page now show real disk usage, local file usage, model cache usage, app data usage, and other local usage instead of only file counts.
 - A follow-up missing-information audit found and fixed a Library refresh race where rapid group switching could leave the main table empty even though the side rail showed 268 files.
+- A Phase31 supplemental polish pass was added after the audit: the app now has tighter page spacing, a compact Library upload strip, denser Chat source/model status, compact Settings status cards, earlier Notes recent-capture visibility, and clearer Source Preview result titles.
 - Source Preview now opens to a complete evidence-reading page, waits for real content before acceptance screenshots, and shows document text, highlighted evidence, relationship context, keywords, actions, and timeline controls.
 
 ## Changed Files
@@ -25,6 +26,7 @@ Completed repairs:
 - `tests/test_api_storage.py`
 - `tests/test_browser_acceptance.py`
 - `tests/test_static_assets.py`
+- `docs/phase31-ui-reference-finetune-plan.md`
 - `docs/phase31-missing-info-audit.md`
 - `docs/phase31-handoff.md`
 
@@ -40,6 +42,12 @@ Browser screenshots:
 - `output/playwright/phase31-storage-browser-acceptance/05-settings.png`
 - `output/playwright/phase31-missing-info-audit/browser-acceptance/02-library.png`
 - `output/playwright/phase31-missing-info-audit/all-pages-side-by-side-updated.png`
+- `output/playwright/phase31-supplement-browser-acceptance/01-chat.png`
+- `output/playwright/phase31-supplement-browser-acceptance/02-library.png`
+- `output/playwright/phase31-supplement-browser-acceptance/03-source.png`
+- `output/playwright/phase31-supplement-browser-acceptance/04-notes.png`
+- `output/playwright/phase31-supplement-browser-acceptance/05-settings.png`
+- `output/playwright/phase31-supplement-reference-comparison/all-pages-side-by-side.png`
 
 Reference comparison sheets:
 
@@ -59,6 +67,7 @@ npm run build:css
 .venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8000 --screenshots-dir output/playwright/phase31-browser-acceptance --json
 .venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8010 --screenshots-dir output/playwright/phase31-storage-browser-acceptance --json
 .venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8010 --screenshots-dir output/playwright/phase31-missing-info-audit/browser-acceptance --json
+.venv/bin/python main.py browser-acceptance --base-url http://127.0.0.1:8010 --screenshots-dir output/playwright/phase31-supplement-browser-acceptance --json
 curl -s http://127.0.0.1:8010/api/storage/usage
 ```
 
@@ -68,6 +77,8 @@ Results:
 - Full test suite passed: 208 passed, 5 warnings.
 - Browser acceptance passed on the clean Phase31 storage server: 68 passed, 0 failed.
 - Missing-information audit browser acceptance passed after the Library refresh-race fix: 73 passed, 0 failed.
+- Phase31 supplemental browser acceptance passed after the UI polish pass: 73 passed, 0 failed.
+- Full test suite after the supplemental polish passed: 209 passed, 5 warnings.
 - Library audit confirmed the table now renders real rows after rapid group switching: 14 rows shown, 268 / 268 files counted.
 - Storage API returned real local values during validation: 248 GB used of 926 GB, 268 existing files, about 38 GB model cache, about 1.0 GB app data, and no missing source files.
 - Settings acceptance confirmed no developer or command-line language is exposed in the normal UI.
@@ -77,6 +88,7 @@ Results:
 
 - The screenshots use the user's current local data, so document names and answer content do not match the reference mock data exactly.
 - The UI now matches the reference structure and product tone closely enough to pass the Phase31 gate, but exact pixel identity is still limited by live data differences and the existing single-file frontend structure.
+- The supplemental polish reduced the remaining spacing and density gap, but live local data still prevents a literal screenshot match to the mock reference content.
 - Source Preview shows real chunk data. When a source has no retrieval score, it shows a truthful verifiable-source state instead of a fake confidence value.
 - Storage usage is read from the local machine at runtime, so exact GB numbers will change as files, models, and system storage change.
 

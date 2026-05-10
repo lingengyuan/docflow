@@ -71,6 +71,17 @@ These are still worth improving later, but they are not hidden missing-data bugs
 - Some runtime metrics from the reference, such as speed or temperature, should only be shown if the app can report truthful values.
 - The current UI remains less pixel-identical than the references in spacing and first-screen density, but the major information blocks now exist.
 
+## Supplemental Polish Added To Phase31
+
+After this audit, Phase31 received a supplemental polish pass to reduce the remaining spacing and density gap:
+
+- Page title rows and workspace spacing were tightened across the app.
+- The Library upload area was reduced into a compact secondary drop strip.
+- Chat model status now shows a truthful source count when answer citations exist.
+- Settings system status now renders as compact reference-like cards instead of a tall grouped list.
+- Notes editor height was reduced so the recent-capture table appears earlier in the first screen.
+- Source Preview result items now use the section or text snippet as the row title instead of repeating the same file name.
+
 ## Next Step
 
 Proceed only after committing and pushing this audit fix. Later UI work should use the stricter browser screenshots so loaded data is captured instead of transient empty states.

@@ -28,6 +28,20 @@ Latest comparison evidence:
 
 ## Required Repairs
 
+### Phase31.2 Supplemental Polish
+
+This supplemental pass is part of Phase 31 and must be completed before Phase 32. It covers the residual visual differences found after the missing-information audit. These are not new roadmap items; they are the remaining Phase31 reference-polish tasks.
+
+Scope:
+
+- Reduce the extra vertical space between the global top bar, page title row, and main workspace so each page matches the reference first-screen density more closely.
+- Keep the Library upload control available, but make it a compact secondary drop strip instead of a dominant first-screen block.
+- Make the Chat right-side model/status area denser and more truthful by showing citation/source count when an answer has sources.
+- Compact the Settings system-status area into reference-like cards instead of a tall grouped list.
+- Let the Notes recent-capture table appear earlier in the first screen by reducing oversized editor and source-input heights.
+- Improve Source Preview's left result rail so each item names the selected section or text snippet instead of repeating the same file name on every row.
+- Re-run browser screenshots and visual comparison after these changes. If any of the five pages still shows obvious spacing, density, or missing-information drift from the references, keep Phase31 open and continue polishing.
+
 ### 1. Chat / Overview
 
 Current problem:
