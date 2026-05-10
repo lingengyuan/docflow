@@ -78,13 +78,15 @@ Screenshots reviewed:
 
 ## Next Phase
 
-Proceed to Phase 31: low-cost high-return fixes.
+Proceed to Phase 31: UI Reference Fine-Tuning. This is the Phase30.1 blocker requested after reviewing the latest reference comparison.
+
+Phase 31 must finish the UI reference restoration before any low-cost fixes or engineering debt work continues.
 
 Exact next tasks:
 
-1. Fix `_looks_like_followup` English misclassification.
-2. Improve rendered Markdown for headings, lists, links, code blocks, and quotes.
-3. Optimize queue polling so file-list refreshes happen only on meaningful queue changes.
-4. Add browser coverage for a real temporary-note flow: create, verify Library entry, query/use it, then clean up.
-5. Convert Chat error wording into ordinary user language without exposing internals.
+1. Use `docs/phase31-ui-reference-finetune-plan.md` as the Phase 31 scope.
+2. Repair all remaining reference mismatches across Chat, Library, Notes, Settings, and Source Preview.
+3. Generate a new `reference vs current` UI comparison set after the repairs.
+4. If any page still differs from its reference, Phase 31 is not complete; continue fixing before moving on.
+5. Keep ordinary-user UI rules intact: no command-line, maintenance, recovery, script, or copyable terminal wording in the browser UI.
 6. Run full validation, write `docs/phase31-handoff.md`, commit, and push before moving to Phase 32.

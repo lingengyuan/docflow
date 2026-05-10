@@ -23,6 +23,7 @@ DocFlow is a local-first Python document Q&A app. `main.py` is the entry point. 
 - Orthogonality: keep ingestion, storage, retrieval, API, and UI separate.
 - No masking fallbacks: fallback behavior must not hide failures, data loss, stale data, or reduced answer quality. In project-rule terms, the fallback principle is to expose failures clearly instead of masking reduced answer quality.
 - User-facing UI must feel like a finished personal knowledge product, not a developer console or prototype. Follow the saved UI references exactly for information architecture, visual hierarchy, spacing, and wording. Do not expose code, shell commands, script names, dry-run/repair/restore/install/doctor/browser-acceptance wording, maintenance commands, recovery advice, or copyable terminal commands in the normal browser UI. Keep those capabilities in docs, CLI, tests, or internal implementation only.
+- For UI reference phases, visual parity is a blocking requirement. After changes, generate a fresh reference-vs-current screenshot comparison for every saved UI reference. If any page still differs in layout, state, density, wording, or user-facing controls, the phase is not complete and the next phase must not start.
 - Unit tests are required for behavior changes.
 - End-to-end testing is required after feature work; exercise the user flow before handoff.
 
