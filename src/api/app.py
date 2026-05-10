@@ -8,14 +8,14 @@ import logging
 import os
 import asyncio
 import queue
-import re
 import shutil
 import sqlite3
 import threading
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from pathlib import Path
-from time import perf_counter, time
+from time import perf_counter
+import sys
+import types
 
 import yaml
 import json
@@ -23,7 +23,6 @@ import json
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
 
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
@@ -32,13 +31,37 @@ from src.ingest.imports import (
     build_knowledge_output_markdown,
     build_quick_note_markdown,
     fetch_webpage_markdown,
-    write_markdown_import,
 )
 from src.ingest.store import DocStore
 from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
 from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
+from src.api.routes import imports as imports_routes
+from src.api.routes import library as library_routes
+from src.api.routes import maintenance as maintenance_routes
+from src.api.routes import query as query_routes
+from src.api.routes import settings as settings_routes
+from src.api.schemas import (
+    AnswerNoteRequest,
+    BatchFavoriteRequest,
+    BatchMetadataRequest,
+    BatchRebuildRequest,
+    ConversationCreateRequest,
+    DebugRetrieveRequest,
+    FileMetadataRequest,
+    KnowledgeOutputRequest,
+    LLMSwitchRequest,
+    NoteCreateRequest,
+    QueryOptions,
+    QueryRequest,
+    QueryResponse,
+    SummarizeRequest,
+    WebImportRequest,
+)
+from src.api.services.health_service import HealthService
+from src.api.services.import_service import ImportService
+from src.api.services.query_service import QueryService
+from src.api.state import AppState
 from src.knowledge_outputs import (
-    KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT,
     get_knowledge_output_type,
     knowledge_output_tags,
 )
@@ -81,6 +104,22 @@ llm_switch_state: dict = {
 }
 
 model_tasks = ModelTaskController(thread_name_prefix="ml-inference", logger=logger)
+app_state = AppState(config_path=CONFIG_PATH, model_tasks=model_tasks)
+llm_switch_state = app_state.llm_switch_state
+query_service = QueryService()
+import_service = ImportService()
+health_service = HealthService()
+
+
+def _sync_app_state() -> None:
+    app_state.pipeline = pipeline
+    app_state.ingest_queue = ingest_queue
+    app_state.query_engine = query_engine
+    app_state.store = store
+    app_state.watcher = watcher
+    app_state.watch_dirs = watch_dirs
+    app_state.llm_options = llm_options
+    app_state.model_tasks = model_tasks
 
 
 def _timed_check(fn) -> dict:
@@ -146,29 +185,7 @@ def _hf_cache_dir() -> Path:
 
 
 def _safe_path_size(path: Path, *, max_entries: int = 100_000) -> int:
-    path = path.expanduser()
-    if not path.exists():
-        return 0
-    try:
-        if path.is_file():
-            return path.stat().st_size
-    except OSError:
-        return 0
-
-    total = 0
-    entries_seen = 0
-    for root, dirs, files in os.walk(path, followlinks=False):
-        dirs[:] = [name for name in dirs if name not in {".git", "__pycache__", ".venv"}]
-        for file_name in files:
-            entries_seen += 1
-            if entries_seen > max_entries:
-                return total
-            try:
-                file_path = Path(root) / file_name
-                total += file_path.stat().st_size
-            except OSError:
-                continue
-    return total
+    return health_service.safe_path_size(path, max_entries=max_entries)
 
 
 def _unique_existing_paths(paths: list[Path]) -> list[Path]:
@@ -212,31 +229,7 @@ def _configured_model_cache_paths(cfg: dict) -> list[Path]:
 
 
 def _source_file_usage(files: list[dict]) -> dict:
-    total = 0
-    existing = 0
-    missing = 0
-    seen: set[str] = set()
-    for item in files:
-        file_path = item.get("file_path")
-        if not file_path:
-            continue
-        path = Path(str(file_path)).expanduser()
-        try:
-            key = str(path.resolve())
-        except OSError:
-            key = str(path)
-        if key in seen:
-            continue
-        seen.add(key)
-        try:
-            if path.is_file():
-                total += path.stat().st_size
-                existing += 1
-            else:
-                missing += 1
-        except OSError:
-            missing += 1
-    return {"bytes": total, "existing_files": existing, "missing_files": missing}
+    return health_service.source_file_usage(files)
 
 
 def _app_data_paths(cfg: dict) -> list[Path]:
@@ -255,55 +248,13 @@ def _app_data_paths(cfg: dict) -> list[Path]:
 
 
 def _collect_storage_usage(cfg: dict, doc_store: DocStore) -> dict:
-    disk = shutil.disk_usage(Path.home())
-    files = doc_store.list_files()
-    source_usage = _source_file_usage(files)
-    model_cache_bytes = sum(_safe_path_size(path) for path in _configured_model_cache_paths(cfg))
-    app_data_bytes = sum(_safe_path_size(path) for path in _app_data_paths(cfg))
-    known_bytes = source_usage["bytes"] + model_cache_bytes + app_data_bytes
-    other_bytes = max(0, int(disk.used) - known_bytes)
-    collections = sorted({str(item.get("collection") or "Inbox") for item in files})
-    return {
-        "disk": {
-            "path": str(Path.home()),
-            "total_bytes": int(disk.total),
-            "used_bytes": int(disk.used),
-            "free_bytes": int(disk.free),
-            "used_percent": round((disk.used / disk.total) * 100, 1) if disk.total else 0,
-        },
-        "categories": [
-            {
-                "id": "library",
-                "label": "资料库文件",
-                "bytes": source_usage["bytes"],
-                "detail": f"{source_usage['existing_files']} 个本地文件",
-            },
-            {
-                "id": "models",
-                "label": "模型缓存",
-                "bytes": model_cache_bytes,
-                "detail": "本地问答、检索和图片理解模型",
-            },
-            {
-                "id": "app_data",
-                "label": "应用数据",
-                "bytes": app_data_bytes,
-                "detail": "索引、数据库和本地记录",
-            },
-            {
-                "id": "other",
-                "label": "其他本地占用",
-                "bytes": other_bytes,
-                "detail": "系统和其他个人文件",
-            },
-        ],
-        "library": {
-            "file_count": len(files),
-            "existing_file_count": source_usage["existing_files"],
-            "missing_file_count": source_usage["missing_files"],
-            "collection_count": len(collections),
-        },
-    }
+    return health_service.collect_storage_usage(
+        cfg,
+        doc_store,
+        configured_model_cache_paths=_configured_model_cache_paths,
+        app_data_paths=_app_data_paths,
+        disk_usage=shutil.disk_usage,
+    )
 
 
 def _is_hf_model_cached(model_name: str) -> bool:
@@ -329,14 +280,7 @@ def _llm_model_status(model_name: str) -> dict:
 
 
 def _set_llm_switch_state(state: str, *, model: str | None = None, message: str = ""):
-    now = time()
-    llm_switch_state.update({
-        "state": state,
-        "model": model,
-        "message": message,
-        "started_at": now if state == "switching" else llm_switch_state.get("started_at"),
-        "finished_at": None if state == "switching" else now,
-    })
+    llm_switch_state.set(state, model=model, message=message)
 
 
 def _load_mlx_model_candidate(model_name: str):
@@ -370,11 +314,14 @@ async def lifespan(app: FastAPI):
             llm_cfg.get("ollama_model_enhanced", cfg["ollama"].get("llm_model_enhanced", "")),
         ]))
     llm_options = [m for m in llm_options if m]
+    app_state.llm_options = llm_options
 
     db_path = Path(cfg["paths"]["db_path"]).expanduser()
     watch_dirs = _parse_watch_dirs(cfg)
+    app_state.watch_dirs = watch_dirs
 
     store = DocStore(db_path)
+    app_state.store = store
 
     # 清理上次崩溃遗留的 processing 状态，确保启动扫描能重新处理这些文件
     n_reset = store.reset_processing_files()
@@ -383,6 +330,8 @@ async def lifespan(app: FastAPI):
 
     pipeline = IngestPipeline.from_config(CONFIG_PATH, store=store)
     query_engine = QueryEngine.from_config(CONFIG_PATH, store=store)
+    app_state.pipeline = pipeline
+    app_state.query_engine = query_engine
 
     # CPU embedding 不需要走前台模型任务控制器，直接在 ingest worker 线程里跑
     # 前台模型任务控制器只保留给 MLX 推理（reranker、LLM）
@@ -398,9 +347,12 @@ async def lifespan(app: FastAPI):
         pause_check_interval_ms=ingest_cfg.get("pause_check_interval_ms", INGEST_PAUSE_CHECK_INTERVAL_MS),
     )
     ingest_queue.start()
+    app_state.ingest_queue = ingest_queue
 
     watcher = FolderWatcher(pipeline, watch_dirs, ingest_queue=ingest_queue)
     watcher.start()
+    app_state.watcher = watcher
+    _sync_app_state()
 
     logger.info("Warming up embedding and reranker models...")
     try:
@@ -457,6 +409,7 @@ async def lifespan(app: FastAPI):
     if ingest_queue:
         ingest_queue.stop()
     model_tasks.shutdown()
+    app_state.clear_runtime()
 
 
 # ---------------------------------------------------------------------------
@@ -467,48 +420,8 @@ app = FastAPI(title="DocFlow", lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------
-# API routes
+# API handlers
 # ---------------------------------------------------------------------------
-
-class QueryRequest(BaseModel):
-    question: str
-    file_filter: list[str] | None = None
-    scope_mode: str | None = "all"
-    collection: str | None = None
-    file_id: int | None = None
-    file_name: str | None = None
-    retrieval_mode: str | None = "hybrid"
-    conversation_id: int | None = None
-
-
-class DebugRetrieveRequest(BaseModel):
-    question: str
-    file_filter: list[str] | None = None
-    scope_mode: str | None = "all"
-    collection: str | None = None
-    file_id: int | None = None
-    file_name: str | None = None
-    retrieval_mode: str | None = "hybrid"
-    include_rerank: bool = True
-    max_text_chars: int = 300
-
-
-class QueryResponse(BaseModel):
-    answer: str
-    citations: list[dict]
-    conversation_id: int | None = None
-    scope: dict | None = None
-
-
-class ConversationCreateRequest(BaseModel):
-    title: str = ""
-
-
-@dataclass(frozen=True)
-class QueryOptions:
-    file_filter: list[str]
-    retrieval_mode: str
-    scope: dict
 
 
 def _resolve_query_options(req) -> QueryOptions:
@@ -610,7 +523,6 @@ def _normalize_retrieval_mode(mode: str | None) -> str:
     return "hybrid"
 
 
-@app.post("/api/query", response_model=QueryResponse)
 async def query(req: QueryRequest):
     if query_engine is None:
         raise HTTPException(503, "Query engine not ready")
@@ -641,19 +553,7 @@ async def query(req: QueryRequest):
     except ModelTaskTimeout as exc:
         logger.warning("[api/query] timeout id=%s question=%r", exc.task_id, req.question[:80])
         raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
-    seen_files: dict[str, dict] = {}
-    for c in result.citations:
-        key = c.file_path or c.file_name
-        if key not in seen_files or c.score > seen_files[key]["score"]:
-            seen_files[key] = {
-                "file_name": c.file_name,
-                "file_path": c.file_path,
-                "page_num": c.page_num,
-                "section": c.section,
-                "snippet": c.snippet,
-                "score": round(c.score, 4),
-            }
-    citations_data = list(seen_files.values())
+    citations_data = query_service.response_citations(result.citations)
     if store is not None:
         store.add_history(
             question=req.question,
@@ -678,7 +578,6 @@ async def query(req: QueryRequest):
     )
 
 
-@app.post("/api/query/stream")
 async def query_stream(req: QueryRequest, request: Request):
     """SSE 流式查询：先返回 citations，再逐 token 返回答案。"""
     if query_engine is None:
@@ -715,20 +614,7 @@ async def query_stream(req: QueryRequest, request: Request):
             )
             if cancel.is_set():
                 return
-            seen_files: dict[str, dict] = {}
-            for c in chunks:
-                key = c.get("file_path") or c["file_name"]
-                score = c.get("rerank_score", c.get("rrf_score", 0.0))
-                if key not in seen_files or score > seen_files[key]["score"]:
-                    seen_files[key] = {
-                        "file_name": c["file_name"],
-                        "file_path": c.get("file_path", ""),
-                        "page_num": c["page_num"],
-                        "section": c.get("section", ""),
-                        "snippet": c["text"][:200],
-                        "score": round(score, 4),
-                    }
-            citations_data = list(seen_files.values())
+            citations_data = query_service.stream_citations(chunks)
             if cancel.is_set():
                 return
             q.put(("citations", citations_data))
@@ -828,38 +714,19 @@ def _conversation_context(conversation_id: int | None, limit: int = 6) -> list[d
 
 
 def _build_retrieval_query(question: str, conversation_context: list[dict]) -> str:
-    if not _looks_like_followup(question):
-        return question
-    previous_user_questions = [
-        message["content"]
-        for message in conversation_context
-        if message.get("role") == "user" and message.get("content")
-    ]
-    if not previous_user_questions:
-        return question
-    return f"{previous_user_questions[-1]}\n{question}"
+    return query_service.build_retrieval_query(question, conversation_context)
 
 
 def _looks_like_followup(question: str) -> bool:
-    q = question.strip().lower()
-    chinese_markers = (
-        "展开", "继续", "上面", "刚才", "前面", "这个", "那个", "这点", "第二点",
-        "第三点", "第一点",
-    )
-    if any(marker in q for marker in chinese_markers):
-        return True
-    english_markers = ("it", "that", "this", "above", "previous")
-    return any(re.search(rf"\b{re.escape(marker)}\b", q) for marker in english_markers)
+    return query_service.looks_like_followup(question)
 
 
-@app.get("/api/conversations")
 async def list_conversations(limit: int = 50):
     if store is None:
         raise HTTPException(503, "Store not ready")
     return store.list_conversations(limit=limit)
 
 
-@app.post("/api/conversations")
 async def create_conversation(req: ConversationCreateRequest):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -867,26 +734,15 @@ async def create_conversation(req: ConversationCreateRequest):
     return store.get_conversation(conversation_id)
 
 
-@app.get("/api/conversations/{conversation_id}/messages")
 async def list_conversation_messages(conversation_id: int, limit: int = 100):
     if store is None:
         raise HTTPException(503, "Store not ready")
     if store.get_conversation(conversation_id) is None:
         raise HTTPException(404, "Conversation not found")
     items = store.list_messages(conversation_id, limit=limit)
-    for item in items:
-        try:
-            item["citations"] = json.loads(item["citations"])
-        except Exception:
-            item["citations"] = []
-        try:
-            item["file_filter"] = json.loads(item["file_filter"])
-        except Exception:
-            item["file_filter"] = []
-    return items
+    return query_service.decode_history_items(items)
 
 
-@app.delete("/api/conversations/{conversation_id}")
 async def delete_conversation(conversation_id: int):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -895,7 +751,6 @@ async def delete_conversation(conversation_id: int):
     return {"ok": True}
 
 
-@app.post("/api/ingest")
 async def trigger_ingest():
     """手动触发全量扫描所有监控目录（异步，立即返回）。"""
     if ingest_queue is None or not watch_dirs:
@@ -910,7 +765,6 @@ async def trigger_ingest():
     return {**result, "files": [p.name for p in all_files]}
 
 
-@app.get("/api/queue")
 async def queue_status():
     if ingest_queue is None:
         return {
@@ -951,7 +805,6 @@ def _warmup_models():
             logger.warning(f"[warmup] MLX LLM warmup failed (non-fatal): {e}")
 
 
-@app.get("/api/files")
 async def list_files(
     status: str | None = None,
     collection: str | None = None,
@@ -972,14 +825,12 @@ async def list_files(
     )
 
 
-@app.get("/api/library/meta")
 async def library_meta():
     if store is None:
         raise HTTPException(503, "Store not ready")
     return store.list_library_facets()
 
 
-@app.get("/api/storage/usage")
 async def storage_usage():
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -988,12 +839,6 @@ async def storage_usage():
     return _collect_storage_usage(cfg, store)
 
 
-class FileMetadataRequest(BaseModel):
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-@app.patch("/api/files/{file_id}/metadata")
 async def update_file_metadata(file_id: int, req: FileMetadataRequest):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -1007,12 +852,6 @@ async def update_file_metadata(file_id: int, req: FileMetadataRequest):
     return record
 
 
-class BatchFavoriteRequest(BaseModel):
-    file_ids: list[int]
-    favorited: bool = True
-
-
-@app.post("/api/files/batch/favorite")
 async def batch_favorite(req: BatchFavoriteRequest):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -1022,13 +861,6 @@ async def batch_favorite(req: BatchFavoriteRequest):
     return {"file_ids": changed, "favorited": req.favorited, "count": len(changed)}
 
 
-class BatchMetadataRequest(BaseModel):
-    file_ids: list[int]
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-@app.post("/api/files/batch/metadata")
 async def batch_update_file_metadata(req: BatchMetadataRequest):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -1042,11 +874,6 @@ async def batch_update_file_metadata(req: BatchMetadataRequest):
     return {"files": records, "count": len(records)}
 
 
-class BatchRebuildRequest(BaseModel):
-    file_ids: list[int]
-
-
-@app.post("/api/files/batch/rebuild")
 async def batch_rebuild_files(req: BatchRebuildRequest):
     if store is None or ingest_queue is None:
         raise HTTPException(503, "Not ready")
@@ -1077,39 +904,6 @@ async def batch_rebuild_files(req: BatchRebuildRequest):
     }
 
 
-class WebImportRequest(BaseModel):
-    url: str
-    title: str | None = None
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-class NoteCreateRequest(BaseModel):
-    title: str
-    content: str
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-class AnswerNoteRequest(BaseModel):
-    title: str | None = None
-    question: str | None = None
-    answer: str
-    citations: list[dict] | None = None
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-class KnowledgeOutputRequest(BaseModel):
-    output_type: str
-    title: str | None = None
-    source_text: str | None = None
-    file_ids: list[int] = Field(default_factory=list)
-    collection: str | None = None
-    user_tags: list[str] | None = None
-
-
-@app.post("/api/import/url")
 async def import_url(req: WebImportRequest):
     if store is None or ingest_queue is None:
         raise HTTPException(503, "Not ready")
@@ -1127,7 +921,6 @@ async def import_url(req: WebImportRequest):
     )
 
 
-@app.post("/api/notes")
 async def create_note(req: NoteCreateRequest):
     if store is None or ingest_queue is None:
         raise HTTPException(503, "Not ready")
@@ -1143,7 +936,6 @@ async def create_note(req: NoteCreateRequest):
     )
 
 
-@app.post("/api/notes/from-answer")
 async def save_answer_note(req: AnswerNoteRequest):
     if store is None or ingest_queue is None:
         raise HTTPException(503, "Not ready")
@@ -1165,7 +957,6 @@ async def save_answer_note(req: AnswerNoteRequest):
     )
 
 
-@app.post("/api/knowledge-output")
 async def create_knowledge_output(req: KnowledgeOutputRequest):
     if store is None or ingest_queue is None or query_engine is None:
         raise HTTPException(503, "Not ready")
@@ -1207,50 +998,12 @@ async def create_knowledge_output(req: KnowledgeOutputRequest):
 
 
 def _build_knowledge_output_source(req: KnowledgeOutputRequest) -> tuple[str, list[str]]:
-    if store is None or query_engine is None:
-        raise HTTPException(503, "Not ready")
-
-    source_parts: list[str] = []
-    source_files: list[str] = []
-    manual_text = (req.source_text or "").strip()
-    if manual_text:
-        source_parts.append("## 手动输入\n\n" + manual_text)
-
-    for file_id in dict.fromkeys(req.file_ids):
-        record = store.get_file_by_id(file_id)
-        if not record or record["status"] != "done":
-            continue
-        qdrant_ids = store.get_file_qdrant_ids(file_id)
-        chunks = query_engine.retriever.fetch_file_chunks(qdrant_ids, max_chunks=12)
-        file_context = _format_knowledge_file_context(record["file_name"], chunks)
-        if not file_context:
-            continue
-        source_files.append(record["file_name"])
-        source_parts.append(file_context)
-
-    source = "\n\n---\n\n".join(part for part in source_parts if part.strip()).strip()
-    if not source:
-        raise ValueError("Knowledge output source is empty")
-    if len(source) > KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT:
-        source = (
-            source[:KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT].rstrip()
-            + "\n\n[内容已按长度上限截断]"
-        )
-    return source, source_files
+    _sync_app_state()
+    return import_service.build_knowledge_output_source(app_state, req)
 
 
 def _format_knowledge_file_context(file_name: str, chunks: list[dict]) -> str:
-    rows: list[str] = []
-    for chunk in chunks:
-        text = (chunk.get("text") or chunk.get("raw_text") or "").strip()
-        if not text:
-            continue
-        page = chunk.get("page_num") or 0
-        section = f" / {chunk.get('section')}" if chunk.get("section") else ""
-        rows.append(f"### 第{page}页{section}\n\n{text}")
-    if not rows:
-        return ""
-    return f"## 文件：{file_name}\n\n" + "\n\n".join(rows)
+    return import_service.format_knowledge_file_context(file_name, chunks)
 
 
 def _write_import_and_enqueue(
@@ -1259,43 +1012,25 @@ def _write_import_and_enqueue(
     collection: str,
     user_tags: list[str],
 ) -> dict:
-    if store is None or ingest_queue is None or not watch_dirs:
-        raise HTTPException(503, "Not ready")
-    root = watch_dirs[0].path
-    path = write_markdown_import(root, prefix, item)
-    file_id = store.upsert_file(
-        path,
-        path.name,
-        DocStore.compute_hash(path),
-        status="pending",
-        total_pages=1,
-        mtime_ns=path.stat().st_mtime_ns,
+    _sync_app_state()
+    return import_service.write_import_and_enqueue(
+        app_state,
+        prefix=prefix,
+        item=item,
+        collection=collection,
+        user_tags=user_tags,
     )
-    record = store.update_file_metadata(file_id, collection=collection, user_tags=user_tags)
-    queue_result = ingest_queue.submit(path)
-    return {
-        "status": "queued",
-        "path": str(path),
-        "file": record,
-        "queue": queue_result,
-    }
 
 
-@app.post("/api/upload")
 async def upload_file(file: UploadFile):
     """上传文件到第一个监控目录（支持所有已注册格式）。"""
     if not watch_dirs or ingest_queue is None:
         raise HTTPException(503, "Not ready")
-    original_name = file.filename or ""
-    safe_name = Path(original_name).name
-    if not safe_name:
-        raise HTTPException(400, "Missing filename")
+    dest = import_service.safe_upload_destination(watch_dirs[0].path, file.filename or "")
     supported_exts = pipeline.registry.supported_extensions
-    suffix = Path(safe_name).suffix.lower()
+    suffix = dest.suffix.lower()
     if suffix not in supported_exts:
         raise HTTPException(400, f"Unsupported file type: {suffix}. Supported: {supported_exts}")
-
-    dest = watch_dirs[0].path / safe_name
     try:
         with dest.open("wb") as f:
             while chunk := await file.read(1024 * 1024):
@@ -1306,13 +1041,11 @@ async def upload_file(file: UploadFile):
     return ingest_queue.submit(dest)
 
 
-@app.get("/api/file/{file_id}/preview")
 async def preview_file(file_id: int):
     file_path, media_type = _resolve_preview_file(file_id)
     return FileResponse(str(file_path), media_type=media_type)
 
 
-@app.head("/api/file/{file_id}/preview")
 async def preview_file_head(file_id: int):
     file_path, media_type = _resolve_preview_file(file_id)
     return Response(
@@ -1345,7 +1078,6 @@ def _resolve_preview_file(file_id: int) -> tuple[Path, str]:
     return file_path, media_type
 
 
-@app.get("/api/file/{file_id}/chunks")
 async def list_file_chunks(file_id: int, max_text_chars: int = 500):
     """本地调试：查看文件实际切出的 chunk 和文本预览。"""
     if store is None or query_engine is None:
@@ -1371,41 +1103,20 @@ async def list_file_chunks(file_id: int, max_text_chars: int = 500):
     return {"file": record, "chunks": chunks, "count": len(chunks)}
 
 
-@app.get("/api/history")
 async def list_history(limit: int = 50):
     if store is None:
         raise HTTPException(503, "Store not ready")
     items = store.list_history(limit=limit)
-    for item in items:
-        try:
-            item["citations"] = json.loads(item["citations"])
-        except Exception:
-            item["citations"] = []
-        try:
-            item["file_filter"] = json.loads(item["file_filter"])
-        except Exception:
-            item["file_filter"] = []
-    return items
+    return query_service.decode_history_items(items)
 
 
-@app.get("/api/history/search")
 async def search_history(q: str, limit: int = 20):
     if store is None:
         raise HTTPException(503, "Store not ready")
     items = store.search_history(q, limit=limit)
-    for item in items:
-        try:
-            item["citations"] = json.loads(item["citations"])
-        except Exception:
-            item["citations"] = []
-        try:
-            item["file_filter"] = json.loads(item["file_filter"])
-        except Exception:
-            item["file_filter"] = []
-    return items
+    return query_service.decode_history_items(items)
 
 
-@app.delete("/api/history")
 async def clear_history():
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -1413,14 +1124,12 @@ async def clear_history():
     return {"ok": True}
 
 
-@app.get("/api/favorites")
 async def list_favorites():
     if store is None:
         raise HTTPException(503, "Store not ready")
     return store.list_favorites()
 
 
-@app.post("/api/favorites/{file_id}")
 async def toggle_favorite(file_id: int):
     if store is None:
         raise HTTPException(503, "Store not ready")
@@ -1428,11 +1137,6 @@ async def toggle_favorite(file_id: int):
     return {"file_id": file_id, "favorited": added}
 
 
-class SummarizeRequest(BaseModel):
-    file_ids: list[int]
-
-
-@app.post("/api/summarize")
 async def summarize_files(req: SummarizeRequest):
     if store is None or query_engine is None:
         raise HTTPException(503, "Not ready")
@@ -1470,7 +1174,6 @@ async def summarize_files(req: SummarizeRequest):
     )
 
 
-@app.post("/api/debug/retrieve")
 async def debug_retrieve(req: DebugRetrieveRequest):
     """本地调试：返回向量、全文、融合、去重、精排的完整检索链路。"""
     if query_engine is None:
@@ -1495,7 +1198,6 @@ async def debug_retrieve(req: DebugRetrieveRequest):
         raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
 
 
-@app.get("/api/llm")
 async def get_llm():
     if query_engine is None:
         raise HTTPException(503, "Not ready")
@@ -1508,11 +1210,6 @@ async def get_llm():
     }
 
 
-class LLMSwitchRequest(BaseModel):
-    model: str
-
-
-@app.post("/api/llm")
 async def set_llm(req: LLMSwitchRequest):
     if query_engine is None:
         raise HTTPException(503, "Not ready")
@@ -1556,7 +1253,6 @@ async def set_llm(req: LLMSwitchRequest):
     return {"ok": True, "model": req.model}
 
 
-@app.get("/api/sources")
 async def list_sources():
     """返回所有监控目录配置。"""
     return [
@@ -1569,27 +1265,21 @@ async def list_sources():
     ]
 
 
-@app.get("/api/health")
 async def health():
     with open(CONFIG_PATH) as f:
         cfg = yaml.safe_load(f)
-    checks = {
-        "api": {"status": "ok"},
-        "sqlite": _timed_check(lambda: _check_sqlite(cfg)),
-        "qdrant": _timed_check(lambda: _check_qdrant(cfg)),
-        "ollama": _timed_check(lambda: _check_ollama(cfg)),
-        "models": _check_models(cfg),
-    }
-    capabilities = _health_capabilities(cfg, checks)
-    status = _aggregate_health_status(checks)
-    groups = _health_groups(cfg, checks, capabilities)
-    return {
-        "status": status,
-        "checks": checks,
-        "capabilities": capabilities,
-        "groups": groups,
-        "actions": _health_actions(checks, capabilities),
-    }
+    return health_service.build_health(
+        cfg,
+        timed_check=_timed_check,
+        check_sqlite=_check_sqlite,
+        check_qdrant=_check_qdrant,
+        check_ollama=_check_ollama,
+        check_models=_check_models,
+        health_capabilities=_health_capabilities,
+        aggregate_health_status=_aggregate_health_status,
+        health_groups=_health_groups,
+        health_actions=_health_actions,
+    )
 
 
 def _check_sqlite(cfg: dict) -> dict:
@@ -2027,6 +1717,56 @@ def _aggregate_health_status(checks: dict) -> str:
     return "ok"
 
 
+def _register_api_routes() -> None:
+    app.include_router(query_routes.create_router({
+        "query": query,
+        "query_stream": query_stream,
+        "list_conversations": list_conversations,
+        "create_conversation": create_conversation,
+        "list_conversation_messages": list_conversation_messages,
+        "delete_conversation": delete_conversation,
+    }))
+    app.include_router(library_routes.create_router({
+        "trigger_ingest": trigger_ingest,
+        "queue_status": queue_status,
+        "list_files": list_files,
+        "library_meta": library_meta,
+        "storage_usage": storage_usage,
+        "update_file_metadata": update_file_metadata,
+        "batch_favorite": batch_favorite,
+        "batch_update_file_metadata": batch_update_file_metadata,
+        "batch_rebuild_files": batch_rebuild_files,
+        "preview_file": preview_file,
+        "preview_file_head": preview_file_head,
+        "list_file_chunks": list_file_chunks,
+        "list_history": list_history,
+        "search_history": search_history,
+        "clear_history": clear_history,
+        "list_favorites": list_favorites,
+        "toggle_favorite": toggle_favorite,
+        "summarize_files": summarize_files,
+    }))
+    app.include_router(imports_routes.create_router({
+        "import_url": import_url,
+        "create_note": create_note,
+        "save_answer_note": save_answer_note,
+        "create_knowledge_output": create_knowledge_output,
+        "upload_file": upload_file,
+    }))
+    app.include_router(settings_routes.create_router({
+        "get_llm": get_llm,
+        "set_llm": set_llm,
+        "list_sources": list_sources,
+        "health": health,
+    }))
+    app.include_router(maintenance_routes.create_router({
+        "debug_retrieve": debug_retrieve,
+    }))
+
+
+_register_api_routes()
+
+
 # ---------------------------------------------------------------------------
 # Static files (frontend)
 # ---------------------------------------------------------------------------
@@ -2049,3 +1789,33 @@ if STATIC_DIR.exists():
         )
 
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")
+
+
+_STATE_FIELD_NAMES = {
+    "pipeline",
+    "ingest_queue",
+    "query_engine",
+    "store",
+    "watcher",
+    "watch_dirs",
+    "llm_options",
+    "model_tasks",
+    "llm_switch_state",
+}
+
+
+class _ApiModule(types.ModuleType):
+    def __getattribute__(self, name: str):
+        if name in _STATE_FIELD_NAMES:
+            state = types.ModuleType.__getattribute__(self, "app_state")
+            return getattr(state, name)
+        return types.ModuleType.__getattribute__(self, name)
+
+    def __setattr__(self, name: str, value):
+        if name in _STATE_FIELD_NAMES:
+            state = types.ModuleType.__getattribute__(self, "app_state")
+            setattr(state, name, value)
+        types.ModuleType.__setattr__(self, name, value)
+
+
+sys.modules[__name__].__class__ = _ApiModule
