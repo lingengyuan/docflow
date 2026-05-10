@@ -7,6 +7,15 @@ from fastapi.testclient import TestClient
 from src.api import app as api_app
 
 
+def frontend_source_text() -> str:
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    scripts = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(Path("frontend/js").glob("*.js"))
+    )
+    return f"{html}\n{scripts}"
+
+
 def test_favicon_svg_is_served():
     client = TestClient(api_app.app)
 
@@ -38,7 +47,7 @@ def test_favicon_ico_head_is_served_without_404():
 
 
 def test_destructive_actions_use_in_app_confirmation():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'id="confirm-modal"' in html
     assert "function showConfirmDialog" in html
@@ -51,7 +60,7 @@ def test_destructive_actions_use_in_app_confirmation():
 
 
 def test_health_panel_shows_core_runtime_and_optional_groups():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "核心可用" in html
     assert "healthSnapshot.groups" in html
@@ -63,7 +72,7 @@ def test_health_panel_shows_core_runtime_and_optional_groups():
 
 
 def test_files_actions_have_clear_feedback():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'id="refresh-files-btn"' in html
     assert "刷新列表" in html
@@ -77,7 +86,7 @@ def test_files_actions_have_clear_feedback():
 
 
 def test_library_view_has_filters_and_batch_actions():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "library-collection-filter" in html
     assert "library-tag-filter" in html
@@ -92,7 +101,7 @@ def test_library_view_has_filters_and_batch_actions():
 
 
 def test_phase13_import_and_note_actions_are_visible():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "导入网页" in html
     assert "新建笔记" in html
@@ -104,7 +113,7 @@ def test_phase13_import_and_note_actions_are_visible():
 
 
 def test_phase14_chat_scope_controls_are_visible():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "query-scope-controls" in html
     assert "全部知识库" in html
@@ -117,7 +126,7 @@ def test_phase14_chat_scope_controls_are_visible():
 
 
 def test_phase15_app_shell_has_notes_and_settings():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'id="nav-chat"' in html
     assert 'id="nav-library"' in html
@@ -135,7 +144,7 @@ def test_phase15_app_shell_has_notes_and_settings():
 
 
 def test_phase16_settings_exposes_runtime_without_developer_guidance():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "settings-insights-list" in html
     assert "renderSettingsInsights" in html
@@ -149,7 +158,7 @@ def test_phase16_settings_exposes_runtime_without_developer_guidance():
 
 
 def test_settings_storage_uses_real_local_usage():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "存储使用" in html
     assert "/api/storage/usage" in html
@@ -160,7 +169,7 @@ def test_settings_storage_uses_real_local_usage():
 
 
 def test_phase31_supplemental_polish_stays_in_place():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'id="chat-context-source-metric"' in html
     assert "sourcePreviewListTitle" in html
@@ -171,7 +180,7 @@ def test_phase31_supplemental_polish_stays_in_place():
 
 
 def test_phase32_queue_polling_refreshes_only_on_state_change():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
     start = html.index("async function pollQueueOnce")
     end = html.index("async function triggerIngest")
     poll_body = html[start:end]
@@ -184,7 +193,7 @@ def test_phase32_queue_polling_refreshes_only_on_state_change():
 
 
 def test_phase32_chat_errors_are_user_facing():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "function userFacingErrorMessage" in html
     assert "这次回答耗时太久" in html
@@ -194,8 +203,42 @@ def test_phase32_chat_errors_are_user_facing():
     assert "JSON.parse(eventData))}</span>" not in html
 
 
+def test_phase33_frontend_scripts_are_split_by_domain():
+    index = Path("frontend/index.html").read_text(encoding="utf-8")
+    expected_scripts = [
+        "state.js",
+        "icons.js",
+        "shared-ui.js",
+        "app-shell.js",
+        "settings.js",
+        "chat.js",
+        "notes.js",
+        "chat-stream.js",
+        "source-preview.js",
+        "library.js",
+        "history.js",
+        "queue-upload.js",
+    ]
+
+    assert "<script>\nconst API" not in index
+    for script in expected_scripts:
+        assert f'src="/js/{script}"' in index
+        assert Path("frontend/js", script).exists()
+
+    state = Path("frontend/js/state.js").read_text(encoding="utf-8")
+    assert "window.DocFlowState" in state
+    assert "chat:" in state
+    assert "library:" in state
+    assert "notes:" in state
+    assert "settings:" in state
+    assert "Object.defineProperties(window" in state
+
+    tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
+    assert "./frontend/js/**/*.js" in tailwind_config
+
+
 def test_phase17_notes_exposes_knowledge_outputs():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'id="knowledge-output-panel"' in html
     assert 'id="knowledge-submit-btn"' in html
@@ -207,7 +250,7 @@ def test_phase17_notes_exposes_knowledge_outputs():
 
 
 def test_phase18_frontend_uses_local_tailwind_build():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'href="/styles.css"' in html
     assert "cdn.tailwindcss.com" not in html
@@ -220,7 +263,7 @@ def test_phase18_frontend_uses_local_tailwind_build():
 
 
 def test_phase20_frontend_uses_local_icons():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert "fonts.googleapis.com" not in html
     assert "fonts.gstatic.com" not in html
@@ -232,7 +275,7 @@ def test_phase20_frontend_uses_local_icons():
 
 
 def test_phase28_settings_hides_local_install_and_recovery_commands():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     for forbidden in [
         "python main.py install-local",
@@ -253,7 +296,7 @@ def test_phase25_browser_acceptance_command_is_documented():
 
 
 def test_phase26_ui_redesign_shell_has_real_context_panels():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'class="app-topbar flex-shrink-0"' in html
     assert 'id="global-search-input"' in html
@@ -296,7 +339,7 @@ def test_phase18_release_docs_are_linked_from_readme():
 
 
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
 
     assert 'aria-label="添加文件"' in html
     assert 'aria-label="发送问题"' in html

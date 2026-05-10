@@ -6,11 +6,8 @@ from pathlib import Path
 
 
 def _render_markdown(sample: str) -> str:
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
-    start = html.index("function escHtml")
-    end = html.index("function appendUserMessage")
     script = (
-        html[start:end]
+        Path("frontend/js/shared-ui.js").read_text(encoding="utf-8")
         + "\n"
         + f"process.stdout.write(renderMarkdown({json.dumps(sample, ensure_ascii=False)}));"
     )
