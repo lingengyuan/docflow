@@ -7,7 +7,7 @@ from src.api.state import AppState, LLMSwitchState
 
 
 def test_phase34_api_routes_are_registered_from_route_modules():
-    source = Path("src/api/app.py").read_text(encoding="utf-8")
+    source = Path("src/api/app_impl.py").read_text(encoding="utf-8")
 
     assert "query_routes.create_router" in source
     assert "library_routes.create_router" in source
@@ -30,6 +30,18 @@ def test_phase34_api_routes_are_registered_from_route_modules():
         "src/api/services/health_service.py",
     ]:
         assert Path(path).exists()
+
+
+def test_phase52_public_entrypoints_are_small_facades():
+    limits = {
+        "src/api/app.py": 500,
+        "src/ingest/store.py": 500,
+        "src/query/retriever.py": 500,
+    }
+
+    for path, limit in limits.items():
+        line_count = len(Path(path).read_text(encoding="utf-8").splitlines())
+        assert line_count < limit
 
 
 def test_phase34_app_state_holds_runtime_dependencies():

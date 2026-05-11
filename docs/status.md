@@ -19,7 +19,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 264 passed.
+- Unit/integration tests: 265 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.
@@ -33,4 +33,4 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Citation source opening carries chunk identity and span metadata, but exact source-span highlighting is not complete.
 - Retrieval and parsing evaluation sets are still small and should grow before public release claims.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
-- API and storage modules still need more splitting before the codebase feels fully mature to outside contributors.
+- Public API, storage, and retrieval entry points are now small facades, but their implementation modules still need deeper internal splitting before the codebase feels fully mature to outside contributors.

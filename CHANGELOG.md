@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0 - 2026-05-12
+
+- Split the public API, storage, and retrieval entry points into small facade modules.
+- Moved the existing implementations behind stable import paths to reduce public file size.
+- Added a structure test to prevent the public entry points from growing back into large files.
+
 ## 0.51.0 - 2026-05-12
 
 - Made full `ruff check .` pass across the repository.
