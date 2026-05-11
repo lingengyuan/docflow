@@ -27,6 +27,7 @@ def test_config_from_dict_resolves_relative_onnx_cache_dir(tmp_path):
     config = embedding_backend_config_from_dict(cfg, config_path)
 
     assert config.onnx_cache_dir == tmp_path / "data/embedding_onnx"
+    assert config.allow_model_download is False
 
 
 def test_preferred_onnx_file_prefers_quantized_then_optimized(tmp_path):
@@ -79,6 +80,7 @@ def test_load_embedding_model_reloads_local_onnx_export(monkeypatch, tmp_path):
         onnx_provider="CPUExecutionProvider",
         onnx_optimization="O3",
         onnx_cache_dir=tmp_path,
+        allow_model_download=True,
     )
 
     load_embedding_model(config)

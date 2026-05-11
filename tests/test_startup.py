@@ -107,11 +107,43 @@ def test_offline_report_records_zero_unexpected_hosts(monkeypatch):
         "build_startup_report",
         lambda config_path="config.yaml", app_port=8000: {"status": "ok", "checks": {}},
     )
+    monkeypatch.setattr(
+        startup,
+        "_run_offline_runtime_checks",
+        lambda cfg: [{"name": "startup", "status": "ok"}],
+    )
 
     report = startup.build_offline_report("config.yaml")
 
     assert report["status"] == "ok"
     assert report["unexpected_outbound_connections"] == 0
+    assert report["runtime_checks"][0]["name"] == "startup"
+    assert report["network_registry"]
+
+
+def test_offline_report_uses_privacy_allowed_hosts(monkeypatch, tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+privacy:
+  allowed_hosts: ["example.com"]
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        startup,
+        "build_startup_report",
+        lambda config_path="config.yaml", app_port=8000: {"status": "ok", "checks": {}},
+    )
+    monkeypatch.setattr(
+        startup,
+        "_run_offline_runtime_checks",
+        lambda cfg: [{"name": "startup", "status": "ok"}],
+    )
+
+    report = startup.build_offline_report(config_path)
+
+    assert report["allowed_hosts"] == ["example.com"]
 
 
 def test_ensure_qdrant_suggests_run_command_when_container_is_missing(monkeypatch):
@@ -155,7 +187,14 @@ def test_format_offline_report_lists_zero_unexpected_connections():
             "unexpected_outbound_connections": 0,
             "unexpected_hosts": [],
             "error": "",
+            "runtime_checks": [
+                {"name": "startup", "status": "ok"},
+                {"name": "ingest", "status": "ok"},
+            ],
+            "network_registry": [{"id": "local_services"}],
         }
     )
 
     assert "0 unexpected outbound connections" in text
+    assert "Covered local paths: startup, ingest" in text
+    assert "Registered network cases: local_services" in text

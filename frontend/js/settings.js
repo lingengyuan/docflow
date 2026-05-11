@@ -180,7 +180,7 @@ async function loadLLMOptions() {
         .map(item => `<option value="${escHtml(item.model)}" ${item.current ? 'selected' : ''}>${escHtml(item.model)}</option>`)
         .join('') || `<option>${escHtml(d.current || '本地模型')}</option>`;
     }
-    renderLLMStatus(d.switch);
+    renderLLMStatus(d.switch, d);
     renderSettingsModelList(d);
 
     const dropdown = document.getElementById('llm-dropdown');
@@ -249,7 +249,7 @@ function handleKnowledgeModelSelect() {
   if (model) switchLLM(model);
 }
 
-function renderLLMStatus(state) {
+function renderLLMStatus(state, data = null) {
   const el = document.getElementById('llm-status');
   if (!el) return;
   el.classList.remove('text-error', 'text-primary', 'text-on-surface-variant');
@@ -259,6 +259,9 @@ function renderLLMStatus(state) {
   } else if (state?.state === 'error') {
     el.textContent = state.message || '切换失败';
     el.classList.add('text-error');
+  } else if (data?.network_mode === 'cloud') {
+    el.textContent = '云端回答已启用';
+    el.classList.add('text-primary');
   } else {
     el.textContent = '本地模型';
     el.classList.add('text-on-surface-variant');
@@ -273,7 +276,14 @@ function renderSettingsModelList(data) {
     el.innerHTML = '<div class="text-on-surface-variant/60">暂无模型信息</div>';
     return;
   }
+  const privacyNotice = data?.network_mode === 'cloud'
+    ? `<div class="mb-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-on-surface">
+        <div class="font-semibold">云端回答已启用</div>
+        <div class="mt-0.5 text-on-surface-variant/70">${escHtml(data.privacy_notice || '提问内容会发送到你配置的外部模型服务。')}</div>
+      </div>`
+    : '';
   el.innerHTML = `
+    ${privacyNotice}
     <div class="overflow-x-auto rounded-lg bg-surface-container-low">
       <table class="w-full min-w-[560px] text-xs">
         <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">

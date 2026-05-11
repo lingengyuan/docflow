@@ -21,13 +21,14 @@ DocFlow normally talks to local services such as:
 
 ## Network Access
 
-Current known network-related cases:
+DocFlow keeps a small registry of runtime network cases:
 
-- Model downloads may contact model hosting providers when a configured model is not already cached.
-- Optional cloud LLM backends require explicit user configuration.
-- Development and browser testing tools may download or launch browser dependencies.
+- Local services: Qdrant, Ollama, and the DocFlow web app on `localhost` or loopback addresses.
+- User-triggered webpage import: only when the user explicitly imports a URL.
+- Model downloads: blocked by default when a configured Hugging Face style model is not already cached.
+- Cloud LLM backends: off by default and only active when explicitly configured.
 
-Run the offline doctor to check for unexpected outbound connections in DocFlow's startup health path:
+Run the offline doctor to check for unexpected outbound connections across startup, local ingest, local query fallback, model status checks, and source preview:
 
 ```bash
 docflow doctor --offline
@@ -38,9 +39,13 @@ Expected result:
 ```text
 DocFlow offline network check: ok
 0 unexpected outbound connections
+Covered local paths: startup, ingest, query, model status, source preview
+Registered network cases: local_services, user_web_import, model_download, cloud_llm
 ```
 
-User-triggered webpage import is the main intentionally external runtime feature. Optional model downloads and cloud model backends must be explicitly enabled by configuration.
+User-triggered webpage import is the main intentionally external runtime feature. Optional model downloads require `privacy.allow_model_download: true`. Cloud model backends require an explicit backend and key. When a cloud answer backend is active, the Settings page shows a plain-language notice that questions may be sent to the configured external model service.
+
+If `privacy.allow_model_download: false` and a configured local model is missing from cache, DocFlow fails clearly before loading that model instead of silently downloading it.
 
 ## User Responsibility
 

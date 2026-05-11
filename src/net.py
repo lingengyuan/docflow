@@ -19,9 +19,48 @@ RequestError = httpx.RequestError
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
+NETWORK_ACCESS_REGISTRY = (
+    {
+        "id": "local_services",
+        "scope": "localhost, 127.0.0.1, ::1",
+        "when": "Qdrant, Ollama, and the local DocFlow web app are contacted.",
+        "default": "allowed",
+    },
+    {
+        "id": "user_web_import",
+        "scope": "user supplied webpage URLs",
+        "when": "A user explicitly imports a webpage into the library.",
+        "default": "user initiated",
+    },
+    {
+        "id": "model_download",
+        "scope": "model hosting providers",
+        "when": "A configured model is missing from the local cache.",
+        "default": "blocked unless privacy.allow_model_download is true",
+    },
+    {
+        "id": "cloud_llm",
+        "scope": "explicit cloud model providers",
+        "when": "A user configures a cloud LLM backend and key.",
+        "default": "off",
+    },
+)
+
 
 class UnexpectedNetworkAccess(RuntimeError):
     """Raised when runtime code attempts an unapproved outbound connection."""
+
+
+def network_access_registry() -> list[dict[str, str]]:
+    return [dict(item) for item in NETWORK_ACCESS_REGISTRY]
+
+
+def configured_allowed_hosts(cfg: dict) -> set[str]:
+    privacy_cfg = cfg.get("privacy", {}) if isinstance(cfg, dict) else {}
+    raw_hosts = privacy_cfg.get("allowed_hosts", [])
+    if isinstance(raw_hosts, str):
+        raw_hosts = [raw_hosts]
+    return {str(host).strip("[]").lower() for host in raw_hosts if str(host).strip()}
 
 
 def is_local_host(host: str | None) -> bool:

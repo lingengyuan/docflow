@@ -59,6 +59,8 @@ class QueryEngine:
 
         db_path = Path(cfg["paths"]["db_path"]).expanduser()
         reranker_cfg = cfg.get("reranker", {})
+        privacy_cfg = cfg.get("privacy", {})
+        allow_model_download = bool(privacy_cfg.get("allow_model_download", False))
         embedding_config = embedding_backend_config_from_dict(cfg, config_path)
         retriever = HybridRetriever(
             qdrant_host=cfg["qdrant"]["host"],
@@ -68,6 +70,7 @@ class QueryEngine:
             db_path=db_path,
             store=store,
             embedding_config=embedding_config,
+            allow_model_download=allow_model_download,
         )
         llm_cfg = cfg.get("llm", {})
         query_cfg = cfg.get("query", {})
@@ -83,6 +86,7 @@ class QueryEngine:
             temperature=float(query_cfg.get("temperature", 0.0)),
             top_p=float(query_cfg.get("top_p", 1.0)),
             max_tokens=int(query_cfg.get("max_tokens", 2048)),
+            allow_model_download=allow_model_download,
         )
         return cls(retriever, generator)
 

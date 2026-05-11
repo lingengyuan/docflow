@@ -31,7 +31,7 @@ Open [http://localhost:8000](http://localhost:8000), then choose **导入示例�
 
 ### Current Verification
 
-Latest local checks in this repository: `290` tests passed, `73` browser checks passed, retrieval eval `84/84` with Recall@5 `1.0`, parsing eval `31/31`, and offline startup check reported `0` unexpected outbound connections.
+Latest local checks in this repository: `299` tests passed, `73` browser checks passed, retrieval eval `84/84` with Recall@5 `1.0`, parsing eval `31/31`, and the offline local-use check reported `0` unexpected outbound connections.
 
 The eval sets are now broad enough for project regression checks. Treat these numbers as the current baseline, not a broad public benchmark.
 
@@ -114,7 +114,7 @@ docker compose up --build
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`290` 个测试通过，`73` 个浏览器检查通过，检索评估 `84/84` 且 Recall@5 `1.0`，解析评估 `31/31`，离线启动检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`299` 个测试通过，`73` 个浏览器检查通过，检索评估 `84/84` 且 Recall@5 `1.0`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
 
 评估集已经足够用于项目回归检查。这些数字是当前基线，不应当当作大规模公开 benchmark。
 

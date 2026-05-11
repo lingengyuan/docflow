@@ -286,14 +286,31 @@ def test_phase20_frontend_uses_local_icons():
 
 def test_runtime_http_calls_use_central_network_module():
     offenders = []
+    forbidden_tokens = [
+        "import httpx",
+        "from httpx",
+        "import requests",
+        "from requests",
+        "urllib.request",
+        "urllib3",
+    ]
     for path in Path("src").rglob("*.py"):
         if path == Path("src/net.py") or "__pycache__" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
-        if "import httpx" in text or "from httpx" in text:
-            offenders.append(str(path))
+        matches = [token for token in forbidden_tokens if token in text]
+        if matches:
+            offenders.append(f"{path}: {', '.join(matches)}")
 
     assert offenders == []
+
+
+def test_settings_warns_plainly_when_cloud_answers_are_enabled():
+    html = frontend_source_text()
+
+    assert "云端回答已启用" in html
+    assert "提问内容会发送到你配置的外部模型服务" in html
+    assert "network_mode" in html
 
 
 def test_chat_citations_render_chunk_identity():

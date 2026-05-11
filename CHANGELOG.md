@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.55.0 - 2026-05-12
+
+- Expanded the offline doctor check across startup, local ingest, query fallback, model status, and source preview.
+- Added a central runtime network registry for local services, user webpage imports, model downloads, and cloud model backends.
+- Blocked silent Hugging Face style model downloads when `privacy.allow_model_download` is false.
+- Added a plain Settings notice when a cloud answer backend is active.
+
 ## 0.54.0 - 2026-05-12
 
 - Expanded retrieval evaluation from 8 to 84 committed cases.

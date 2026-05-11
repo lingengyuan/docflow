@@ -170,7 +170,11 @@ def _check_scanned_pdf_ocr(pdf_path: Path) -> dict[str, Any]:
 
 def _check_vlm_image_parse(image_path: Path) -> dict[str, Any]:
     with _fake_mlx_vlm("Phase21 VLM description: screenshot with local assets and table data."):
-        parser = ImageParser(vlm_model="phase21/local-vlm", max_tokens=80)
+        parser = ImageParser(
+            vlm_model="phase21/local-vlm",
+            max_tokens=80,
+            allow_model_download=True,
+        )
         parsed = parser.parse(image_path)
     assert parsed.is_scanned is True
     assert parsed.pages[0].is_ocr is True

@@ -15,6 +15,7 @@ from typing import Any
 
 from src import net
 from src.knowledge_outputs import get_knowledge_output_type
+from src.model_cache import assert_model_download_allowed
 
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
 
@@ -82,6 +83,7 @@ class AnswerGenerator:
         temperature: float = 0.0,
         top_p: float = 1.0,
         max_tokens: int = 2048,
+        allow_model_download: bool = False,
     ):
         self.backend = backend
         self.ollama_base_url = ollama_base_url.rstrip("/")
@@ -94,6 +96,7 @@ class AnswerGenerator:
         self.temperature = temperature
         self.top_p = top_p
         self.max_tokens = max_tokens
+        self.allow_model_download = allow_model_download
         self._anthropic_client: Any | None = None
         # MLX model instance (loaded lazily via _load_mlx_model)
         self._mlx_model: Any | None = None
@@ -324,6 +327,11 @@ class AnswerGenerator:
 
         target = model_name or self.mlx_model_name
         if self._mlx_model is None or target != self.mlx_model_name:
+            assert_model_download_allowed(
+                target,
+                self.allow_model_download,
+                purpose="answer",
+            )
             loaded = load(target)
             self._mlx_model = loaded[0]
             self._mlx_tokenizer = loaded[1]

@@ -17,6 +17,7 @@ from typing import Any
 
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
+from src.model_cache import assert_model_download_allowed
 from src.vector_store import QdrantVectorStore
 
 logger = logging.getLogger(__name__)
@@ -127,12 +128,18 @@ class MLXReranker:
         model_name: str = "Qwen/Qwen3-Reranker-0.6B",
         instruction: str = "",
         max_length: int = 4096,
+        allow_model_download: bool = False,
     ):
         from mlx_lm import load
 
         self.instruction = instruction or QUERY_INSTRUCTION
         self.max_length = max_length
 
+        assert_model_download_allowed(
+            model_name,
+            allow_model_download,
+            purpose="reranker",
+        )
         logger.info(f"[reranker] Loading MLX reranker: {model_name}")
         loaded = load(model_name)
         self._model: Any = loaded[0]
@@ -205,6 +212,7 @@ class HybridRetriever:
         top_k_rerank: int = 5,
         store: DocStore | None = None,
         embedding_config: EmbeddingBackendConfig | None = None,
+        allow_model_download: bool = False,
     ):
         self.top_k_retrieval = top_k_retrieval
         self.top_k_rerank = top_k_rerank
@@ -219,6 +227,7 @@ class HybridRetriever:
         )
         self._reranker_model_name = reranker_model
         self._reranker_instruction = reranker_instruction
+        self._allow_model_download = allow_model_download
 
     # ------------------------------------------------------------------
     # Lazy-load models
@@ -236,6 +245,7 @@ class HybridRetriever:
             self._reranker = MLXReranker(
                 model_name=self._reranker_model_name,
                 instruction=self._reranker_instruction,
+                allow_model_download=self._allow_model_download,
             )
         return self._reranker
 

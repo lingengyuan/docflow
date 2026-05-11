@@ -71,6 +71,15 @@ from src.knowledge_outputs import (
     knowledge_output_tags,
 )
 from src.maintenance.startup import ensure_config_file
+from src.model_cache import (
+    assert_model_download_allowed,
+    configured_hf_model_status,
+    configured_model_names,
+    hf_cache_dir,
+    hf_model_cache_path,
+    is_hf_model_cached,
+    is_remote_model_reference,
+)
 from src.query.engine import QueryEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -167,32 +176,11 @@ def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:
 
 
 def _configured_model_names(cfg: dict) -> dict[str, str]:
-    ollama_cfg = cfg.get("ollama", {})
-    llm_cfg = cfg.get("llm", {})
-    embedding_cfg = cfg.get("embedding", {})
-    reranker_cfg = cfg.get("reranker", {})
-    vlm_cfg = cfg.get("vlm", {})
-    ingest_cfg = cfg.get("ingest", {})
-    return {
-        "embedding": embedding_cfg.get("model", ""),
-        "reranker": reranker_cfg.get("model", ""),
-        "llm": llm_cfg.get("mlx_model")
-        or llm_cfg.get("ollama_model")
-        or ollama_cfg.get("llm_model", ""),
-        "llm_enhanced": llm_cfg.get("mlx_model_enhanced")
-        or ollama_cfg.get("llm_model_enhanced", ""),
-        "ocr": ollama_cfg.get("ocr_model", ""),
-        "contextual_prefix": ingest_cfg.get("contextual_prefix_model", ""),
-        "vlm": vlm_cfg.get("model", ""),
-    }
+    return configured_model_names(cfg)
 
 
 def _hf_cache_dir() -> Path:
-    hub_cache = os.getenv("HUGGINGFACE_HUB_CACHE")
-    if hub_cache:
-        return Path(hub_cache).expanduser()
-    hf_home = Path(os.getenv("HF_HOME", str(Path.home() / ".cache" / "huggingface"))).expanduser()
-    return hf_home / "hub"
+    return hf_cache_dir()
 
 
 def _safe_path_size(path: Path, *, max_entries: int = 100_000) -> int:
@@ -226,8 +214,8 @@ def _configured_model_cache_paths(cfg: dict) -> list[Path]:
     paths: list[Path] = []
     model_names = {name for name in _configured_model_names(cfg).values() if name}
     for model_name in model_names:
-        if "/" in model_name:
-            paths.append(_hf_cache_dir() / f"models--{model_name.replace('/', '--')}")
+        if is_remote_model_reference(model_name):
+            paths.append(hf_model_cache_path(model_name))
 
     onnx_cache_dir = cfg.get("embedding", {}).get("onnx_cache_dir")
     if onnx_cache_dir:
@@ -271,17 +259,11 @@ def _collect_storage_usage(cfg: dict, doc_store: DocStore) -> dict:
 
 
 def _is_hf_model_cached(model_name: str) -> bool:
-    if not model_name or "/" not in model_name:
-        return False
-    model_dir = _hf_cache_dir() / f"models--{model_name.replace('/', '--')}"
-    snapshots_dir = model_dir / "snapshots"
-    if not snapshots_dir.exists():
-        return False
-    return any(snap.is_dir() for snap in snapshots_dir.iterdir())
+    return is_hf_model_cached(model_name)
 
 
 def _llm_model_status(model_name: str) -> dict:
-    cached = _is_hf_model_cached(model_name) if "/" in model_name else True
+    cached = _is_hf_model_cached(model_name) if is_remote_model_reference(model_name) else True
     return {
         "model": model_name,
         "cached": cached,
@@ -299,6 +281,14 @@ def _set_llm_switch_state(state: str, *, model: str | None = None, message: str 
 def _load_mlx_model_candidate(model_name: str):
     from mlx_lm import load
 
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f) or {}
+    allow_model_download = bool(cfg.get("privacy", {}).get("allow_model_download", False))
+    assert_model_download_allowed(
+        model_name,
+        allow_model_download,
+        purpose="answer",
+    )
     return load(model_name)
 
 
@@ -1370,11 +1360,18 @@ async def debug_retrieve(req: DebugRetrieveRequest):
 async def get_llm():
     if query_engine is None:
         raise HTTPException(503, "Not ready")
+    backend = query_engine.generator.backend
     return {
         "current": query_engine.generator.current_model,
         "options": llm_options,
         "models": [_llm_model_status(model) for model in llm_options],
-        "backend": query_engine.generator.backend,
+        "backend": backend,
+        "network_mode": "cloud" if backend == "claude" else "local",
+        "privacy_notice": (
+            "云端回答已启用。提问内容会发送到你配置的外部模型服务。"
+            if backend == "claude"
+            else "本地回答已启用。默认不会把提问发送到外部模型服务。"
+        ),
         "switch": dict(llm_switch_state),
     }
 
@@ -1587,15 +1584,7 @@ def _check_ollama(cfg: dict) -> dict:
 
 
 def _check_models(cfg: dict) -> dict:
-    names = _configured_model_names(cfg)
-    local_models = {
-        name: {
-            "model": model,
-            "cached": _is_hf_model_cached(model),
-        }
-        for name, model in names.items()
-        if model and "/" in model
-    }
+    local_models = configured_hf_model_status(cfg)
     missing = [item["model"] for item in local_models.values() if not item["cached"]]
     return {
         "status": "ok" if not missing else "degraded",

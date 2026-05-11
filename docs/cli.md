@@ -16,6 +16,8 @@ docflow eval retrieval
 docflow eval parsing
 ```
 
+`docflow doctor --offline` checks startup, a local ingest probe, query fallback, model status, and source preview for unexpected outbound connections.
+
 ## Maintenance Commands
 
 ```bash

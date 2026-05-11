@@ -37,7 +37,7 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 
 - Keep default behavior local and auditable.
 - Make model downloads and cloud model use explicit.
-- Extend offline checks beyond startup into ingest and query flows.
+- Keep offline checks covering startup, ingest, query fallback, model status, and source preview.
 
 ## 7. Knowledge Workspace Depth
 

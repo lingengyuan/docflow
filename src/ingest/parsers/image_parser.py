@@ -14,6 +14,7 @@ import logging
 from pathlib import Path
 
 from src.ingest.pdf_analyzer import PageContent, ParsedDocument
+from src.model_cache import assert_model_download_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +32,12 @@ class ImageParser:
         vlm_model: str = "mlx-community/Qwen2.5-VL-7B-Instruct-4bit",
         prompt: str = DEFAULT_PROMPT,
         max_tokens: int = 512,
+        allow_model_download: bool = False,
     ):
         self._vlm_model_name = vlm_model
         self._prompt = prompt
         self._max_tokens = max_tokens
+        self._allow_model_download = allow_model_download
         self._model = None
         self._processor = None
         self._config = None
@@ -45,6 +48,11 @@ class ImageParser:
         from mlx_vlm import load
         from mlx_vlm.utils import load_config
 
+        assert_model_download_allowed(
+            self._vlm_model_name,
+            self._allow_model_download,
+            purpose="image understanding",
+        )
         logger.info(f"[image_parser] Loading VLM: {self._vlm_model_name}")
         self._model, self._processor = load(self._vlm_model_name)
         self._config = load_config(self._vlm_model_name)

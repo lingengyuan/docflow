@@ -7,6 +7,8 @@ import types
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.model_cache import assert_model_download_allowed
+
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EMBEDDING_BACKENDS = {"torch", "onnx"}
@@ -24,6 +26,7 @@ class EmbeddingBackendConfig:
     mps_memory_fraction: float = 0.7
     mps_empty_cache: bool = True
     mps_inference_mode: bool = True
+    allow_model_download: bool = False
 
     def normalized_backend(self) -> str:
         backend = self.backend.strip().lower()
@@ -53,6 +56,7 @@ def embedding_backend_config_from_dict(
     config_path: str | Path,
 ) -> EmbeddingBackendConfig:
     embedding_cfg = cfg.get("embedding", {})
+    privacy_cfg = cfg.get("privacy", {})
     config_dir = Path(config_path).expanduser().resolve().parent
 
     onnx_cache_dir_raw = embedding_cfg.get("onnx_cache_dir", "data/embedding_onnx")
@@ -71,6 +75,7 @@ def embedding_backend_config_from_dict(
         mps_memory_fraction=float(embedding_cfg.get("mps_memory_fraction", 0.7)),
         mps_empty_cache=bool(embedding_cfg.get("mps_empty_cache", True)),
         mps_inference_mode=bool(embedding_cfg.get("mps_inference_mode", True)),
+        allow_model_download=bool(privacy_cfg.get("allow_model_download", False)),
     )
 
 
@@ -84,6 +89,12 @@ def load_embedding_model(config: EmbeddingBackendConfig):
 def _load_torch_model(config: EmbeddingBackendConfig):
     import torch
     from sentence_transformers import SentenceTransformer
+
+    assert_model_download_allowed(
+        config.model_name,
+        config.allow_model_download,
+        purpose="embedding",
+    )
 
     n_threads = os.cpu_count() or 4
     torch.set_num_threads(n_threads)
@@ -113,6 +124,11 @@ def _load_onnx_model(config: EmbeddingBackendConfig):
         file_name = _preferred_onnx_file(model_dir, config)
 
     if file_name is None:
+        assert_model_download_allowed(
+            config.model_name,
+            config.allow_model_download,
+            purpose="embedding",
+        )
         logger.info(f"[embedding] Exporting ONNX model: {config.model_name}")
         try:
             model = SentenceTransformer(

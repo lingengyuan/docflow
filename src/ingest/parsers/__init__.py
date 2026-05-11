@@ -61,11 +61,13 @@ class ParserRegistry:
             registry.register(normalized, text_parser)
 
         vlm_cfg = cfg.get("vlm", {})
+        privacy_cfg = cfg.get("privacy", {})
         if vlm_cfg.get("enabled", True):
             image_parser = ImageParser(
                 vlm_model=vlm_cfg.get("model", "mlx-community/Qwen2.5-VL-7B-Instruct-4bit"),
                 prompt=vlm_cfg.get("prompt", ""),
                 max_tokens=vlm_cfg.get("max_tokens", 512),
+                allow_model_download=bool(privacy_cfg.get("allow_model_download", False)),
             )
             for ext in IMAGE_EXTENSIONS:
                 registry.register(ext, image_parser)

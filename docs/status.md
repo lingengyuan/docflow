@@ -11,7 +11,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Runtime dependencies are smaller and optional image support is split out.
 - CI, ruff, pre-commit, issue template, and PR template are present.
 - CI now runs full ruff, mypy, and pytest on Ubuntu and macOS.
-- Local privacy has an offline doctor check.
+- Local privacy has an offline doctor check covering startup, local ingest, query fallback, model status, and source preview.
+- Model downloads are blocked by default when the configured cache is missing and `privacy.allow_model_download` is false.
 - Citations include chunk identity and source span metadata.
 - Source preview can highlight the cited source range when citation span metadata is available.
 - Local answer generation uses deterministic defaults.
@@ -21,17 +22,17 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 290 passed.
+- Unit/integration tests: 299 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 171.11 ms, P95 186.46 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
-- Offline doctor from Phase44: 0 unexpected outbound connections on the startup health path.
+- Offline doctor from Phase55: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
 ## Remaining Gaps
 
-- Model libraries can still perform their own cache/download checks outside DocFlow's `src.net` layer.
+- The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
 - Retrieval eval currently uses source filtering for project regression checks; a broader unfiltered public benchmark is still needed before external quality claims.
