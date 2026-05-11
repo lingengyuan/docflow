@@ -49,12 +49,31 @@ def test_maturity_report_includes_retrieval_eval():
             "passed": 1,
             "failed": 0,
             "include_rerank": False,
+            "metrics": {"recall_at_5": 1.0},
             "results": [],
         },
     )
 
     assert report["schema"] == "docflow.maturity.v1"
     assert report["retrieval_eval"]["cases"] == 1
+    assert report["measurements"]["passed_signals"] == 1
+    assert report["measurements"]["signals"][0]["metrics"]["recall_at_5"] == 1.0
+
+
+def test_maturity_report_includes_parsing_eval_signal():
+    report = build_report(
+        [],
+        parsing_eval={
+            "cases": 2,
+            "passed": 2,
+            "failed": 0,
+            "results": [],
+        },
+    )
+
+    assert report["parsing_eval"]["cases"] == 2
+    assert report["measurements"]["signals"][0]["id"] == "parsing_eval"
+    assert report["measurements"]["signals"][0]["metrics"]["pass_rate"] == 1.0
 
 
 class FakeRetriever:

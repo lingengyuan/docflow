@@ -6,7 +6,7 @@ DocFlow currently has several validation paths:
 .venv/bin/python -m pytest
 docflow eval retrieval --write-results
 docflow eval parsing --write-results
-docflow maturity-eval
+docflow maturity-eval --no-rerank --source-filter
 docflow browser-acceptance
 docflow restore-drill
 ```
@@ -38,6 +38,10 @@ Results are written under `eval/results/`, which is local runtime output and is 
 ## Parsing Regression
 
 `docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
+
+## Maturity Report
+
+`docflow maturity-eval --no-rerank --source-filter` combines the dimension scorecard with retrieval and parsing signals. The dimension scores remain a planning view; the measured signals are the part to use for external quality claims.
 
 ## Reproducibility
 

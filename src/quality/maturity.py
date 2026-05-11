@@ -84,13 +84,60 @@ def dimension_to_dict(dimension: MaturityDimension) -> dict:
     }
 
 
-def build_report(dimensions: list[MaturityDimension], retrieval_eval: dict | None = None) -> dict:
+def build_report(
+    dimensions: list[MaturityDimension],
+    retrieval_eval: dict | None = None,
+    parsing_eval: dict | None = None,
+) -> dict:
     return {
         "schema": "docflow.maturity.v1",
         "summary": summarize_dimensions(dimensions),
+        "measurements": summarize_measurements(retrieval_eval, parsing_eval),
         "dimensions": [dimension_to_dict(d) for d in dimensions],
         "retrieval_eval": retrieval_eval,
+        "parsing_eval": parsing_eval,
     }
+
+
+def summarize_measurements(
+    retrieval_eval: dict | None = None,
+    parsing_eval: dict | None = None,
+) -> dict:
+    signals: list[dict] = []
+    if retrieval_eval is not None:
+        metrics = retrieval_eval.get("metrics", {})
+        signals.append(
+            {
+                "id": "retrieval_eval",
+                "name": "Retrieval eval",
+                "passed": retrieval_eval.get("failed", 0) == 0,
+                "cases": retrieval_eval.get("cases", 0),
+                "passed_cases": retrieval_eval.get("passed", 0),
+                "failed_cases": retrieval_eval.get("failed", 0),
+                "metrics": metrics,
+            }
+        )
+    if parsing_eval is not None:
+        signals.append(
+            {
+                "id": "parsing_eval",
+                "name": "Parsing eval",
+                "passed": parsing_eval.get("failed", 0) == 0,
+                "cases": parsing_eval.get("cases", 0),
+                "passed_cases": parsing_eval.get("passed", 0),
+                "failed_cases": parsing_eval.get("failed", 0),
+                "metrics": {"pass_rate": _ratio(parsing_eval.get("passed", 0), parsing_eval.get("cases", 0))},
+            }
+        )
+    return {
+        "signals": signals,
+        "passed_signals": sum(1 for signal in signals if signal["passed"]),
+        "failed_signals": sum(1 for signal in signals if not signal["passed"]),
+    }
+
+
+def _ratio(numerator: int, denominator: int) -> float:
+    return 0.0 if denominator == 0 else round(numerator / denominator, 4)
 
 
 def format_report(report: dict) -> str:
@@ -103,6 +150,24 @@ def format_report(report: dict) -> str:
         "",
         "Dimension scores:",
     ]
+    measurements = report.get("measurements", {})
+    signals = measurements.get("signals", [])
+    if signals:
+        lines.extend(
+            [
+                "",
+                "Measured signals:",
+            ]
+        )
+        for signal in signals:
+            mark = "PASS" if signal["passed"] else "FAIL"
+            metric_text = _format_metric_text(signal.get("metrics", {}))
+            suffix = f" ({metric_text})" if metric_text else ""
+            lines.append(
+                f"- [{mark}] {signal['name']}: "
+                f"{signal['passed_cases']}/{signal['cases']} cases{suffix}"
+            )
+        lines.append("")
     for item in report["dimensions"]:
         lines.append(
             f"- {item['name']}: {item['current_score']}/{item['target_score']} "
@@ -123,4 +188,21 @@ def format_report(report: dict) -> str:
             mark = "PASS" if result["passed"] else "FAIL"
             reason = result.get("failure_reason") or "ok"
             lines.append(f"  [{mark}] {result['id']} :: {result['evidence_status']} :: {reason}")
+    if report.get("parsing_eval") is not None:
+        parsing = report["parsing_eval"]
+        lines.extend(
+            [
+                "",
+                "Parsing eval:",
+                f"- cases: {parsing['cases']}, passed: {parsing['passed']}, failed: {parsing['failed']}",
+            ]
+        )
     return "\n".join(lines)
+
+
+def _format_metric_text(metrics: dict) -> str:
+    parts = []
+    for key in ("recall_at_5", "mrr_at_5", "ndcg_at_5", "pass_rate"):
+        if key in metrics:
+            parts.append(f"{key}={metrics[key]}")
+    return ", ".join(parts)
