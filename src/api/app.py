@@ -40,6 +40,7 @@ from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
 from src.api.routes import imports as imports_routes
 from src.api.routes import library as library_routes
 from src.api.routes import maintenance as maintenance_routes
+from src.api.routes import obsidian as obsidian_routes
 from src.api.routes import query as query_routes
 from src.api.routes import settings as settings_routes
 from src.api.schemas import (
@@ -53,6 +54,7 @@ from src.api.schemas import (
     KnowledgeOutputRequest,
     LLMSwitchRequest,
     NoteCreateRequest,
+    ObsidianRelatedRequest,
     QueryOptions,
     QueryRequest,
     QueryResponse,
@@ -1013,6 +1015,46 @@ async def create_knowledge_output(req: KnowledgeOutputRequest):
     }
 
 
+async def obsidian_related_notes(req: ObsidianRelatedRequest):
+    if query_engine is None:
+        raise HTTPException(503, "Query engine not ready")
+    query_text = " ".join(
+        part.strip()
+        for part in [req.selection or "", req.note_title or "", req.note_content or ""]
+        if part and part.strip()
+    ).strip()
+    if not query_text:
+        raise HTTPException(400, "Note content or selection is required")
+    query_text = query_text[:4000]
+    exclude = {
+        value
+        for value in {
+            req.note_path,
+            req.note_title,
+            f"{req.note_title}.md" if req.note_title else "",
+        }
+        if value
+    }
+    limit = max(1, min(int(req.limit or 6), 12))
+    chunks = query_engine.retriever.retrieve(
+        query=query_text,
+        file_filter=None,
+        retrieval_mode=_normalize_retrieval_mode(req.retrieval_mode),
+        prefer_tables=False,
+        related_k=limit,
+    )
+    related_notes = QueryEngine._related_notes(
+        [],
+        chunks,
+        extra_exclude_keys=exclude,
+        limit=limit,
+    )
+    return {
+        "related_notes": related_notes,
+        "count": len(related_notes),
+    }
+
+
 def _build_knowledge_output_source(req: KnowledgeOutputRequest) -> tuple[str, list[str]]:
     _sync_app_state()
     return import_service.build_knowledge_output_source(app_state, req)
@@ -1789,6 +1831,9 @@ def _register_api_routes() -> None:
     }))
     app.include_router(maintenance_routes.create_router({
         "debug_retrieve": debug_retrieve,
+    }))
+    app.include_router(obsidian_routes.create_router({
+        "obsidian_related_notes": obsidian_related_notes,
     }))
 
 

@@ -163,12 +163,18 @@ class QueryEngine:
         return answer_chunks, cls._related_notes(answer_chunks, related_chunks)
 
     @staticmethod
-    def _related_notes(answer_chunks: list[dict], related_chunks: list[dict]) -> list[dict]:
+    def _related_notes(
+        answer_chunks: list[dict],
+        related_chunks: list[dict],
+        extra_exclude_keys: set[str] | None = None,
+        limit: int = RELATED_NOTES_LIMIT,
+    ) -> list[dict]:
         cited_keys = {
             chunk.get("file_path") or chunk.get("file_name")
             for chunk in answer_chunks
             if chunk.get("file_path") or chunk.get("file_name")
         }
+        cited_keys.update(extra_exclude_keys or set())
         notes: list[dict] = []
         seen: set[str] = set()
         for chunk in related_chunks:
@@ -189,7 +195,7 @@ class QueryEngine:
                     "chunk_type": chunk.get("chunk_type", "text"),
                 }
             )
-            if len(notes) >= RELATED_NOTES_LIMIT:
+            if len(notes) >= limit:
                 break
         return notes
 
