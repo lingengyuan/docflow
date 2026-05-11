@@ -15,6 +15,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Model downloads are blocked by default when the configured cache is missing and `privacy.allow_model_download` is false.
 - Citations include chunk identity and source span metadata.
 - Source preview can highlight the cited source range when citation span metadata is available.
+- Browser UI now presents model choices, collections, watched folders, queue stages, and source labels in user-facing language.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
@@ -22,7 +23,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 299 passed.
+- Unit/integration tests: 300 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.

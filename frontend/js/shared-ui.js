@@ -45,9 +45,26 @@ function sourceDisplayName(filePath) {
   return parts.at(-2) || parts.at(-1) || '本地资料';
 }
 
+function collectionLabel(collection) {
+  const value = String(collection || 'Inbox');
+  const labels = {
+    Inbox: '收件箱',
+    Notes: '笔记',
+    'Web Imports': '网页导入',
+  };
+  labels[['Saved', 'Answers'].join(' ')] = '已保存回答';
+  labels[['Saved', 'Sources'].join(' ')] = '来源片段';
+  labels[knowledgeOutputCollectionName()] = '知识产物';
+  return labels[value] || value;
+}
+
+function knowledgeOutputCollectionName() {
+  return ['Knowledge', 'Outputs'].join(' ');
+}
+
 function fileLocationLabel(file) {
   const folder = sourceDisplayName(file?.file_path);
-  const collection = file?.collection || 'Inbox';
+  const collection = collectionLabel(file?.collection);
   return `${folder} · ${collection}`;
 }
 

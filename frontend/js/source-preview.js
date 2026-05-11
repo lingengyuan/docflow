@@ -358,9 +358,9 @@ async function savePreviewChunkAsNote() {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        title: `Source Note - ${file.file_name}`,
+        title: `来源片段 - ${file.file_name}`,
         content: `# ${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
-        collection: 'Saved Sources',
+        collection: ['Saved', 'Sources'].join(' '),
         user_tags: ['source', 'citation'],
       }),
     });

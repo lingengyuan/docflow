@@ -252,11 +252,32 @@ def test_phase17_notes_exposes_knowledge_outputs():
 
     assert 'id="knowledge-output-panel"' in html
     assert 'id="knowledge-submit-btn"' in html
-    assert "Knowledge Outputs" in html
+    assert "知识产物" in html
+    assert "knowledgeOutputCollectionName" in html
     assert "/api/knowledge-output" in html
     assert "openKnowledgeFromSelectedFiles" in html
     assert "learning_cards" in html
     assert "project_brief" in html
+
+
+def test_phase56_user_ui_uses_product_language_for_models_and_collections():
+    html = frontend_source_text()
+
+    assert "本地回答模型" in html
+    assert "增强回答模型" in html
+    assert "friendlyModelLabel" in html
+    assert "collectionLabel" in html
+    assert "可粘贴资料，也可从资料库选中文件带入" in html
+    assert "仅当前文件夹" in html
+    assert "source.path || ''" not in html
+    for forbidden in [
+        "Embedding（嵌入）",
+        "Reranker（重排）",
+        "LLM（大语言模型）",
+        "Library 中",
+        "Source Note -",
+    ]:
+        assert forbidden not in html
 
 
 def test_phase18_frontend_uses_local_tailwind_build():

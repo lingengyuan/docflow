@@ -262,7 +262,7 @@ function renderQueryScopeOptions() {
   if (fileSelect) {
     const value = fileSelect.value;
     fileSelect.innerHTML = queryScopeFiles
-      .map(item => `<option value="${item.id}">${escHtml(item.file_name)} · ${escHtml(item.collection || 'Inbox')}</option>`)
+      .map(item => `<option value="${item.id}">${escHtml(item.file_name)} · ${escHtml(collectionLabel(item.collection))}</option>`)
       .join('');
     if ([...fileSelect.options].some(option => option.value === value)) fileSelect.value = value;
   }

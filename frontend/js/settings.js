@@ -170,25 +170,27 @@ async function loadLLMOptions() {
     const d = await fetch(`${API}/api/llm`).then(r => r.json());
     const models = d.models || (d.options || []).map(m => ({ model: m, available: true, cached: true, current: m === d.current }));
     llmOptions = models.map(m => m.model);
-    document.getElementById('llm-current').textContent = d.current || 'LLM';
+    window.currentLLMModel = d.current || '';
+    const currentModel = models.find(item => item.current) || { model: d.current || '', current: true, available: true };
+    document.getElementById('llm-current').textContent = friendlyModelLabel(currentModel, models.indexOf(currentModel), d);
     const chatModel = document.getElementById('chat-context-model');
-    if (chatModel) chatModel.textContent = d.current || 'LLM';
+    if (chatModel) chatModel.textContent = friendlyModelLabel(currentModel, models.indexOf(currentModel), d);
     const knowledgeModel = document.getElementById('knowledge-model-select');
     if (knowledgeModel) {
       knowledgeModel.innerHTML = models
         .filter(item => item.available)
-        .map(item => `<option value="${escHtml(item.model)}" ${item.current ? 'selected' : ''}>${escHtml(item.model)}</option>`)
-        .join('') || `<option>${escHtml(d.current || '本地模型')}</option>`;
+        .map((item, index) => `<option value="${escHtml(item.model)}" ${item.current ? 'selected' : ''}>${escHtml(friendlyModelLabel(item, index, d))}</option>`)
+        .join('') || `<option>${escHtml(friendlyModelLabel(currentModel, 0, d))}</option>`;
     }
     renderLLMStatus(d.switch, d);
     renderSettingsModelList(d);
 
     const dropdown = document.getElementById('llm-dropdown');
-    dropdown.innerHTML = models.map(item => `
+    dropdown.innerHTML = models.map((item, index) => `
       <button data-model="${escHtml(item.model)}" onclick="switchLLM(this.dataset.model)" ${item.available ? '' : 'disabled'}
         class="w-full text-left px-4 py-2.5 text-xs font-medium transition-all ${item.current ? 'text-primary font-bold' : 'text-on-surface'} ${item.available ? 'hover:bg-surface-container' : 'opacity-45 cursor-not-allowed'}">
-        <span class="block">${escHtml(item.model)}</span>
-        <span class="block text-[10px] font-normal text-on-surface-variant/60">${item.current ? '当前使用' : (item.available ? '本地可用' : '未缓存')}</span>
+        <span class="block">${escHtml(friendlyModelLabel(item, index, d))}</span>
+        <span class="block text-[10px] font-normal text-on-surface-variant/60">${escHtml(friendlyModelDetail(item, index, d))}</span>
       </button>`).join('');
   } catch {
     renderLLMStatus({ state: 'error', message: '模型状态读取失败' });
@@ -211,8 +213,7 @@ document.addEventListener('click', () => {
 });
 
 async function switchLLM(model) {
-  const current = document.getElementById('llm-current').textContent;
-  if (model === current) {
+  if (model === window.currentLLMModel) {
     document.getElementById('llm-dropdown').classList.add('hidden');
     renderLLMStatus({ state: 'idle', message: '当前模型' });
     return;
@@ -232,7 +233,8 @@ async function switchLLM(model) {
       throw new Error(d.detail || '模型切换失败');
     }
     if (d.ok) {
-      document.getElementById('llm-current').textContent = model;
+      window.currentLLMModel = model;
+      document.getElementById('llm-current').textContent = friendlyModelLabel({ model, current: true }, 0, { network_mode: 'local' });
       renderLLMStatus({ state: 'idle', message: '本地模型' });
       loadLLMOptions();
     }
@@ -288,24 +290,22 @@ function renderSettingsModelList(data) {
       <table class="w-full min-w-[560px] text-xs">
         <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
           <tr>
-            <th class="text-left px-3 py-2">模型类型</th>
+            <th class="text-left px-3 py-2">能力</th>
             <th class="text-left px-3 py-2">状态</th>
-            <th class="text-left px-3 py-2">当前模型</th>
-            <th class="text-left px-3 py-2">缓存</th>
+            <th class="text-left px-3 py-2">说明</th>
             <th class="text-left px-3 py-2">操作</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-outline-variant/10">
-          ${models.map(item => `
+          ${models.map((item, index) => `
             <tr>
-              <td class="px-3 py-2 font-semibold text-on-surface">${settingsModelTypeLabel(item.model)}</td>
+              <td class="px-3 py-2 font-semibold text-on-surface">${escHtml(friendlyModelLabel(item, index, data))}</td>
               <td class="px-3 py-2">
                 <span class="inline-flex items-center gap-1.5 font-bold ${item.available ? 'text-tertiary' : 'text-primary'}">
                   <span class="w-1.5 h-1.5 rounded-full ${item.available ? 'bg-tertiary' : 'bg-primary'}"></span>${item.current ? '当前' : (item.available ? '可用' : '未缓存')}
                 </span>
               </td>
-              <td class="px-3 py-2 text-on-surface-variant">${escHtml(item.model)}</td>
-              <td class="px-3 py-2 text-on-surface-variant">${escHtml(item.size || item.detail || '-')}</td>
+              <td class="px-3 py-2 text-on-surface-variant">${escHtml(friendlyModelDetail(item, index, data))}</td>
               <td class="px-3 py-2">
                 <button onclick="switchLLM(decodeURIComponent('${encodeURIComponent(item.model)}'))" ${item.available && !item.current ? '' : 'disabled'} class="text-primary font-bold disabled:text-on-surface-variant/35">${item.current ? '已启用' : '切换'}</button>
               </td>
@@ -315,12 +315,21 @@ function renderSettingsModelList(data) {
     </div>`;
 }
 
-function settingsModelTypeLabel(model) {
-  const value = String(model || '').toLowerCase();
-  if (value.includes('embed') || value.includes('nomic')) return 'Embedding（嵌入）';
-  if (value.includes('rerank') || value.includes('bge')) return 'Reranker（重排）';
-  if (value.includes('vl') || value.includes('vision') || value.includes('ocr')) return '图片理解';
-  return 'LLM（大语言模型）';
+function friendlyModelLabel(item, index = 0, data = null) {
+  if (data?.network_mode === 'cloud') return item?.current ? '云端回答模型' : '备用云端模型';
+  if (item?.current) return '本地回答模型';
+  if (index === 1) return '增强回答模型';
+  return '备用回答模型';
+}
+
+function friendlyModelDetail(item, index = 0, data = null) {
+  if (data?.network_mode === 'cloud') {
+    return item?.current ? '回答会使用你配置的外部模型服务。' : '可切换的外部模型服务。';
+  }
+  if (!item?.available) return '本机还没有准备好这个模型。';
+  if (item?.current) return '正在用于问答和知识产物生成。';
+  if (index === 1) return '适合更复杂的问题，可按需切换。';
+  return '已在本机准备好，可按需切换。';
 }
 
 async function refreshSettings() {
@@ -347,7 +356,7 @@ async function loadSettingsSources() {
           <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
             <tr>
               <th class="text-left px-3 py-2">目录</th>
-              <th class="text-left px-3 py-2">路径</th>
+              <th class="text-left px-3 py-2">范围</th>
               <th class="text-left px-3 py-2">状态</th>
               <th class="text-left px-3 py-2">包含子目录</th>
             </tr>
@@ -356,7 +365,7 @@ async function loadSettingsSources() {
             ${sources.map(source => `
               <tr>
                 <td class="px-3 py-2 font-semibold text-on-surface">${escHtml(sourceDisplayName(source.path))}</td>
-                <td class="px-3 py-2 text-on-surface-variant line-clamp-1">${escHtml(source.path || '')}</td>
+                <td class="px-3 py-2 text-on-surface-variant line-clamp-1">${source.recursive ? '包含子目录' : '仅当前文件夹'}</td>
                 <td class="px-3 py-2 text-tertiary font-bold">监控中</td>
                 <td class="px-3 py-2 text-on-surface-variant">${source.recursive ? '开启' : '关闭'} · ${(source.extensions || []).length || 0} 类文件</td>
               </tr>`).join('')}

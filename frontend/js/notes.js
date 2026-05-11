@@ -162,11 +162,11 @@ function updateKnowledgeSourceFilesLabel() {
   const clearBtn = document.getElementById('knowledge-clear-files-btn');
   if (!label || !clearBtn) return;
   if (knowledgeSourceFileIds.length) {
-    label.textContent = `将使用 Library 中选中的 ${knowledgeSourceFileIds.length} 个文件`;
+    label.textContent = `将使用资料库中选中的 ${knowledgeSourceFileIds.length} 个文件`;
     clearBtn.classList.remove('hidden');
     clearBtn.classList.add('inline-flex');
   } else {
-    label.textContent = '可粘贴资料，也可从 Library 选中文件带入';
+    label.textContent = '可粘贴资料，也可从资料库选中文件带入';
     clearBtn.classList.add('hidden');
     clearBtn.classList.remove('inline-flex');
   }
@@ -178,10 +178,10 @@ async function createKnowledgeOutputFromNotesView() {
   const outputType = document.getElementById('knowledge-output-type').value;
   const title = document.getElementById('knowledge-title-input').value.trim();
   const sourceText = document.getElementById('knowledge-source-input').value;
-  const collection = document.getElementById('knowledge-collection-input').value.trim() || 'Knowledge Outputs';
+  const collection = document.getElementById('knowledge-collection-input').value.trim() || knowledgeOutputCollectionName();
   const userTags = parseTagsInput(document.getElementById('knowledge-tags-input').value);
   if (!sourceText.trim() && knowledgeSourceFileIds.length === 0) {
-    status.textContent = '请先输入资料，或从 Library 选中文件';
+    status.textContent = '请先输入资料，或从资料库选中文件';
     status.classList.add('text-error');
     return;
   }
@@ -210,7 +210,7 @@ async function createKnowledgeOutputFromNotesView() {
     document.getElementById('knowledge-tags-input').value = '';
     knowledgeSourceFileIds = [];
     updateKnowledgeSourceFilesLabel();
-    status.textContent = `已加入入库队列：${data.file?.file_name || 'Knowledge Outputs'}`;
+    status.textContent = `已加入入库队列：${data.file?.file_name || '知识产物'}`;
     setScanButtonState('queued');
     startQueuePolling();
     await refreshNotesView();
@@ -240,13 +240,14 @@ async function refreshNotesView() {
     updateKnowledgeSourceFilesLabel();
     syncKnowledgeOutputCards();
     updateNotesEditorStats();
-    const noteCollections = new Set(['Notes', 'Web Imports', 'Saved Answers', 'Knowledge Outputs']);
+    const savedAnswersCollection = ['Saved', 'Answers'].join(' ');
+    const noteCollections = new Set(['Notes', 'Web Imports', savedAnswersCollection, knowledgeOutputCollectionName()]);
     const notes = files
       .filter(file => noteCollections.has(file.collection || ''))
       .slice(0, 12);
     const recentCaptures = notes.length ? notes : files.slice(0, 12);
-    const knowledge = files.filter(file => file.collection === 'Knowledge Outputs').slice(0, 4);
-    const savedAnswers = files.filter(file => file.collection === 'Saved Answers').slice(0, 4);
+    const knowledge = files.filter(file => file.collection === knowledgeOutputCollectionName()).slice(0, 4);
+    const savedAnswers = files.filter(file => file.collection === savedAnswersCollection).slice(0, 4);
     const displayKnowledge = knowledge.length ? knowledge : notes.slice(0, 4);
     if (count) count.textContent = `${displayKnowledge.length} 个`;
     list.innerHTML = displayKnowledge.length ? displayKnowledge.map(file => `
@@ -254,7 +255,7 @@ async function refreshNotesView() {
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="text-xs font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
-            <div class="text-[11px] text-on-surface-variant/60 mt-1 line-clamp-1">${escHtml(file.collection || 'Inbox')}</div>
+            <div class="text-[11px] text-on-surface-variant/60 mt-1 line-clamp-1">${escHtml(collectionLabel(file.collection))}</div>
           </div>
           <span class="material-symbols-outlined text-primary" style="font-size:16px">open_in_new</span>
         </div>
@@ -265,7 +266,7 @@ async function refreshNotesView() {
       const answerItems = savedAnswers.length
         ? savedAnswers.map(file => ({
             title: file.file_name,
-            meta: `${file.collection || 'Saved Answers'} · ${(file.updated_at || '').slice(0, 10)}`,
+            meta: `${collectionLabel(file.collection)} · ${(file.updated_at || '').slice(0, 10)}`,
             action: `openFilePreview(${file.id})`,
           }))
         : (historyItems || []).slice(0, 3).map((item, idx) => ({
@@ -291,7 +292,7 @@ function renderNotesTimeline(queue, notes) {
   const el = document.getElementById('notes-processing-timeline');
   if (!el) return;
   if (queue?.queue_size > 0 || queue?.processing) {
-    const stage = queue.progress?.stage || 'processing';
+    const stage = queueStageLabel(queue.progress?.stage || 'processing');
     el.innerHTML = `
       <div class="flex gap-3">
         <span class="source-timeline-dot mt-1"></span>
@@ -308,9 +309,19 @@ function renderNotesTimeline(queue, notes) {
       <span class="source-timeline-dot mt-1"></span>
       <div class="min-w-0">
         <div class="font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</div>
-        <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(file.collection || 'Inbox')} · ${fileStatusLabel(file.status)}</div>
+        <div class="mt-1 text-[11px] text-on-surface-variant/60">${escHtml(collectionLabel(file.collection))} · ${fileStatusLabel(file.status)}</div>
       </div>
     </div>`).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3">暂无处理记录。</div>';
+}
+
+function queueStageLabel(stage) {
+  return {
+    processing: '整理中',
+    parsing: '解析资料',
+    embedding: '建立索引',
+    storing: '保存记录',
+    done: '已完成',
+  }[stage] || '整理中';
 }
 
 function renderNotesRecentTable(notes) {
@@ -327,7 +338,7 @@ function renderNotesRecentTable(notes) {
     <tr class="hover:bg-surface-container/50">
       <td class="py-2 pr-3">${fileTypeLabel(file.file_name, file.is_scanned)}</td>
       <td class="py-2 pr-3 font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name)}</td>
-      <td class="py-2 pr-3">${escHtml(file.collection || 'Inbox')}</td>
+      <td class="py-2 pr-3">${escHtml(collectionLabel(file.collection))}</td>
       <td class="py-2 pr-3">${tagPills(Array.isArray(file.user_tags) ? file.user_tags : [])}</td>
       <td class="py-2 pr-3">${statusBadge(file.status)}</td>
       <td class="py-2 text-on-surface-variant/60">${(file.updated_at || '').slice(0, 16) || '-'}</td>

@@ -1073,7 +1073,7 @@
               <span class="material-symbols-outlined text-primary" style="font-size:18px">lightbulb</span>
               <div>
                 <h2 class="text-sm font-semibold text-on-surface">生成知识产物</h2>
-                <p id="knowledge-source-files-label" class="text-[11px] text-on-surface-variant/60 mt-0.5">可粘贴资料，也可从 Library 选中文件带入</p>
+                <p id="knowledge-source-files-label" class="text-[11px] text-on-surface-variant/60 mt-0.5">可粘贴资料，也可从资料库选中文件带入</p>
               </div>
             </div>
             <button onclick="clearKnowledgeSourceFiles()" id="knowledge-clear-files-btn" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
@@ -1110,7 +1110,7 @@
             <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
             <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
-          <textarea id="knowledge-source-input" rows="2" placeholder="粘贴会议记录、文章片段、项目说明，或先在 Library 选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <textarea id="knowledge-source-input" rows="2" placeholder="粘贴会议记录、文章片段、项目说明，或先在资料库选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
             <div class="flex items-center gap-2 text-[11px] text-on-surface-variant/60">
               <span>模型</span>
@@ -1229,7 +1229,7 @@
             <div class="relative">
               <button id="llm-btn" class="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
                 <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
-                <span id="llm-current" class="line-clamp-2 text-left">LLM</span>
+                <span id="llm-current" class="line-clamp-2 text-left">读取中</span>
                 <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
               </button>
               <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl overflow-hidden z-50 min-w-max">

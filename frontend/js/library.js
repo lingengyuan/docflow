@@ -355,7 +355,7 @@ async function refreshFiles(options = {}) {
   } catch (e) {
     if (requestId !== refreshFilesRequestId) return;
     document.getElementById('file-tbody').innerHTML =
-      `<tr><td colspan="10" class="py-8 text-center text-error text-sm">加载失败: ${e.message}</td></tr>`;
+      `<tr><td colspan="10" class="py-8 text-center text-error text-sm">加载失败：${e.message}</td></tr>`;
     renderLibraryContext({ error: e.message });
   } finally {
     if (showLoading && requestId === refreshFilesRequestId) setRefreshButtonLoading(false);
@@ -425,7 +425,7 @@ function renderLibraryContext(state = {}) {
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
           <h2 class="panel-title line-clamp-2">${escHtml(file.file_name)}</h2>
-          <p class="panel-muted mt-1">${escHtml(fileTypeLabel(file.file_name, file.is_scanned))} · ${escHtml(file.collection || 'Inbox')}</p>
+          <p class="panel-muted mt-1">${escHtml(fileTypeLabel(file.file_name, file.is_scanned))} · ${escHtml(collectionLabel(file.collection))}</p>
         </div>
         <button onclick="toggleFavorite(${file.id}, this)" class="icon-button !w-8 !h-8" title="收藏文件" aria-label="收藏文件">
           <span class="material-symbols-outlined ${file.favorited ? 'icon-fill text-primary' : ''}" style="font-size:16px">star</span>
@@ -457,7 +457,7 @@ function renderLibraryContext(state = {}) {
     <section id="library-detail-details" class="soft-panel p-4">
       <h3 class="panel-title">所属集合</h3>
       <div class="mt-3 flex items-center justify-between gap-2 rounded-lg bg-surface-container-low px-3 py-3 text-xs">
-        <span class="inline-flex items-center gap-2 font-semibold text-on-surface"><span class="material-symbols-outlined text-primary" style="font-size:15px">inventory_2</span>${escHtml(file.collection || 'Inbox')}</span>
+        <span class="inline-flex items-center gap-2 font-semibold text-on-surface"><span class="material-symbols-outlined text-primary" style="font-size:15px">inventory_2</span>${escHtml(collectionLabel(file.collection))}</span>
         <button onclick="selectSingleAndOpenKnowledge(${file.id})" class="toolbar-btn !h-8" title="基于这个文件生成内容" aria-label="基于这个文件生成内容">使用</button>
       </div>
       <h3 class="panel-title mt-4">标签</h3>
@@ -569,9 +569,9 @@ async function saveSourceChunkAsNote(index) {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        title: `Source Note - ${file.file_name}`,
+        title: `来源片段 - ${file.file_name}`,
         content: `# ${file.file_name}\n\n来源：${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
-        collection: 'Saved Sources',
+        collection: ['Saved', 'Sources'].join(' '),
         user_tags: ['source', 'citation'],
       }),
     });
@@ -649,7 +649,7 @@ function selectSingleAndOpenKnowledge(fileId) {
 
 function collectionBadge(collection) {
   return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-container-high text-on-surface-variant">
-    <span class="material-symbols-outlined" style="font-size:12px">inventory_2</span>${escHtml(collection || 'Inbox')}
+    <span class="material-symbols-outlined" style="font-size:12px">inventory_2</span>${escHtml(collectionLabel(collection))}
   </span>`;
 }
 

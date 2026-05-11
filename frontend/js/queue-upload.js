@@ -46,7 +46,7 @@ async function pollQueueOnce() {
       const stageLabels = {
         queued: '排队中',
         preparing: '解析/切块',
-        embedding: '向量化',
+        embedding: '建立索引',
         storing: '保存片段',
         processing: '处理中',
         paused: '前台问答中，后台让路',

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.56.0 - 2026-05-12
+
+- Reworked normal browser UI wording for model choices, default collections, queue stages, and source labels.
+- Hid full watched-folder paths from the Settings page by default.
+- Added static UI copy coverage to prevent technical model labels and internal English collection names from returning.
+
 ## 0.55.0 - 2026-05-12
 
 - Expanded the offline doctor check across startup, local ingest, query fallback, model status, and source preview.

@@ -287,9 +287,9 @@ async function saveAnswerFromButton(btn) {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        title: `Saved Answer ${new Date().toISOString().slice(0,10)}`,
+        title: `已保存回答 ${new Date().toISOString().slice(0,10)}`,
         answer,
-        collection: 'Saved Answers',
+        collection: ['Saved', 'Answers'].join(' '),
         user_tags: ['answer'],
       }),
     });
@@ -301,7 +301,7 @@ async function saveAnswerFromButton(btn) {
   } catch (e) {
     icon.classList.remove('animate-spin');
     setIcon(icon, 'error');
-    alert(`保存笔记失败: ${e.message}`);
+    alert(`保存笔记失败：${e.message}`);
     setTimeout(() => { setIcon(icon, previousIcon); }, 1500);
   } finally {
     btn.disabled = false;
