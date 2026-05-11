@@ -26,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from src import net
 from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
 from src.api.routes import imports as imports_routes
+from src.api.routes import knowledge as knowledge_routes
 from src.api.routes import library as library_routes
 from src.api.routes import maintenance as maintenance_routes
 from src.api.routes import obsidian as obsidian_routes
@@ -53,6 +54,7 @@ from src.api.schemas import (
 )
 from src.api.services.health_service import HealthService
 from src.api.services.import_service import ImportService
+from src.api.services.knowledge_service import KnowledgeService
 from src.api.services.query_service import QueryService
 from src.api.state import AppState
 from src.domain_types import FileStatus, HealthAction
@@ -123,6 +125,7 @@ app_state = AppState(config_path=CONFIG_PATH, model_tasks=model_tasks)
 llm_switch_state = app_state.llm_switch_state
 query_service = QueryService()
 import_service = ImportService()
+knowledge_service = KnowledgeService()
 health_service = HealthService()
 
 
@@ -940,6 +943,12 @@ async def storage_usage():
     with open(CONFIG_PATH) as f:
         cfg = yaml.safe_load(f)
     return _collect_storage_usage(cfg, store)
+
+
+async def knowledge_overview(file_id: int | None = None):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    return knowledge_service.overview(store, active_file_id=file_id)
 
 
 async def update_file_metadata(file_id: int, req: FileMetadataRequest):
@@ -1943,6 +1952,13 @@ def _register_api_routes() -> None:
                 "create_knowledge_output": create_knowledge_output,
                 "upload_file": upload_file,
                 "create_demo_library": create_demo_library,
+            }
+        )
+    )
+    app.include_router(
+        knowledge_routes.create_router(
+            {
+                "knowledge_overview": knowledge_overview,
             }
         )
     )

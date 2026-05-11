@@ -414,7 +414,12 @@ function renderLibraryContext(state = {}) {
       <section class="soft-panel p-4">
         <h2 class="panel-title">文件详情</h2>
         <p class="panel-muted mt-1">选择文件后显示来源、标签和入库状态。</p>
+      </section>
+      <section id="library-knowledge-overview" class="soft-panel p-4">
+        <h2 class="panel-title">知识视图</h2>
+        <div class="mt-3 text-xs text-on-surface-variant">正在整理主题、相似资料和知识卡片…</div>
       </section>`;
+    loadKnowledgeOverview(null);
     return;
   }
   const tags = Array.isArray(file.user_tags) ? file.user_tags : [];
@@ -480,7 +485,7 @@ function renderLibraryContext(state = {}) {
           打开原文
         </button>
       </div>
-      <div id="library-source-review" class="mt-3 rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">打开引用片段后，可查看切块、来源位置，并保存片段为笔记。</div>
+      <div id="library-source-review" class="mt-3 rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">${sourceReviewBodyMarkup(file.id)}</div>
     </section>
     <section id="library-detail-content" class="soft-panel p-4">
       <div class="flex items-center justify-between gap-3">
@@ -504,38 +509,167 @@ function renderLibraryContext(state = {}) {
           重新整理
         </button>
       </div>
+    </section>
+    <section id="library-knowledge-overview" class="soft-panel p-4">
+      <h3 class="panel-title">知识视图</h3>
+      <div class="mt-3 text-xs text-on-surface-variant">正在整理主题、相似资料和知识卡片…</div>
     </section>`;
   renderLocalIcons(panel);
   loadLibraryFileActivity(file);
+  loadKnowledgeOverview(file.id);
+}
+
+async function loadKnowledgeOverview(fileId = null) {
+  const el = document.getElementById('library-knowledge-overview');
+  if (!el) return;
+  const query = fileId ? `?file_id=${encodeURIComponent(fileId)}` : '';
+  try {
+    const data = await fetch(`${API}/api/knowledge/overview${query}`).then(r => {
+      if (!r.ok) throw new Error('知识视图读取失败');
+      return r.json();
+    });
+    el.innerHTML = knowledgeOverviewMarkup(data);
+    renderLocalIcons(el);
+  } catch (e) {
+    el.innerHTML = `<h3 class="panel-title">知识视图</h3><div class="mt-3 text-xs text-error">读取失败：${escHtml(e.message)}</div>`;
+  }
+}
+
+function knowledgeOverviewMarkup(data) {
+  const topics = data?.topics || [];
+  const similar = data?.similar_documents || [];
+  const cards = data?.knowledge_cards || [];
+  return `
+    <h3 class="panel-title">知识视图</h3>
+    <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">主题</div>
+        <div class="mt-1 font-bold text-on-surface">${topics.length}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">相似资料</div>
+        <div class="mt-1 font-bold text-on-surface">${similar.length}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">知识卡片</div>
+        <div class="mt-1 font-bold text-on-surface">${cards.length}</div>
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">主题视图</div>
+      ${topics.length ? topics.slice(0, 3).map(topic => `
+        <button onclick="openFilePreview(${Number((topic.files || [])[0]?.id || 0)})" class="mb-2 w-full text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-on-surface">${escHtml(topic.title)}</span>
+            <span class="text-[11px] text-on-surface-variant/60">${topic.file_count} 个文件</span>
+          </div>
+          <div class="mt-1 text-[11px] text-on-surface-variant/65 line-clamp-1">${escHtml((topic.keywords || []).join(' · ') || '来自已入库内容')}</div>
+        </button>`).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">资料不足，暂时没有主题。</div>'}
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">相似资料</div>
+      ${similar.length ? similar.slice(0, 3).map(item => similarDocumentMarkup(item)).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">还没有发现明显相似资料。</div>'}
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">知识卡片</div>
+      ${cards.length ? cards.slice(0, 3).map(card => knowledgeCardMarkup(card)).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">完成入库后会生成可复用卡片。</div>'}
+    </div>`;
+}
+
+function similarDocumentMarkup(item) {
+  const files = item.files || [];
+  const target = files[1] || files[0] || {};
+  return `
+    <button onclick="openFilePreview(${Number(target.id || 0)})" class="mb-2 w-full text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors">
+      <div class="font-semibold text-on-surface line-clamp-1">${files.map(file => file.file_name).join(' ↔ ')}</div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/65 line-clamp-1">共同线索：${escHtml((item.shared_terms || []).join(' · ') || '内容相近')}</div>
+    </button>`;
+}
+
+function knowledgeCardMarkup(card) {
+  const source = card.source_file || {};
+  return `
+    <button onclick="openFilePreview(${Number(source.id || 0)})" class="mb-2 w-full text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors">
+      <div class="font-semibold text-on-surface line-clamp-1">${escHtml(card.title || source.file_name || '知识卡片')}</div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/70 line-clamp-2">${escHtml(card.summary || '暂无摘要')}</div>
+      <div class="mt-2 text-[10px] text-on-surface-variant/55">${escHtml(source.file_name || '')} · ${escHtml(collectionLabel(source.collection))}</div>
+    </button>`;
 }
 
 async function openSourceReview(fileId) {
-  const panel = document.getElementById('library-source-review');
-  if (!panel) return;
-  panel.innerHTML = '<span class="spinner"></span><span class="ml-2">正在读取引用片段…</span>';
+  const requestId = (librarySourceReview.requestId || 0) + 1;
+  librarySourceReview = {
+    fileId,
+    chunks: [],
+    status: 'loading',
+    error: '',
+    requestId,
+    file: libraryFiles.find(item => item.id === fileId) || null,
+  };
+  renderSourceReviewPanel();
   try {
     const data = await fetch(`${API}/api/file/${fileId}/chunks?max_text_chars=1200`).then(r => {
       if (!r.ok) throw new Error('引用片段读取失败');
       return r.json();
     });
+    if (librarySourceReview.requestId !== requestId || librarySourceReview.fileId !== fileId) return;
     const chunks = data.chunks || [];
-    librarySourceReview = { fileId, chunks };
-    if (!chunks.length) {
-      panel.innerHTML = '这个文件还没有可预览的引用片段。请确认文件已完成入库。';
-      return;
-    }
-    panel.innerHTML = `
+    librarySourceReview = {
+      fileId,
+      chunks,
+      status: chunks.length ? 'ready' : 'empty',
+      error: '',
+      requestId,
+      file: data.file || libraryFiles.find(item => item.id === fileId) || null,
+    };
+    renderSourceReviewPanel();
+  } catch (e) {
+    if (librarySourceReview.requestId !== requestId || librarySourceReview.fileId !== fileId) return;
+    librarySourceReview = {
+      fileId,
+      chunks: [],
+      status: 'error',
+      error: e.message,
+      requestId,
+      file: libraryFiles.find(item => item.id === fileId) || null,
+    };
+    renderSourceReviewPanel();
+  }
+}
+
+function renderSourceReviewPanel() {
+  const panel = document.getElementById('library-source-review');
+  if (!panel) return;
+  panel.innerHTML = sourceReviewBodyMarkup(activeLibraryFileId);
+  renderLocalIcons(panel);
+}
+
+function sourceReviewBodyMarkup(fileId) {
+  if (librarySourceReview.fileId !== fileId) {
+    return '打开引用片段后，可查看切块、来源位置，并保存片段为笔记。';
+  }
+  if (librarySourceReview.status === 'loading') {
+    return '<span class="spinner"></span><span class="ml-2">正在读取引用片段…</span>';
+  }
+  if (librarySourceReview.status === 'empty') {
+    return '这个文件还没有可预览的引用片段。请确认文件已完成入库。';
+  }
+  if (librarySourceReview.status === 'error') {
+    return `<span class="text-error">读取失败：${escHtml(librarySourceReview.error || '引用片段读取失败')}</span>`;
+  }
+  if (librarySourceReview.status !== 'ready') {
+    return '打开引用片段后，可查看切块、来源位置，并保存片段为笔记。';
+  }
+  const chunks = librarySourceReview.chunks || [];
+  const file = librarySourceReview.file || libraryFiles.find(item => item.id === fileId) || {};
+  return `
       <div class="mb-3 rounded-lg bg-surface-container-lowest px-3 py-2">
         <div class="font-semibold text-on-surface">为什么引用这些片段</div>
         <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">这些内容来自已经入库的真实片段，保留了页面、章节和文本预览，可用于核查回答证据。</div>
       </div>
       <div class="flex flex-col gap-2">
-        ${chunks.slice(0, 5).map((chunk, idx) => sourceChunkMarkup(chunk, idx, data.file)).join('')}
+        ${chunks.slice(0, 5).map((chunk, idx) => sourceChunkMarkup(chunk, idx, file)).join('')}
       </div>`;
-    renderLocalIcons(panel);
-  } catch (e) {
-    panel.innerHTML = `<span class="text-error">读取失败：${escHtml(e.message)}</span>`;
-  }
 }
 
 function sourceChunkMarkup(chunk, idx, file) {

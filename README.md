@@ -15,7 +15,7 @@ DocFlow watches folders on your machine, indexes supported files, and answers qu
 ### Features
 
 - Ask questions across PDFs, Markdown, DOCX, TXT, code-like files, and optional image content.
-- Review source snippets, save useful answers as notes, and inspect your local library.
+- Review source snippets, save useful answers as notes, and inspect topics, similar files, and knowledge cards.
 - Keep metadata in SQLite, vectors in Qdrant, and model traffic local by default.
 - Verify local behavior with tests, browser acceptance checks, retrieval evals, parsing evals, and an offline network check.
 
@@ -31,7 +31,7 @@ Open [http://localhost:8000](http://localhost:8000), then choose **导入示例�
 
 ### Current Verification
 
-Latest local checks in this repository: `300` tests passed, `73` browser checks passed, retrieval eval `84/84` with Recall@5 `1.0`, parsing eval `31/31`, and the offline local-use check reported `0` unexpected outbound connections.
+Latest local checks in this repository: `303` tests passed, `73` browser checks passed, retrieval eval `84/84` with Recall@5 `1.0`, parsing eval `31/31`, and the offline local-use check reported `0` unexpected outbound connections.
 
 The eval sets are now broad enough for project regression checks. Treat these numbers as the current baseline, not a broad public benchmark.
 
@@ -98,7 +98,7 @@ DocFlow 会监听你机器上的本地文件夹，把资料写入本地索引，
 ### 功能特性
 
 - 支持基于 PDF、Markdown、DOCX、TXT、代码文本和可选图片内容提问。
-- 可以查看来源片段、把有用回答保存为笔记，并管理本地资料库。
+- 可以查看来源片段、把有用回答保存为笔记，并查看主题、相似资料和知识卡片。
 - 默认使用 SQLite 保存元数据、Qdrant 保存向量、本地模型处理问答。
 - 提供测试、浏览器验收、检索评估、解析评估和离线网络检查来验证当前状态。
 
@@ -114,7 +114,7 @@ docker compose up --build
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`300` 个测试通过，`73` 个浏览器检查通过，检索评估 `84/84` 且 Recall@5 `1.0`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`303` 个测试通过，`73` 个浏览器检查通过，检索评估 `84/84` 且 Recall@5 `1.0`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
 
 评估集已经足够用于项目回归检查。这些数字是当前基线，不应当当作大规模公开 benchmark。
 

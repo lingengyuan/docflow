@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.57.0 - 2026-05-12
+
+- Added a Library knowledge view derived from indexed local content.
+- Added topic groups, similar-document suggestions, and reusable knowledge cards to the Library context panel.
+- Kept source review state stable across Library refreshes so citation snippets do not disappear during list updates.
+
 ## 0.56.0 - 2026-05-12
 
 - Reworked normal browser UI wording for model choices, default collections, queue stages, and source labels.

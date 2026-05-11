@@ -280,6 +280,17 @@ def test_phase56_user_ui_uses_product_language_for_models_and_collections():
         assert forbidden not in html
 
 
+def test_phase57_library_exposes_real_knowledge_views():
+    html = frontend_source_text()
+
+    assert "/api/knowledge/overview" in html
+    assert "library-knowledge-overview" in html
+    assert "主题视图" in html
+    assert "相似资料" in html
+    assert "知识卡片" in html
+    assert "knowledgeOverviewMarkup" in html
+
+
 def test_phase18_frontend_uses_local_tailwind_build():
     html = frontend_source_text()
 

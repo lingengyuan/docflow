@@ -24,7 +24,7 @@ window.DocFlowState = {
     workflowMode: 'note',
     activeFileId: null,
     contextTab: 'details',
-    sourceReview: { fileId: null, chunks: [] },
+    sourceReview: { fileId: null, chunks: [], status: 'idle', error: '', requestId: 0, file: null },
   },
   notes: {
     knowledgeSourceFileIds: [],

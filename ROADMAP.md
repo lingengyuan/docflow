@@ -41,5 +41,5 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 
 ## 7. Knowledge Workspace Depth
 
-- Add topic views, similar-document detection, knowledge cards, and periodic reviews.
+- Deepen topic views, similar-document detection, knowledge cards, and periodic reviews.
 - Connect answers, notes, and source documents into a stronger knowledge workflow.
