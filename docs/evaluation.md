@@ -32,12 +32,21 @@ The 90-point roadmap replaces subjective maturity scoring with more measurable o
 - MRR@5
 - nDCG@5
 - pass rate
+- retrieval latency P50/P95/max
 
 Results are written under `eval/results/`, which is local runtime output and is not committed.
+
+Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 171.11 ms and P95 186.46 ms after model warmup.
 
 ## Parsing Regression
 
 `docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
+
+Current committed parsing set: 31 documents covering Markdown tables, Obsidian-flavored Markdown, TXT, mixed-language notes, code-like files, native PDFs, and DOCX. Latest local run: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
+
+## Incremental Indexing
+
+`tests/test_incremental_index.py` covers the add, modify, and delete cycle with deterministic local fakes. It confirms changed files replace old vectors and deleted files are cleaned from SQLite metadata within the five-second regression limit.
 
 ## Maturity Report
 

@@ -1,0 +1,5 @@
+Mixed language parsing note.
+
+中文段落说明本地知识库需要稳定解析。English paragraph mentions multilingual retrieval readiness.
+
+The phrase multilingual text evidence anchors this case.

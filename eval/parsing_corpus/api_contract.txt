@@ -1,0 +1,5 @@
+API contract fixture.
+
+The browser request should return user-facing status, citation metadata, and source preview identifiers.
+
+The phrase api contract evidence anchors this case.

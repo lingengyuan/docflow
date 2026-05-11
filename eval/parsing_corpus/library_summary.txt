@@ -1,0 +1,5 @@
+Library summary fixture.
+
+The knowledge library contains product notes, architecture notes, privacy notes, and benchmark notes.
+
+The phrase library summary evidence anchors this case.

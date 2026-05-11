@@ -1,0 +1,5 @@
+Notes workspace fixture.
+
+Drafts, saved answers, imported webpages, and generated cards belong in one coherent note workspace.
+
+The phrase notes workspace evidence anchors this case.

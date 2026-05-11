@@ -1,0 +1,5 @@
+Privacy matrix fixture.
+
+Allowed: localhost service checks. Explicit: model download. Blocked: surprise telemetry.
+
+The phrase privacy matrix evidence anchors this case.

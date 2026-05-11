@@ -30,6 +30,385 @@
       "required_chunk_types": [
         "text"
       ]
+    },
+    {
+      "id": "obsidian_wikilinks",
+      "path": "obsidian_wikilinks.md",
+      "required_phrases": [
+        "Obsidian Link Fixture",
+        "knowledge cards",
+        "obsidian wikilink retention"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "obsidian_callout",
+      "path": "obsidian_callout.md",
+      "required_phrases": [
+        "Local Review",
+        "callout plain text"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_code_blocks",
+      "path": "markdown_code_blocks.md",
+      "required_phrases": [
+        "trusted_answer",
+        "code block preserved"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_mixed_language",
+      "path": "markdown_mixed_language.md",
+      "required_phrases": [
+        "DocFlow 支持中文资料",
+        "bilingual parsing evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_long_sections",
+      "path": "markdown_long_sections.md",
+      "required_phrases": [
+        "stable long-section evidence"
+      ],
+      "chunk_count_min": 2,
+      "chunk_count_max": 12,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_task_list",
+      "path": "markdown_task_list.md",
+      "required_phrases": [
+        "Ask a cited question",
+        "task list evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_frontmatter",
+      "path": "markdown_frontmatter.md",
+      "required_phrases": [
+        "Frontmatter Fixture",
+        "frontmatter metadata evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "table_inventory",
+      "path": "table_inventory.md",
+      "required_phrases": [
+        "Inventory Table Fixture",
+        "Markdown",
+        "inventory table total"
+      ],
+      "chunk_count_min": 3,
+      "chunk_count_max": 8,
+      "required_chunk_types": [
+        "table",
+        "table_summary"
+      ],
+      "table_rows_min": 5
+    },
+    {
+      "id": "mixed_language_notes",
+      "path": "mixed_language_notes.txt",
+      "required_phrases": [
+        "中文段落说明",
+        "multilingual text evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "meeting_notes",
+      "path": "meeting_notes.txt",
+      "required_phrases": [
+        "keep privacy checks",
+        "meeting decision evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "research_outline",
+      "path": "research_outline.txt",
+      "required_phrases": [
+        "stable chunk identity",
+        "citation research evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "export_log",
+      "path": "export_log.txt",
+      "required_phrases": [
+        "three notes",
+        "export log evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "privacy_matrix",
+      "path": "privacy_matrix.txt",
+      "required_phrases": [
+        "surprise telemetry",
+        "privacy matrix evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "source_excerpt",
+      "path": "source_excerpt.txt",
+      "required_phrases": [
+        "highlight the matching span",
+        "source highlight evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "library_summary",
+      "path": "library_summary.txt",
+      "required_phrases": [
+        "architecture notes",
+        "library summary evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "python_sample",
+      "path": "python_sample.py",
+      "required_phrases": [
+        "build_knowledge_card",
+        "python parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "rust_sample",
+      "path": "rust_sample.rs",
+      "required_phrases": [
+        "stable_chunk_id",
+        "rust parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "typescript_sample",
+      "path": "typescript_sample.ts",
+      "required_phrases": [
+        "SourceStatus",
+        "typescript parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "css_sample",
+      "path": "css_sample.css",
+      "required_phrases": [
+        "source-highlight",
+        "css parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "shell_sample",
+      "path": "shell_sample.sh",
+      "required_phrases": [
+        "shell parser evidence",
+        "local validation"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "python_long_sample",
+      "path": "python_long_sample.py",
+      "required_phrases": [
+        "performance corpus evidence 19"
+      ],
+      "chunk_count_min": 2,
+      "chunk_count_max": 12,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "api_contract",
+      "path": "api_contract.txt",
+      "required_phrases": [
+        "citation metadata",
+        "api contract evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "notes_workspace",
+      "path": "notes_workspace.txt",
+      "required_phrases": [
+        "generated cards",
+        "notes workspace evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "settings_language",
+      "path": "settings_language.txt",
+      "required_phrases": [
+        "ordinary product language",
+        "settings language evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "topic_cluster",
+      "path": "topic_cluster.txt",
+      "required_phrases": [
+        "meaningful personal knowledge themes",
+        "topic cluster evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "performance_notes",
+      "path": "performance_notes.txt",
+      "required_phrases": [
+        "first token latency",
+        "performance metric evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "native_text_pdf",
+      "path": "native_text_report.pdf",
+      "required_phrases": [
+        "Native PDF Report",
+        "native pdf evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "pdf_table_report",
+      "path": "pdf_table_report.pdf",
+      "required_phrases": [
+        "PDF Table Report",
+        "pdf table evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "office_docx",
+      "path": "office_notes.docx",
+      "required_phrases": [
+        "Office Notes Fixture",
+        "docx parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
     }
   ]
 }

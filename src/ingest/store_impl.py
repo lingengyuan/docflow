@@ -1092,7 +1092,12 @@ class DocStore:
         params: list = [_fts5_phrase(query), subq_limit]
         if file_filter:
             placeholders = ",".join("?" * len(file_filter))
-            sql += f" WHERE fi.file_name IN ({placeholders})"
+            path_placeholders = ",".join("?" * len(file_filter))
+            sql += (
+                f" WHERE fi.file_name IN ({placeholders}) "
+                f"OR fi.file_path IN ({path_placeholders})"
+            )
+            params.extend(file_filter)
             params.extend(file_filter)
         sql += " ORDER BY fts.score DESC LIMIT ?"
         params.append(limit)
@@ -1191,7 +1196,12 @@ class DocStore:
         params: list = [fts_query, subq_limit]
         if file_filter:
             placeholders = ",".join("?" * len(file_filter))
-            sql += f" WHERE fi.file_name IN ({placeholders})"
+            path_placeholders = ",".join("?" * len(file_filter))
+            sql += (
+                f" WHERE fi.file_name IN ({placeholders}) "
+                f"OR fi.file_path IN ({path_placeholders})"
+            )
+            params.extend(file_filter)
             params.extend(file_filter)
         sql += " ORDER BY fts.score DESC LIMIT ?"
         params.append(limit)

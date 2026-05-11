@@ -15,23 +15,24 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Citations include chunk identity and source span metadata.
 - Source preview can highlight the cited source range when citation span metadata is available.
 - Local answer generation uses deterministic defaults.
-- Retrieval evaluation reports Recall@5, MRR@5, nDCG@5, and pass rate.
-- Parsing regression checks cover the committed Markdown and plain-text corpus.
+- Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
+- Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
+- Incremental indexing has a regression test for add, modify, and delete behavior.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 287 passed.
+- Unit/integration tests: 290 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.
-- Retrieval eval: 8/8 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0.
-- Parsing eval: 2/2 passed.
+- Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 171.11 ms, P95 186.46 ms.
+- Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
 - Offline doctor from Phase44: 0 unexpected outbound connections on the startup health path.
 
 ## Remaining Gaps
 
 - Model libraries can still perform their own cache/download checks outside DocFlow's `src.net` layer.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
-- Retrieval and parsing evaluation sets are still small and should grow before public release claims.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
+- Retrieval eval currently uses source filtering for project regression checks; a broader unfiltered public benchmark is still needed before external quality claims.
 - Public API, storage, and retrieval entry points are now small facades, but their implementation modules still need deeper internal splitting before the codebase feels fully mature to outside contributors.

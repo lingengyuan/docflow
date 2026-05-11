@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.54.0 - 2026-05-12
+
+- Expanded retrieval evaluation from 8 to 84 committed cases.
+- Expanded parsing regression from 2 to 31 committed files across Markdown, TXT, code-like files, PDF, and DOCX fixtures.
+- Added retrieval latency summaries, parsing performance summaries, and an incremental add/modify/delete indexing regression test.
+- Tightened source-filtered evals so same-named files in other local folders do not pollute project benchmark results.
+
 ## 0.53.0 - 2026-05-12
 
 - Added exact source-range highlighting from citation metadata in the source preview.

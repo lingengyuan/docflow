@@ -1,0 +1,5 @@
+Research outline fixture.
+
+Question: how should citations connect to source spans? Finding: stable chunk identity improves trust.
+
+The phrase citation research evidence anchors this case.

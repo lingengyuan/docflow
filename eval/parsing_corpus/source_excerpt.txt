@@ -1,0 +1,5 @@
+Source excerpt fixture.
+
+A cited answer should point back to exact original language and highlight the matching span.
+
+The phrase source highlight evidence anchors this case.

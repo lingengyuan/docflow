@@ -1,0 +1,5 @@
+Performance notes fixture.
+
+Measure ingestion seconds, first token latency, complete answer latency, and storage growth.
+
+The phrase performance metric evidence anchors this case.

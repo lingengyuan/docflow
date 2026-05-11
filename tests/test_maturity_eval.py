@@ -154,8 +154,8 @@ def test_eval_case_can_filter_to_expected_files():
     result = evaluate_case(engine, case, include_rerank=False, source_filter=True)
 
     assert result["passed"] is True
-    assert result["file_filter"] == ["README.md"]
-    assert engine.retriever.file_filter == ["README.md"]
+    assert result["file_filter"][0].endswith("/README.md")
+    assert engine.retriever.file_filter[0].endswith("/README.md")
 
 
 def test_eval_case_prefers_parent_expanded_evidence():

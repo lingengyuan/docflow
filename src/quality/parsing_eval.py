@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import yaml
@@ -54,16 +55,28 @@ def run_parsing_eval(
         chunk_size=int(cfg.get("chunking", {}).get("chunk_size", 512)),
         chunk_overlap=int(cfg.get("chunking", {}).get("chunk_overlap", 51)),
     )
+    started = perf_counter()
     results = [
         evaluate_document(corpus / expectation.path, expectation, registry, chunker)
         for expectation in load_expectations(expected_path)
     ]
+    total_ms = round((perf_counter() - started) * 1000, 2)
     passed = sum(1 for result in results if result["passed"])
+    chunk_count = sum(result["details"].get("chunk_count", 0) for result in results)
+    text_chars = sum(result["details"].get("text_chars", 0) for result in results)
     return {
         "schema": "docflow.parsing_eval.v1",
         "cases": len(results),
         "passed": passed,
         "failed": len(results) - passed,
+        "performance": {
+            "total_ms": total_ms,
+            "documents_per_second": round(len(results) / (total_ms / 1000), 4)
+            if total_ms > 0
+            else 0.0,
+            "total_chunks": chunk_count,
+            "total_text_chars": text_chars,
+        },
         "results": results,
     }
 

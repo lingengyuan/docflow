@@ -10,6 +10,7 @@ class FakeQdrantClient:
         self.deleted_points = []
         self.closed = False
         self.exists = False
+        self.query_filter = None
 
     def collection_exists(self, collection_name):
         return self.exists
@@ -30,6 +31,7 @@ class FakeQdrantClient:
         self.upserts.append((collection_name, points))
 
     def query_points(self, collection_name, query, query_filter, limit):
+        self.query_filter = query_filter
         return SimpleNamespace(
             points=[
                 SimpleNamespace(id=7, score=0.91, payload={"file_name": "note.md"}),
@@ -60,6 +62,8 @@ def test_qdrant_vector_store_maps_points_and_search_hits():
 
     assert client.created == [("docflow", 3)]
     assert client.upserts[0][1][0].id == 1
+    assert client.query_filter.should[0].key == "file_name"
+    assert client.query_filter.should[1].key == "file_path"
     assert hits[0].id == 7
     assert hits[0].payload["file_name"] == "note.md"
 

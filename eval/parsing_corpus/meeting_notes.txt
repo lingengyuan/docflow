@@ -1,0 +1,5 @@
+Meeting notes fixture.
+
+Decision: keep privacy checks machine-verifiable. Owner: local product team. Follow-up: expand benchmark samples.
+
+The phrase meeting decision evidence anchors this case.

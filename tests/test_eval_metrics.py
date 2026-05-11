@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from scripts.run_eval import retrieval_metrics, write_results
+from scripts.run_eval import (
+    _source_filter_values,
+    performance_summary,
+    retrieval_metrics,
+    write_results,
+)
 
 
 def test_retrieval_metrics_report_rank_quality():
@@ -39,3 +44,27 @@ def test_write_results_creates_git_sha_and_latest_files(tmp_path):
     assert output_path == tmp_path / "abc123.json"
     assert output_path.exists()
     assert (tmp_path / "latest.json").exists()
+
+
+def test_performance_summary_reports_retrieval_latency_percentiles():
+    results = [
+        {"timings": {"total_ms": 10.0}},
+        {"timings": {"total_ms": 20.0}},
+        {"timings": {"total_ms": 30.0}},
+        {"timings": {"total_ms": 40.0}},
+    ]
+
+    summary = performance_summary(results)
+
+    assert summary["cases"] == 4
+    assert summary["retrieval_total_ms_p50"] == 25.0
+    assert summary["retrieval_total_ms_p95"] == 38.5
+    assert summary["retrieval_total_ms_max"] == 40.0
+    assert summary["cases_per_second"] == 40.0
+
+
+def test_source_filter_values_include_project_relative_path():
+    values = _source_filter_values(["docs/privacy.md"])
+
+    assert len(values) == 1
+    assert values[0].endswith("/docs/privacy.md")

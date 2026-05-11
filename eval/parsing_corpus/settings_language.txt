@@ -1,0 +1,5 @@
+Settings language fixture.
+
+The settings page should use ordinary product language instead of model-centric or command-centric labels.
+
+The phrase settings language evidence anchors this case.

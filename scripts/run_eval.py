@@ -133,7 +133,9 @@ def evaluate_case(
     source_filter: bool = False,
 ) -> dict:
     file_filter = (
-        case.expected_files if source_filter and case.must_find and case.expected_files else None
+        _source_filter_values(case.expected_files)
+        if source_filter and case.must_find and case.expected_files
+        else None
     )
     debug = engine.retriever.debug_retrieve(
         case.question,
@@ -218,6 +220,22 @@ def _evaluation_stage(debug: dict, include_rerank: bool) -> tuple[str, list[dict
     if include_rerank:
         return "reranked", stages.get("reranked") or []
     return "deduped", stages.get("deduped") or []
+
+
+def _source_filter_values(expected_files: list[str]) -> list[str]:
+    values: list[str] = []
+    for expected in expected_files:
+        if not expected:
+            continue
+        direct_path = PROJECT_ROOT / expected
+        if direct_path.exists():
+            candidates = [str(direct_path.resolve())]
+        else:
+            candidates = [expected, Path(expected).name]
+        for candidate in candidates:
+            if candidate and candidate not in values:
+                values.append(candidate)
+    return values
 
 
 def _evidence_status(
@@ -322,6 +340,47 @@ def retrieval_metrics(results: list[dict], k: int = METRIC_K) -> dict:
     }
 
 
+def performance_summary(results: list[dict]) -> dict:
+    total_ms = sorted(
+        float(result.get("timings", {}).get("total_ms", 0.0))
+        for result in results
+        if result.get("timings")
+    )
+    if not total_ms:
+        return {
+            "cases": len(results),
+            "retrieval_total_ms_p50": 0.0,
+            "retrieval_total_ms_p95": 0.0,
+            "retrieval_total_ms_max": 0.0,
+            "cases_per_second": 0.0,
+        }
+
+    total_elapsed_ms = sum(total_ms)
+    return {
+        "cases": len(results),
+        "retrieval_total_ms_p50": _percentile(total_ms, 0.50),
+        "retrieval_total_ms_p95": _percentile(total_ms, 0.95),
+        "retrieval_total_ms_max": round(total_ms[-1], 2),
+        "cases_per_second": round(len(total_ms) / (total_elapsed_ms / 1000), 4)
+        if total_elapsed_ms > 0
+        else 0.0,
+    }
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    if len(values) == 1:
+        return round(values[0], 2)
+    idx = (len(values) - 1) * percentile
+    lower = math.floor(idx)
+    upper = math.ceil(idx)
+    if lower == upper:
+        return round(values[int(idx)], 2)
+    weight = idx - lower
+    return round(values[lower] * (1 - weight) + values[upper] * weight, 2)
+
+
 def _matched_expected_files(source: dict, expected_files: list[str]) -> set[str]:
     file_name = source.get("file_name", "")
     file_path = source.get("file_path", "")
@@ -421,6 +480,7 @@ def main() -> int:
         "include_rerank": not args.no_rerank,
         "source_filter": args.source_filter,
         "metrics": retrieval_metrics(results),
+        "performance": performance_summary(results),
         "results": results,
     }
     if source_refresh is not None:

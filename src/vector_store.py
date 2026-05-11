@@ -101,7 +101,10 @@ class QdrantVectorStore:
         search_filter = None
         if file_filter:
             search_filter = Filter(
-                must=[FieldCondition(key="file_name", match=MatchAny(any=file_filter))]
+                should=[
+                    FieldCondition(key="file_name", match=MatchAny(any=file_filter)),
+                    FieldCondition(key="file_path", match=MatchAny(any=file_filter)),
+                ]
             )
         results = self.client.query_points(
             collection_name=collection_name,
