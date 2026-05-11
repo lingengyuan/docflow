@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.49.0 - 2026-05-12
+
+- Upgraded the public README with a clearer first screen, verification baseline, privacy promise, and contributor links.
+- Added public contribution, security, code of conduct, and roadmap documents.
+- Kept the public docs surface focused while leaving internal phase handoffs out of GitHub.
+
 ## 0.29.0 - 2026-05-08
 
 - Added final checked-in screenshots for Chat, Library, Notes, and Settings.
