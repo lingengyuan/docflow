@@ -25,7 +25,6 @@ DocFlow watches local folders, indexes supported files, and answers questions fr
 git clone https://github.com/lingengyuan/docflow.git
 cd docflow
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 pip install -e .
 docker compose up -d qdrant
 docflow serve
@@ -63,7 +62,7 @@ Use focused changes, run tests before handoff, and keep user-facing UI free of c
 
 ### Maintenance Guide
 
-See [CLI](docs/cli.md), [Development](docs/development.md), and [Evaluation](docs/evaluation.md).
+See [Features](docs/features.md), [Architecture](docs/architecture.md), [Privacy](docs/privacy.md), [CLI](docs/cli.md), [Development](docs/development.md), and [Evaluation](docs/evaluation.md).
 
 ### License
 
@@ -88,7 +87,6 @@ DocFlow 会监听本地文件夹，把资料写入本地索引，然后通过浏
 git clone https://github.com/lingengyuan/docflow.git
 cd docflow
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 pip install -e .
 docker compose up -d qdrant
 docflow serve
@@ -126,7 +124,7 @@ docflow browser-acceptance
 
 ### 维护指南
 
-见 [命令说明](docs/cli.md)、[开发说明](docs/development.md) 和 [评估说明](docs/evaluation.md)。
+见 [功能说明](docs/features.md)、[架构说明](docs/architecture.md)、[隐私说明](docs/privacy.md)、[命令说明](docs/cli.md)、[开发说明](docs/development.md) 和 [评估说明](docs/evaluation.md)。
 
 ### 许可证
 

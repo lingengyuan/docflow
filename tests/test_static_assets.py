@@ -303,7 +303,7 @@ def test_phase25_browser_acceptance_command_is_documented():
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert Path("scripts/run_browser_acceptance.py").exists()
-    assert "python main.py browser-acceptance" in readme
+    assert "docflow browser-acceptance" in readme
 
 
 def test_phase26_ui_redesign_shell_has_real_context_panels():
@@ -329,24 +329,28 @@ def test_phase18_release_docs_are_linked_from_readme():
     for path in [
         "LICENSE",
         "CHANGELOG.md",
-        "docs/LOCAL_DEPLOYMENT.md",
-        "docs/phase18-final-acceptance.md",
-        "docs/phase18-handoff.md",
-        "docs/phase29-chat-desktop.png",
-        "docs/phase29-library-desktop.png",
-        "docs/phase29-notes-desktop.png",
-        "docs/phase29-settings-desktop.png",
+        "docs/features.md",
+        "docs/architecture.md",
+        "docs/privacy.md",
+        "docs/cli.md",
+        "docs/development.md",
+        "docs/evaluation.md",
+        "docs/assets/chat.png",
+        "docs/assets/library.png",
+        "docs/assets/notes.png",
+        "docs/assets/settings.png",
     ]:
         assert Path(path).exists()
 
-    assert "docs/LOCAL_DEPLOYMENT.md" in readme
-    assert "docs/phase18-final-acceptance.md" in readme
-    assert "docs/phase29-chat-desktop.png" in readme
-    assert "docs/phase29-library-desktop.png" in readme
-    assert "docs/phase29-notes-desktop.png" in readme
-    assert "docs/phase29-settings-desktop.png" in readme
-    assert "MIT. See `LICENSE`." in readme
-    assert "MIT。见 `LICENSE`。" in readme
+    assert "docs/features.md" in readme
+    assert "docs/architecture.md" in readme
+    assert "docs/privacy.md" in readme
+    assert "docs/cli.md" in readme
+    assert "docs/development.md" in readme
+    assert "docs/evaluation.md" in readme
+    assert "docs/assets/chat.png" in readme
+    assert "MIT." in readme
+    assert "MIT。" in readme
 
 
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():

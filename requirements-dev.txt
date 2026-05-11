@@ -1,0 +1,7 @@
+-r requirements.txt
+
+mypy>=1.13
+playwright==1.58.0
+pre-commit>=4.0
+pytest==9.0.2
+ruff>=0.8

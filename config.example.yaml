@@ -48,8 +48,8 @@ paths:
   watch_dirs:
     - path: "data/watch"
       recursive: true
-      extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh", ".jpg", ".jpeg", ".png", ".webp"]
-  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"]
+      extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
+  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
   db_path: "data/docflow.db"
   id_counter: "data/qdrant_id_counter.txt"
 

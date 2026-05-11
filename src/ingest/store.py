@@ -14,8 +14,12 @@ import threading
 from contextlib import contextmanager
 from pathlib import Path
 import json
+from typing import TYPE_CHECKING
 
 from src.domain_types import ChunkRecord, FileRecord, FileStatus
+
+if TYPE_CHECKING:
+    import numpy as np
 
 
 DEFAULT_COLLECTION = "Inbox"
