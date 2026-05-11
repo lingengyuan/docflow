@@ -71,6 +71,7 @@ from src.knowledge_outputs import (
     get_knowledge_output_type,
     knowledge_output_tags,
 )
+from src.maintenance.startup import ensure_config_file
 from src.query.engine import QueryEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -79,7 +80,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 logging.getLogger("FlagEmbedding").setLevel(logging.WARNING)
 
-CONFIG_PATH = Path(__file__).parent.parent.parent / "config.yaml"
+CONFIG_PATH = ensure_config_file(Path(__file__).parent.parent.parent / "config.yaml")
 COLLECTION_NAME = "docflow"
 MODEL_TASK_TIMEOUT_S = float(os.getenv("DOCFLOW_MODEL_TASK_TIMEOUT_S", "90"))
 STREAM_FIRST_CONTENT_TIMEOUT_S = float(os.getenv("DOCFLOW_STREAM_FIRST_CONTENT_TIMEOUT_S", "60"))

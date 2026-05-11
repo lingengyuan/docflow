@@ -30,11 +30,56 @@ CORE_MODULES = {
 }
 
 
-def load_config(config_path: str | Path) -> tuple[dict, Path]:
+def ensure_config_file(config_path: str | Path, example_path: str | Path | None = None) -> Path:
     path = Path(config_path).expanduser()
+    if path.exists():
+        return path
+
+    example = Path(example_path).expanduser() if example_path else _default_example_path(path)
+    if not example.exists():
+        raise FileNotFoundError(f"Config file not found: {path}. Missing example: {example}")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(example, path)
+    with path.open(encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    _ensure_config_directories(cfg, base_dir=path.resolve().parent)
+    return path
+
+
+def load_config(config_path: str | Path) -> tuple[dict, Path]:
+    path = ensure_config_file(config_path)
     with path.open() as f:
         cfg = yaml.safe_load(f) or {}
     return cfg, path
+
+
+def _default_example_path(config_path: Path) -> Path:
+    sibling = config_path.with_name("config.example.yaml")
+    if sibling.exists():
+        return sibling
+    return Path(__file__).resolve().parents[2] / "config.example.yaml"
+
+
+def _ensure_config_directories(cfg: dict, base_dir: Path) -> None:
+    paths_cfg = cfg.get("paths", {})
+    for key in ("db_path", "id_counter"):
+        value = paths_cfg.get(key)
+        if value:
+            _resolve_config_path(value, base_dir).parent.mkdir(parents=True, exist_ok=True)
+
+    raw_watch_dirs = paths_cfg.get("watch_dirs", paths_cfg.get("watch_dir", []))
+    if isinstance(raw_watch_dirs, (str, Path)):
+        raw_watch_dirs = [{"path": str(raw_watch_dirs)}]
+    for entry in raw_watch_dirs or []:
+        raw_path = entry.get("path") if isinstance(entry, dict) else entry
+        if raw_path:
+            _resolve_config_path(raw_path, base_dir).mkdir(parents=True, exist_ok=True)
+
+
+def _resolve_config_path(value: str | Path, base_dir: Path) -> Path:
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else base_dir / path
 
 
 def aggregate_status(checks: dict[str, dict]) -> str:
@@ -263,12 +308,14 @@ def check_app_port(port: int, host: str = "127.0.0.1") -> dict:
         "status": "unavailable" if in_use else "ok",
         "host": host,
         "port": int(port),
-        "actions": [f"Use another port, for example: python main.py start --port {int(port) + 1}"] if in_use else [],
+        "actions": [f"Use another port, for example: docflow start --port {int(port) + 1}"] if in_use else [],
     }
 
 
 def qdrant_run_command(port: int) -> str:
-    return f"Run: docker run -d --name qdrant -p {port}:6333 qdrant/qdrant"
+    if int(port) == 6333:
+        return "Run: docker compose up -d qdrant"
+    return f"Run: docker run -d --name docflow-qdrant -p {port}:6333 qdrant/qdrant"
 
 
 def _run_command(args: list[str], timeout: float = 10.0) -> subprocess.CompletedProcess:
@@ -302,7 +349,7 @@ def ensure_qdrant(cfg: dict, runner: Callable[[list[str], float], subprocess.Com
             "attempted": True,
             "result": current,
             "error": started.stderr.strip() or started.stdout.strip(),
-            "actions": ["Open Docker Desktop, then run: docker start qdrant"],
+            "actions": ["Open Docker Desktop, then run: docker compose up -d qdrant"],
         }
 
     for _ in range(20):

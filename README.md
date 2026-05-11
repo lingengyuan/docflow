@@ -26,8 +26,9 @@ git clone https://github.com/lingengyuan/docflow.git
 cd docflow
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
-python main.py serve
+pip install -e .
+docker compose up -d qdrant
+docflow serve
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
@@ -53,7 +54,7 @@ DocFlow reads `config.yaml`. Configure watched folders, supported extensions, SQ
 
 ```bash
 .venv/bin/python -m pytest
-python main.py browser-acceptance
+docflow browser-acceptance
 ```
 
 ### Contributing
@@ -88,8 +89,9 @@ git clone https://github.com/lingengyuan/docflow.git
 cd docflow
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
-python main.py serve
+pip install -e .
+docker compose up -d qdrant
+docflow serve
 ```
 
 打开 [http://localhost:8000](http://localhost:8000)。
@@ -115,7 +117,7 @@ DocFlow 读取 `config.yaml`。监听目录、支持文件类型、SQLite 路径
 
 ```bash
 .venv/bin/python -m pytest
-python main.py browser-acceptance
+docflow browser-acceptance
 ```
 
 ### 贡献指南

@@ -6,6 +6,7 @@
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Run Tests
@@ -17,7 +18,7 @@ pip install -r requirements.txt
 ## Run the App
 
 ```bash
-python main.py serve
+docflow serve
 ```
 
 ## Frontend Styles

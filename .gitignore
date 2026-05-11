@@ -33,6 +33,8 @@ output/
 # 环境变量
 .env
 *.env
+config.yaml
+config.local.yaml
 
 # 其他
 *.bak

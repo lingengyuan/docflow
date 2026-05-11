@@ -31,4 +31,4 @@ The 90-point roadmap adds an auditable offline doctor command so users can verif
 
 ## User Responsibility
 
-Review `config.yaml` before changing model backends, watched folders, or optional cloud settings.
+DocFlow creates `config.yaml` from `config.example.yaml` on first run. Review the generated local `config.yaml` before changing model backends, watched folders, or optional cloud settings.

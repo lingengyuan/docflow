@@ -25,6 +25,32 @@ def test_sqlite_missing_database_is_degraded(tmp_path):
     assert "does not exist yet" in result["quick_check"]
 
 
+def test_ensure_config_file_copies_example_and_creates_local_dirs(tmp_path):
+    example_path = tmp_path / "config.example.yaml"
+    config_path = tmp_path / "config.yaml"
+    example_path.write_text(
+        """
+paths:
+  watch_dirs:
+    - path: "data/watch"
+      recursive: true
+  db_path: "data/docflow.db"
+  id_counter: "data/qdrant_id_counter.txt"
+qdrant:
+  host: "localhost"
+  port: 6333
+""",
+        encoding="utf-8",
+    )
+
+    generated = startup.ensure_config_file(config_path, example_path=example_path)
+
+    assert generated == config_path
+    assert config_path.exists()
+    assert (tmp_path / "data").is_dir()
+    assert (tmp_path / "data" / "watch").is_dir()
+
+
 def test_app_port_reports_in_use():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
@@ -37,6 +63,7 @@ def test_app_port_reports_in_use():
 
     assert result["status"] == "unavailable"
     assert str(port + 1) in result["actions"][0]
+    assert "docflow start" in result["actions"][0]
 
 
 def test_build_startup_report_marks_qdrant_as_blocker(monkeypatch, tmp_path):
@@ -78,7 +105,7 @@ def test_ensure_qdrant_suggests_run_command_when_container_is_missing(monkeypatc
     result = startup.ensure_qdrant(cfg, runner=runner)
 
     assert result["attempted"] is False
-    assert result["actions"] == ["Run: docker run -d --name qdrant -p 6333:6333 qdrant/qdrant"]
+    assert result["actions"] == ["Run: docker compose up -d qdrant"]
 
 
 def test_format_report_lists_blockers():

@@ -64,6 +64,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def serve():
+    _config_path()
     import uvicorn
     uvicorn.run("src.api.app:app", host="0.0.0.0", port=8000, reload=False)
 
@@ -73,7 +74,7 @@ def doctor_command(args: list[str]):
 
     port = int(_arg_value(args, "--port", "8000"))
     return run_doctor(
-        "config.yaml",
+        _config_path(),
         app_port=port,
         as_json="--json" in args,
         strict="--strict" in args,
@@ -86,7 +87,7 @@ def start_command(args: list[str]):
     host = _arg_value(args, "--host", "0.0.0.0")
     port = int(_arg_value(args, "--port", "8000"))
     return run_start(
-        "config.yaml",
+        _config_path(),
         host=host,
         port=port,
         as_json="--json" in args,
@@ -144,7 +145,7 @@ def install_local_command(args: list[str]):
 
 def ingest(path: str):
     from src.ingest.pipeline import IngestPipeline
-    pipeline = IngestPipeline.from_config("config.yaml")
+    pipeline = IngestPipeline.from_config(_config_path())
     result = pipeline.ingest(path)
     print(result)
 
@@ -154,9 +155,10 @@ def scan():
     from src.ingest.pipeline import IngestPipeline
     from src.api.app import _parse_watch_dirs
     from src.ingest.watcher import _is_excluded
-    with open("config.yaml") as f:
+    config_path = _config_path()
+    with open(config_path) as f:
         cfg = yaml.safe_load(f)
-    pipeline = IngestPipeline.from_config("config.yaml")
+    pipeline = IngestPipeline.from_config(config_path)
     for wd in _parse_watch_dirs(cfg):
         exts = wd.extensions if wd.extensions else pipeline.registry.supported_extensions
         for ext in exts:
@@ -170,7 +172,7 @@ def scan():
 def benchmark(paths: list[str]):
     from src.ingest.pipeline import IngestPipeline
 
-    pipeline = IngestPipeline.from_config("config.yaml")
+    pipeline = IngestPipeline.from_config(_config_path())
     results = [pipeline.benchmark_file(path) for path in paths]
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
@@ -214,7 +216,7 @@ def check_index(args: list[str]):
     from src.maintenance.consistency import check_consistency, print_report
 
     as_json = "--json" in args
-    report = check_consistency("config.yaml")
+    report = check_consistency(_config_path())
     print_report(report, as_json=as_json)
     return 0 if report.ok else 1
 
@@ -225,9 +227,9 @@ def rebuild_command(args: list[str]):
     dry_run = "--dry-run" in args
     qdrant_only = "--qdrant-only" in args
     if qdrant_only:
-        result = rebuild_qdrant_only("config.yaml", dry_run=dry_run)
+        result = rebuild_qdrant_only(_config_path(), dry_run=dry_run)
     else:
-        result = rebuild_index("config.yaml", dry_run=dry_run)
+        result = rebuild_index(_config_path(), dry_run=dry_run)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
@@ -236,7 +238,7 @@ def repair_ids_command(args: list[str]):
     from src.maintenance.consistency import repair_index_ids
 
     dry_run = "--dry-run" in args
-    result = repair_index_ids("config.yaml", dry_run=dry_run)
+    result = repair_index_ids(_config_path(), dry_run=dry_run)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["status"] in {"done", "dry_run"} else 1
 
@@ -247,7 +249,7 @@ def backup_command(args: list[str]):
     dry_run = "--dry-run" in args
     output = _arg_value(args, "--output", "backups")
     keep = int(_arg_value(args, "--keep", "5"))
-    result = create_backup("config.yaml", output_dir=output, keep=keep, dry_run=dry_run)
+    result = create_backup(_config_path(), output_dir=output, keep=keep, dry_run=dry_run)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
@@ -256,7 +258,7 @@ def export_chunks_command(args: list[str]):
     from src.maintenance.backup import export_chunks_jsonl
 
     output = _arg_value(args, "--output")
-    result = export_chunks_jsonl("config.yaml", output_path=output)
+    result = export_chunks_jsonl(_config_path(), output_path=output)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
@@ -285,52 +287,66 @@ def _arg_value(args: list[str], name: str, default: str | None = None) -> str | 
     return default
 
 
-if __name__ == "__main__":
+def _config_path() -> str:
+    from src.maintenance.startup import ensure_config_file
+
+    return str(ensure_config_file("config.yaml"))
+
+
+def cli() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "serve":
         serve()
+        return 0
     elif cmd == "doctor":
-        sys.exit(doctor_command(sys.argv[2:]))
+        return doctor_command(sys.argv[2:])
     elif cmd == "start":
-        sys.exit(start_command(sys.argv[2:]))
+        return start_command(sys.argv[2:])
     elif cmd == "service":
-        sys.exit(service_command(sys.argv[2:]))
+        return service_command(sys.argv[2:])
     elif cmd == "install-local":
-        sys.exit(install_local_command(sys.argv[2:]))
+        return install_local_command(sys.argv[2:])
     elif cmd == "ingest":
         if len(sys.argv) < 3:
             print("Usage: python main.py ingest <path>")
-            sys.exit(1)
+            return 1
         ingest(sys.argv[2])
+        return 0
     elif cmd == "scan":
         scan()
+        return 0
     elif cmd == "benchmark":
         if len(sys.argv) < 3:
             print("Usage: python main.py benchmark <path> [<path> ...]")
-            sys.exit(1)
+            return 1
         benchmark(sys.argv[2:])
+        return 0
     elif cmd == "eval":
-        sys.exit(eval_retrieval(sys.argv[2:]))
+        return eval_retrieval(sys.argv[2:])
     elif cmd == "maturity-eval":
-        sys.exit(maturity_eval(sys.argv[2:]))
+        return maturity_eval(sys.argv[2:])
     elif cmd == "sample-suite":
-        sys.exit(sample_suite(sys.argv[2:]))
+        return sample_suite(sys.argv[2:])
     elif cmd == "browser-acceptance":
-        sys.exit(browser_acceptance(sys.argv[2:]))
+        return browser_acceptance(sys.argv[2:])
     elif cmd == "restore-drill":
-        sys.exit(restore_drill_command(sys.argv[2:]))
+        return restore_drill_command(sys.argv[2:])
     elif cmd == "check":
-        sys.exit(check_index(sys.argv[2:]))
+        return check_index(sys.argv[2:])
     elif cmd == "rebuild":
-        sys.exit(rebuild_command(sys.argv[2:]))
+        return rebuild_command(sys.argv[2:])
     elif cmd == "repair-ids":
-        sys.exit(repair_ids_command(sys.argv[2:]))
+        return repair_ids_command(sys.argv[2:])
     elif cmd == "backup":
-        sys.exit(backup_command(sys.argv[2:]))
+        return backup_command(sys.argv[2:])
     elif cmd == "export-chunks":
-        sys.exit(export_chunks_command(sys.argv[2:]))
+        return export_chunks_command(sys.argv[2:])
     elif cmd == "restore-plan":
-        sys.exit(restore_plan_command(sys.argv[2:]))
+        return restore_plan_command(sys.argv[2:])
     else:
         print(f"Unknown command: {cmd}")
-        sys.exit(1)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(cli())
