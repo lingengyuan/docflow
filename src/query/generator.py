@@ -9,6 +9,7 @@ AnswerGenerator — 基于检索结果生成带引用的答案。
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -162,6 +163,7 @@ class AnswerGenerator:
             [citation_from_chunk(chunk) for chunk in chunks],
             chunks,
         )
+        answer_text = sanitize_inline_citations(answer_text, citations)
         return Answer(text=answer_text, citations=citations, reproducible=self.is_reproducible)
 
     # ------------------------------------------------------------------
@@ -446,3 +448,24 @@ def validate_citations(citations: list[Citation], chunks: list[dict]) -> list[Ci
         for citation in citations
         if not citation.chunk_id or citation.chunk_id in valid_chunk_ids
     ]
+
+
+INLINE_CITATION_RE = re.compile(r"\[来源:\s*([^,\]，]+)(?:[,，]\s*第?(\d+)页)?\]")
+
+
+def sanitize_inline_citations(text: str, citations: list[Citation]) -> str:
+    verified = {
+        (citation.file_name, str(citation.page_num))
+        for citation in citations
+        if citation.file_name and citation.page_num
+    }
+    verified_files = {citation.file_name for citation in citations if citation.file_name}
+
+    def replace(match: re.Match[str]) -> str:
+        file_name = match.group(1).strip()
+        page_num = (match.group(2) or "").strip()
+        if (file_name, page_num) in verified or (not page_num and file_name in verified_files):
+            return match.group(0)
+        return "[未验证来源]"
+
+    return INLINE_CITATION_RE.sub(replace, text)

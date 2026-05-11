@@ -305,6 +305,15 @@ def test_chat_citations_render_chunk_identity():
     assert "char_end" in text
 
 
+def test_source_preview_highlights_exact_citation_range():
+    text = Path("frontend/js/source-preview.js").read_text(encoding="utf-8")
+
+    assert "qdrantIdFromChunkId" in text
+    assert "highlightRangeApplies" in text
+    assert 'data-citation-hit="true"' in text
+    assert "已定位到回答引用的原文范围" in text
+
+
 def test_phase28_settings_hides_local_install_and_recovery_commands():
     html = frontend_source_text()
 

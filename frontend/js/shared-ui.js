@@ -22,8 +22,8 @@ function handleConversationKey(event, id) {
   activateByKeyboard(event, () => switchConversation(id));
 }
 
-function handleSourceKey(event, filePath, pageNum) {
-  activateByKeyboard(event, () => openSourceByPath(filePath, pageNum));
+function handleSourceKey(event, filePath, pageNum, chunkId = '', charStart = 0, charEnd = 0) {
+  activateByKeyboard(event, () => openSourceByPath(filePath, pageNum, chunkId, charStart, charEnd));
 }
 
 function handleHistoryKey(event, idx) {

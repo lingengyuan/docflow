@@ -85,8 +85,8 @@ function citationMarkup(citations) {
     <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
          role="button" tabindex="0" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}"
          data-chunk-id="${escHtml(c.chunk_id || '')}"
-         onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})"
-         onkeydown="handleSourceKey(event, decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})">
+         onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1}, '${escHtml(c.chunk_id || '')}', ${Number(c.char_start || 0)}, ${Number(c.char_end || 0)})"
+         onkeydown="handleSourceKey(event, decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1}, '${escHtml(c.chunk_id || '')}', ${Number(c.char_start || 0)}, ${Number(c.char_end || 0)})">
       <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
       <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[150px] truncate">${label}</span>
@@ -201,7 +201,7 @@ function renderChatContextSources(citations = lastCitations) {
   if (metric) metric.textContent = `${citations.length} 个来源`;
   list.innerHTML = citations.slice(0, 6).map(c => `
     <button class="text-left rounded-lg bg-surface-container-low px-3 py-3 hover:bg-surface-container transition-colors"
-      onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})"
+      onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1}, '${escHtml(c.chunk_id || '')}', ${Number(c.char_start || 0)}, ${Number(c.char_end || 0)})"
       title="打开来源" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}">
       <div class="flex items-center justify-between gap-2">
         <span class="font-semibold text-on-surface line-clamp-1">${escHtml(c.file_name || '未知文件')}</span>
@@ -242,7 +242,13 @@ function renderChatSourcePreview(citation) {
 
 function openSourceFromChatPreview() {
   if (!chatPreviewCitation) return;
-  openSourceByPath(chatPreviewCitation.file_path || '', chatPreviewCitation.page_num || 1);
+  openSourceByPath(
+    chatPreviewCitation.file_path || '',
+    chatPreviewCitation.page_num || 1,
+    chatPreviewCitation.chunk_id || '',
+    Number(chatPreviewCitation.char_start || 0),
+    Number(chatPreviewCitation.char_end || 0),
+  );
 }
 
 function copyTextFromButton(btn) {

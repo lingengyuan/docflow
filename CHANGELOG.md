@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.53.0 - 2026-05-12
+
+- Added exact source-range highlighting from citation metadata in the source preview.
+- Marked inline model citations that do not match retrieved evidence as unverified.
+- Expanded citation alignment tests to cover verified source cases and fabricated inline citations.
+
 ## 0.52.0 - 2026-05-12
 
 - Split the public API, storage, and retrieval entry points into small facade modules.

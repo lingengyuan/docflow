@@ -1,9 +1,9 @@
 // ── Source Preview ──
-async function openSourceByPath(filePath, pageNum = 1) {
+async function openSourceByPath(filePath, pageNum = 1, chunkId = '', charStart = 0, charEnd = 0) {
   try {
     const files = await fetch(`${API}/api/files`).then(r => r.json());
     const file = files.find(item => item.file_path === filePath);
-    if (file) await openSourcePreview(file.id, pageNum);
+    if (file) await openSourcePreview(file.id, pageNum, { chunkId, charStart, charEnd });
   } catch {}
 }
 
@@ -31,8 +31,15 @@ async function loadDefaultSourcePreview() {
   renderSourcePreview();
 }
 
-async function openSourcePreview(fileId, pageNum = 1) {
-  sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: true, error: '' };
+async function openSourcePreview(fileId, pageNum = 1, highlight = null) {
+  sourcePreviewState = {
+    file: null,
+    chunks: [],
+    selectedIndex: 0,
+    loading: true,
+    error: '',
+    highlight,
+  };
   switchView('source');
   renderSourcePreview();
   try {
@@ -41,18 +48,38 @@ async function openSourcePreview(fileId, pageNum = 1) {
       return r.json();
     });
     const chunks = data.chunks || [];
-    const selectedIndex = Math.max(0, chunks.findIndex(chunk => Number(chunk.page_num || 0) === Number(pageNum || 0)));
+    const targetQdrantId = qdrantIdFromChunkId(highlight?.chunkId);
+    const chunkIndex = targetQdrantId === null
+      ? -1
+      : chunks.findIndex(chunk => Number(chunk.qdrant_id) === targetQdrantId);
+    const pageIndex = chunks.findIndex(
+      chunk => Number(chunk.page_num || 0) === Number(pageNum || 0),
+    );
+    const selectedIndex = chunkIndex >= 0 ? chunkIndex : Math.max(0, pageIndex);
     sourcePreviewState = {
       file: data.file,
       chunks,
       selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
       loading: false,
       error: '',
+      highlight,
     };
   } catch (e) {
-    sourcePreviewState = { file: null, chunks: [], selectedIndex: 0, loading: false, error: e.message };
+    sourcePreviewState = {
+      file: null,
+      chunks: [],
+      selectedIndex: 0,
+      loading: false,
+      error: e.message,
+      highlight: null,
+    };
   }
   renderSourcePreview();
+}
+
+function qdrantIdFromChunkId(chunkId) {
+  const match = String(chunkId || '').match(/^q:(\d+)$/);
+  return match ? Number(match[1]) : null;
 }
 
 function sourceConfidence(chunk, index) {
@@ -75,7 +102,7 @@ function sourceKeywords(text) {
 }
 
 function sourceChunkText(chunk) {
-  const values = [chunk?.raw_text, chunk?.parent_text, chunk?.text_preview];
+  const values = [chunk?.parent_text, chunk?.raw_text, chunk?.text_preview];
   return values.find(value => value && !String(value).includes('暂无文本预览')) || chunk?.text_preview || '';
 }
 
@@ -87,8 +114,28 @@ function sourcePreviewListTitle(chunk, index) {
   return `片段 ${index + 1}`;
 }
 
-function highlightedSourceText(text) {
-  const lines = String(text || '暂无文本预览').split(/\n+/).map(line => line.trim()).filter(Boolean).slice(0, 14);
+function highlightRangeApplies(chunk, highlight) {
+  if (!chunk || !highlight?.chunkId) return false;
+  const targetQdrantId = qdrantIdFromChunkId(highlight.chunkId);
+  return targetQdrantId !== null && Number(chunk.qdrant_id) === targetQdrantId;
+}
+
+function highlightedSourceText(text, highlight = null) {
+  const value = String(text || '暂无文本预览');
+  if (highlight && Number(highlight.charEnd) > Number(highlight.charStart)) {
+    const start = Math.max(0, Math.min(value.length, Number(highlight.charStart)));
+    const end = Math.max(start, Math.min(value.length, Number(highlight.charEnd)));
+    const body = [
+      escHtml(value.slice(0, start)),
+      `<mark class="source-highlight" data-citation-hit="true">${escHtml(value.slice(start, end))}</mark>`,
+      escHtml(value.slice(end)),
+    ].join('');
+    return body
+      .split(/\n{2,}/)
+      .map(paragraph => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+  const lines = value.split(/\n+/).map(line => line.trim()).filter(Boolean).slice(0, 14);
   return lines.map((line, idx) => {
     const body = escHtml(line);
     if (idx < 5) return `<p><span class="source-highlight">${body}</span></p>`;
@@ -198,6 +245,9 @@ function renderSourcePreview() {
     </button>`;
   }).join('');
 
+  const activeHighlight = highlightRangeApplies(selected, sourcePreviewState.highlight)
+    ? sourcePreviewState.highlight
+    : null;
   const text = sourceChunkText(selected) || '暂无文本预览';
   const confidence = sourceConfidence(selected, sourcePreviewState.selectedIndex);
   const keywords = sourceKeywords(text);
@@ -223,7 +273,7 @@ function renderSourcePreview() {
       </div>
       <article class="rounded-xl bg-surface-container-lowest px-8 py-7 shadow-sm">
         <div class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">${escHtml(selected?.section || selected?.chunk_type || '引用片段')}</div>
-        <div class="mt-4 prose text-sm text-on-surface max-w-none">${highlightedSourceText(text)}</div>
+        <div class="mt-4 prose text-sm text-on-surface max-w-none">${highlightedSourceText(text, activeHighlight)}</div>
       </article>
       ${renderSourceTimeline(chunks, sourcePreviewState.selectedIndex)}
     </div>`;
@@ -248,7 +298,7 @@ function renderSourcePreview() {
     </div>
     <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2">
       <div class="font-semibold text-on-surface">引用关系</div>
-      <div class="mt-2 text-[11px] leading-relaxed text-on-surface-variant/70">这个片段来自当前文件的可核查内容，可用于回答中对应事实和段落。</div>
+      <div class="mt-2 text-[11px] leading-relaxed text-on-surface-variant/70">${activeHighlight ? '已定位到回答引用的原文范围。' : '这个片段来自当前文件的可核查内容，可用于回答中对应事实和段落。'}</div>
       <div class="mt-3 grid grid-cols-1 gap-2">
         <div class="rounded-lg bg-surface-container-lowest px-3 py-2">
           <div class="text-[10px] text-on-surface-variant/60">贡献内容</div>
