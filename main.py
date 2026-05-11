@@ -70,9 +70,18 @@ def serve():
 
 
 def doctor_command(args: list[str]):
-    from src.maintenance.startup import doctor_command as run_doctor
+    from src.maintenance.startup import (
+        doctor_command as run_doctor,
+        offline_doctor_command as run_offline_doctor,
+    )
 
     port = int(_arg_value(args, "--port", "8000"))
+    if "--offline" in args:
+        return run_offline_doctor(
+            _config_path(),
+            app_port=port,
+            as_json="--json" in args,
+        )
     return run_doctor(
         _config_path(),
         app_port=port,

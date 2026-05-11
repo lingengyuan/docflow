@@ -11,8 +11,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-import httpx
-
+from src import net
 from src.knowledge_outputs import get_knowledge_output_type
 
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
@@ -208,10 +207,10 @@ class AnswerGenerator:
             "stream": False,
             "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
         }
-        response = httpx.post(
+        response = net.post(
             f"{self.ollama_base_url}/api/chat",
             json=payload,
-            timeout=httpx.Timeout(600.0, connect=5.0),
+            timeout=net.Timeout(600.0, connect=5.0),
         )
         response.raise_for_status()
         result = response.json()
@@ -228,11 +227,11 @@ class AnswerGenerator:
             "stream": True,
             "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
         }
-        with httpx.stream(
+        with net.stream(
             "POST",
             f"{self.ollama_base_url}/api/chat",
             json=payload,
-            timeout=httpx.Timeout(600.0, connect=5.0),
+            timeout=net.Timeout(600.0, connect=5.0),
         ) as resp:
             resp.raise_for_status()
             for line in resp.iter_lines():

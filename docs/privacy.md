@@ -27,7 +27,20 @@ Current known network-related cases:
 - Optional cloud LLM backends require explicit user configuration.
 - Development and browser testing tools may download or launch browser dependencies.
 
-The 90-point roadmap adds an auditable offline doctor command so users can verify unexpected outbound connections instead of relying on this document alone.
+Run the offline doctor to check for unexpected outbound connections in DocFlow's startup health path:
+
+```bash
+docflow doctor --offline
+```
+
+Expected result:
+
+```text
+DocFlow offline network check: ok
+0 unexpected outbound connections
+```
+
+User-triggered webpage import is the main intentionally external runtime feature. Optional model downloads and cloud model backends must be explicitly enabled by configuration.
 
 ## User Responsibility
 

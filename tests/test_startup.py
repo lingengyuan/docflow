@@ -93,6 +93,19 @@ ollama:
     assert "start qdrant" in report["actions"]
 
 
+def test_offline_report_records_zero_unexpected_hosts(monkeypatch):
+    monkeypatch.setattr(
+        startup,
+        "build_startup_report",
+        lambda config_path="config.yaml", app_port=8000: {"status": "ok", "checks": {}},
+    )
+
+    report = startup.build_offline_report("config.yaml")
+
+    assert report["status"] == "ok"
+    assert report["unexpected_outbound_connections"] == 0
+
+
 def test_ensure_qdrant_suggests_run_command_when_container_is_missing(monkeypatch):
     cfg = {"qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"}}
     monkeypatch.setattr(startup, "check_qdrant", lambda cfg: {"status": "unavailable", "actions": ["run qdrant"]})
@@ -124,3 +137,15 @@ def test_format_report_lists_blockers():
 
     assert "Startup blockers: qdrant" in text
     assert "connection refused" in text
+
+
+def test_format_offline_report_lists_zero_unexpected_connections():
+    text = startup.format_offline_report(
+        {
+            "unexpected_outbound_connections": 0,
+            "unexpected_hosts": [],
+            "error": "",
+        }
+    )
+
+    assert "0 unexpected outbound connections" in text

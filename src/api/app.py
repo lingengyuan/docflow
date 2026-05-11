@@ -17,7 +17,6 @@ from time import perf_counter
 import sys
 import types
 
-import httpx
 import yaml
 import json
 
@@ -71,6 +70,7 @@ from src.knowledge_outputs import (
     get_knowledge_output_type,
     knowledge_output_tags,
 )
+from src import net
 from src.maintenance.startup import ensure_config_file
 from src.query.engine import QueryEngine
 
@@ -1480,15 +1480,15 @@ def _check_ollama(cfg: dict) -> dict:
         else "",
     }
     try:
-        response = httpx.get(
+        response = net.get(
             f"{base_url}/api/tags",
-            timeout=httpx.Timeout(2.0, connect=1.0),
+            timeout=net.Timeout(2.0, connect=1.0),
         )
         response.raise_for_status()
         data = response.json()
-    except httpx.ConnectTimeout as exc:
+    except net.ConnectTimeout as exc:
         error = f"connection timeout: {exc}"
-    except httpx.ReadTimeout as exc:
+    except net.ReadTimeout as exc:
         error = f"read timeout: {exc}"
     except Exception as exc:
         error = str(exc)

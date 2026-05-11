@@ -13,9 +13,9 @@ import time
 from pathlib import Path
 from typing import Callable
 
-import httpx
 import yaml
 
+from src import net
 STATUS_ORDER = {"ok": 0, "degraded": 1, "unavailable": 2}
 STARTUP_BLOCKERS = {"python", "config", "qdrant", "port"}
 
@@ -196,10 +196,10 @@ def check_sqlite(cfg: dict) -> dict:
 
 
 def _http_json(url: str, timeout: float = 2.0) -> tuple[int, dict]:
-    response = httpx.get(
+    response = net.get(
         url,
         headers={"Accept": "application/json"},
-        timeout=httpx.Timeout(timeout, connect=min(timeout, 1.0)),
+        timeout=net.Timeout(timeout, connect=min(timeout, 1.0)),
     )
     response.raise_for_status()
     return response.status_code, response.json()
@@ -212,7 +212,7 @@ def check_qdrant(cfg: dict) -> dict:
     base_url = f"http://{host}:{port}"
     try:
         _, data = _http_json(f"{base_url}/collections/{collection}", timeout=2)
-    except httpx.HTTPStatusError as exc:
+    except net.HTTPStatusError as exc:
         if exc.response.status_code == 404:
             return {
                 "status": "degraded",
@@ -444,6 +444,51 @@ def doctor_command(
     if strict:
         return 0 if report["status"] == "ok" else 1
     return 0 if report["can_start"] else 1
+
+
+def build_offline_report(
+    config_path: str | Path = "config.yaml",
+    app_port: int = 8000,
+) -> dict:
+    with net.NetworkGuard() as guard:
+        try:
+            startup_report = build_startup_report(config_path=config_path, app_port=app_port)
+            error = ""
+        except Exception as exc:
+            startup_report = {}
+            error = str(exc)
+    unexpected_hosts = sorted(guard.unexpected_hosts)
+    return {
+        "status": "ok" if not unexpected_hosts else "unavailable",
+        "unexpected_outbound_connections": len(unexpected_hosts),
+        "unexpected_hosts": unexpected_hosts,
+        "error": error,
+        "startup_report": startup_report,
+    }
+
+
+def format_offline_report(report: dict) -> str:
+    if report["unexpected_outbound_connections"] == 0:
+        lines = ["DocFlow offline network check: ok", "0 unexpected outbound connections"]
+    else:
+        lines = [
+            "DocFlow offline network check: unavailable",
+            f"{report['unexpected_outbound_connections']} unexpected hosts: "
+            + ", ".join(report["unexpected_hosts"]),
+        ]
+    if report.get("error"):
+        lines.append(f"Error: {report['error']}")
+    return "\n".join(lines)
+
+
+def offline_doctor_command(
+    config_path: str | Path = "config.yaml",
+    app_port: int = 8000,
+    as_json: bool = False,
+) -> int:
+    report = build_offline_report(config_path=config_path, app_port=app_port)
+    print(json.dumps(report, ensure_ascii=False, indent=2) if as_json else format_offline_report(report))
+    return 0 if report["unexpected_outbound_connections"] == 0 else 1
 
 
 def start_command(

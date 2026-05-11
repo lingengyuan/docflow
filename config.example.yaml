@@ -65,3 +65,7 @@ llm:
   mlx_model_enhanced: "mlx-community/Qwen3-8B-4bit"
   ollama_model: "qwen2.5:7b"
   ollama_model_enhanced: "qwen3:8b"
+
+privacy:
+  allow_model_download: false
+  allowed_hosts: []

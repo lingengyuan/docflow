@@ -7,6 +7,7 @@ DocFlow exposes commands through `docflow` after `pip install -e .`.
 ```bash
 docflow serve
 docflow doctor
+docflow doctor --offline
 docflow scan
 docflow ingest /path/to/file.pdf
 docflow eval

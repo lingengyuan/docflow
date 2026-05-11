@@ -64,6 +64,12 @@ Use focused changes, run tests before handoff, and keep user-facing UI free of c
 
 See [Features](docs/features.md), [Architecture](docs/architecture.md), [Privacy](docs/privacy.md), [CLI](docs/cli.md), [Development](docs/development.md), and [Evaluation](docs/evaluation.md).
 
+Privacy check:
+
+```bash
+docflow doctor --offline
+```
+
 ### License
 
 MIT.
@@ -125,6 +131,12 @@ docflow browser-acceptance
 ### 维护指南
 
 见 [功能说明](docs/features.md)、[架构说明](docs/architecture.md)、[隐私说明](docs/privacy.md)、[命令说明](docs/cli.md)、[开发说明](docs/development.md) 和 [评估说明](docs/evaluation.md)。
+
+隐私检查：
+
+```bash
+docflow doctor --offline
+```
 
 ### 许可证
 

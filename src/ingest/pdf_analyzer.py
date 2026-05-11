@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import Iterator
 
 import fitz  # PyMuPDF
-import httpx
+
+from src import net
 
 
 # ---------------------------------------------------------------------------
@@ -185,10 +186,10 @@ class PDFAnalyzer:
             "images": [img_b64],
             "stream": False,
         }
-        response = httpx.post(
+        response = net.post(
             f"{self.ollama_base_url}/api/generate",
             json=payload,
-            timeout=httpx.Timeout(300.0, connect=5.0),
+            timeout=net.Timeout(300.0, connect=5.0),
         )
         response.raise_for_status()
         result = response.json()

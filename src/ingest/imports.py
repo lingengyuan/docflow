@@ -10,8 +10,7 @@ from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 
-import httpx
-
+from src import net
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 
 
@@ -111,21 +110,22 @@ def fetch_webpage_markdown(url: str, title: str | None = None) -> MarkdownImport
 
 def _fetch_webpage_bytes(url: str) -> tuple[str, bytes]:
     try:
-        with httpx.Client(
+        with net.Client(
             follow_redirects=True,
-            timeout=httpx.Timeout(REQUEST_TIMEOUT_S, connect=5.0),
+            timeout=net.Timeout(REQUEST_TIMEOUT_S, connect=5.0),
             headers={"User-Agent": "DocFlow/1.0 local knowledge import"},
+            allow_external=True,
         ) as client:
             response = client.get(url)
             response.raise_for_status()
             return response.headers.get("content-type", ""), response.content[: MAX_WEBPAGE_BYTES + 1]
-    except httpx.ConnectTimeout as exc:
+    except net.ConnectTimeout as exc:
         raise TimeoutError("Timed out while connecting to webpage") from exc
-    except httpx.ReadTimeout as exc:
+    except net.ReadTimeout as exc:
         raise TimeoutError("Timed out while reading webpage") from exc
-    except httpx.HTTPStatusError as exc:
+    except net.HTTPStatusError as exc:
         raise RuntimeError(f"Webpage returned HTTP {exc.response.status_code}") from exc
-    except httpx.RequestError as exc:
+    except net.RequestError as exc:
         raise RuntimeError(f"Failed to fetch webpage: {exc}") from exc
 
 

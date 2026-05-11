@@ -20,9 +20,9 @@ from time import perf_counter
 from typing import Callable
 
 import numpy as np
-import httpx
 import yaml
 
+from src import net
 from src.domain_types import FileStatus
 from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.chunker import Chunk, StructuredChunker
@@ -259,7 +259,7 @@ class IngestPipeline:
             "Prefix:"
         )
         try:
-            response = httpx.post(
+            response = net.post(
                 f"{self.ollama_base_url}/api/generate",
                 json={
                     "model": self.contextual_prefix_model,
@@ -267,7 +267,7 @@ class IngestPipeline:
                     "stream": False,
                     "options": {"temperature": 0, "num_predict": 80},
                 },
-                timeout=httpx.Timeout(20.0, connect=5.0),
+                timeout=net.Timeout(20.0, connect=5.0),
             )
             response.raise_for_status()
             prefix = response.json().get("response", "").strip()

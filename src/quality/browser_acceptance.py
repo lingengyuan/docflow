@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
 import yaml
 
+from src import net
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 DEFAULT_SCREENSHOT_DIR = Path("output/playwright/phase25-browser-acceptance")
@@ -227,7 +227,7 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
 
 def _check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
     timeout_seconds = max(timeout_ms / 1000, 1)
-    response = httpx.get(base_url, timeout=httpx.Timeout(timeout_seconds, connect=1.0))
+    response = net.get(base_url, timeout=net.Timeout(timeout_seconds, connect=1.0))
     response.raise_for_status()
     return {"status": response.status_code}
 
@@ -412,12 +412,12 @@ def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, qu
 
 def _api_json(base_url: str, path: str, timeout_ms: int, *, method: str = "GET", payload: dict | None = None) -> Any:
     headers = {"Content-Type": "application/json"} if payload is not None else {}
-    response = httpx.request(
+    response = net.request(
         method,
         f"{base_url.rstrip('/')}{path}",
         json=payload,
         headers=headers,
-        timeout=httpx.Timeout(max(timeout_ms / 1000, 1), connect=1.0),
+        timeout=net.Timeout(max(timeout_ms / 1000, 1), connect=1.0),
     )
     response.raise_for_status()
     return response.json() if response.content else None
@@ -626,7 +626,7 @@ def _run_check(checks: list[dict[str, Any]], check_id: str, fn: Any) -> None:
     try:
         details = fn()
         checks.append({"id": check_id, "passed": True, "details": details or {}})
-    except (AssertionError, httpx.HTTPError, TimeoutError, Exception) as exc:
+    except (AssertionError, net.HTTPError, TimeoutError, Exception) as exc:
         checks.append(
             {
                 "id": check_id,

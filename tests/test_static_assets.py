@@ -285,6 +285,18 @@ def test_phase20_frontend_uses_local_icons():
     assert "icon.textContent =" not in html
 
 
+def test_runtime_http_calls_use_central_network_module():
+    offenders = []
+    for path in Path("src").rglob("*.py"):
+        if path == Path("src/net.py") or "__pycache__" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "import httpx" in text or "from httpx" in text:
+            offenders.append(str(path))
+
+    assert offenders == []
+
+
 def test_phase28_settings_hides_local_install_and_recovery_commands():
     html = frontend_source_text()
 
