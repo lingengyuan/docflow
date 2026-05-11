@@ -206,9 +206,14 @@ class IngestQueue:
                 with self._lock:
                     self._last_completed = dict(result)
                     self._tracked_paths.discard(path)
-            except Exception:
+            except Exception as e:
                 logger.exception(f"[queue] Failed: {path.name}")
                 with self._lock:
+                    self._last_completed = {
+                        "status": "error",
+                        "file": path.name,
+                        "error": str(e),
+                    }
                     self._tracked_paths.discard(path)
             finally:
                 with self._lock:

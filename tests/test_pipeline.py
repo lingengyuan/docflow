@@ -20,6 +20,11 @@ class FakeParser:
         )
 
 
+class FailingParser:
+    def parse(self, file_path: Path) -> ParsedDocument:
+        raise ValueError("parse failed")
+
+
 class FakeRegistry:
     supported_extensions = [".txt"]
 
@@ -31,6 +36,11 @@ class FakeRegistry:
 
     def resolve(self, path: Path) -> FakeParser:
         return self.parser
+
+
+class FailingRegistry(FakeRegistry):
+    def __init__(self):
+        self.parser = FailingParser()
 
 
 class FakeChunker:
@@ -76,6 +86,16 @@ class FakeEmbedder:
 
     def max_point_id(self):
         return self.qdrant_max_id
+
+
+class FailingEncodeEmbedder(FakeEmbedder):
+    def encode_texts(self, texts, progress_callback=None):
+        raise RuntimeError("embedding failed")
+
+
+class FailingUpsertEmbedder(FakeEmbedder):
+    def upsert_embeddings(self, chunks, dense_vecs, min_next_id=None):
+        raise RuntimeError("qdrant failed")
 
 
 def _make_file(path: Path):
@@ -195,3 +215,65 @@ def test_ingest_advances_vector_id_floor_from_sqlite_and_qdrant(tmp_path):
     assert embedder.min_next_ids == [31]
     indexed = store.get_file_by_path(tmp_path / "new.txt")
     assert store.get_file_qdrant_ids(indexed["id"]) == [31]
+
+
+def test_prepare_file_marks_parse_failures_as_errors(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    pipeline = IngestPipeline(
+        registry=FailingRegistry(),
+        chunker=FakeChunker(),
+        embedder=FakeEmbedder(),
+        store=store,
+        use_embedding_cache=False,
+    )
+    source = _make_file(tmp_path / "broken.txt")
+
+    result = pipeline.prepare_file(source)
+    record = store.get_file_by_path(source.resolve())
+
+    assert result["status"] == "error"
+    assert "parse failed" in result["error"]
+    assert record["status"] == "error"
+    assert "parse failed" in record["error_msg"]
+
+
+def test_ingest_prepared_batch_marks_embedding_failures_as_errors(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    pipeline = IngestPipeline(
+        registry=FakeRegistry(),
+        chunker=FakeChunker(),
+        embedder=FailingEncodeEmbedder(),
+        store=store,
+        use_embedding_cache=False,
+    )
+    source = _make_file(tmp_path / "embed-broken.txt")
+    prepared = pipeline.prepare_file(source)
+
+    result = pipeline.ingest_prepared_batch([prepared])[0]
+    record = store.get_file_by_path(source.resolve())
+
+    assert result["status"] == "error"
+    assert "embedding failed" in result["error"]
+    assert record["status"] == "error"
+    assert "embedding failed" in record["error_msg"]
+
+
+def test_ingest_prepared_batch_marks_qdrant_failures_as_errors(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    pipeline = IngestPipeline(
+        registry=FakeRegistry(),
+        chunker=FakeChunker(),
+        embedder=FailingUpsertEmbedder(),
+        store=store,
+        use_embedding_cache=False,
+    )
+    source = _make_file(tmp_path / "qdrant-broken.txt")
+    prepared = pipeline.prepare_file(source)
+
+    result = pipeline.ingest_prepared_batch([prepared])[0]
+    record = store.get_file_by_path(source.resolve())
+
+    assert result["status"] == "error"
+    assert "qdrant failed" in result["error"]
+    assert record["status"] == "error"
+    assert "qdrant failed" in record["error_msg"]

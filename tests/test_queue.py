@@ -1,10 +1,20 @@
 import threading
+import time
 from pathlib import Path
 
 from src.ingest.chunker import Chunk
 from src.ingest.pipeline import IngestMetrics, PreparedIngestFile
 from src.ingest.pdf_analyzer import ParsedDocument
 from src.ingest.queue import IngestQueue
+
+
+def wait_until(predicate, timeout: float = 2.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.02)
+    return False
 
 
 class BlockingPipeline:
@@ -36,6 +46,37 @@ def test_same_basename_different_paths_can_queue_while_processing():
         assert queue.queue_size == 1
     finally:
         pipeline.release.set()
+        queue.stop()
+
+
+class FlakyLegacyPipeline:
+    def __init__(self):
+        self.calls = 0
+
+    def ingest(self, path):
+        self.calls += 1
+        if self.calls == 1:
+            raise RuntimeError("temporary failure")
+        return {"status": "done", "file": Path(path).name}
+
+
+def test_legacy_worker_records_failure_and_allows_retry():
+    pipeline = FlakyLegacyPipeline()
+    queue = IngestQueue(pipeline)
+    path = Path("/tmp/source-a/retry-note.md")
+
+    queue.start()
+    try:
+        assert queue.submit(path)["status"] == "queued"
+        assert wait_until(lambda: (queue.status()["last_completed"] or {}).get("status") == "error")
+        failed = queue.status()["last_completed"]
+        assert failed["file"] == path.name
+        assert "temporary failure" in failed["error"]
+
+        assert queue.submit(path)["status"] == "queued"
+        assert wait_until(lambda: (queue.status()["last_completed"] or {}).get("status") == "done")
+        assert queue.status()["last_completed"] == {"status": "done", "file": path.name}
+    finally:
         queue.stop()
 
 
@@ -150,6 +191,33 @@ def test_queue_batches_files_and_exposes_chunk_progress():
     assert pipeline.batch_sizes == [2]
 
 
+def test_queue_respects_microbatch_file_boundary():
+    pipeline = BatchingPipeline()
+    queue = IngestQueue(
+        pipeline,
+        parse_workers=3,
+        microbatch_max_files=2,
+        microbatch_max_chunks=128,
+        microbatch_linger_ms=100,
+    )
+
+    files = [
+        Path("/tmp/source-a/report-a.pdf"),
+        Path("/tmp/source-b/report-b.pdf"),
+        Path("/tmp/source-c/report-c.pdf"),
+    ]
+
+    queue.start()
+    try:
+        for path in files:
+            queue.submit(path)
+        assert pipeline.started.wait(timeout=1)
+        pipeline.release.set()
+        assert wait_until(lambda: pipeline.batch_sizes == [2, 1])
+    finally:
+        queue.stop()
+
+
 def test_queue_pauses_prepared_batch_while_foreground_active():
     pipeline = BatchingPipeline()
     foreground_active = True
@@ -187,5 +255,6 @@ def test_queue_pauses_prepared_batch_while_foreground_active():
         foreground_active = False
         assert pipeline.started.wait(timeout=1)
         pipeline.release.set()
+        assert wait_until(lambda: (queue.status()["last_completed"] or {}).get("status") == "done")
     finally:
         queue.stop()
