@@ -38,6 +38,9 @@ output/
 *.bak
 *.tmp
 /drafts/*
+/docs/phase*-handoff.md
+/docs/history/
+/docs/history/phase-handoffs/phase*-handoff.md
 
 # Node / frontend build cache
 node_modules/

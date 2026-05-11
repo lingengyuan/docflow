@@ -37,7 +37,7 @@ Tests use `pytest`. Name files `test_*.py`, name test functions `test_*`, and ke
 
 ## Phase Handoff Rule
 
-When working from a phased plan, finish phases in order. After completing each phase, write or update a phase handoff document under `docs/`, then commit and push the completed phase to GitHub before reporting completion or starting the next phase. Phase handoff documents under `docs/` are local session records only: do not stage, commit, or push new or updated phase handoff documents unless the user explicitly asks for that. The handoff must state the completed scope, changed files, validation commands and results, known limitations, and the exact next phase tasks so a later session can resume without rediscovering context.
+When working from a phased plan, finish phases in order. After completing each phase, write or update a local phase handoff document under `docs/history/phase-handoffs/`, then commit and push the completed phase to GitHub before reporting completion or starting the next phase. Phase handoff documents are local session records only: do not stage, commit, or push new or updated phase handoff documents unless the user explicitly asks for that. The handoff must state the completed scope, changed files, validation commands and results, known limitations, and the exact next phase tasks so a later session can resume without rediscovering context.
 
 ## Commit & Pull Request Guidelines
 
