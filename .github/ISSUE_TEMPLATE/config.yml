@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Privacy model
+    url: https://github.com/lingengyuan/docflow/blob/main/docs/privacy.md
+    about: Read what DocFlow does locally and which actions may use the network.
+  - name: Development guide
+    url: https://github.com/lingengyuan/docflow/blob/main/docs/development.md
+    about: Learn how to set up a local development environment.

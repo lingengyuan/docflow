@@ -18,8 +18,10 @@ pip install -r requirements-vision.txt
 ## Run Tests
 
 ```bash
-.venv/bin/python -m pytest
+scripts/run_ci.sh
 ```
+
+This runs compile checks, ruff, mypy, and pytest. Use `docs/release.md` before publishing a release.
 
 ## Run the App
 

@@ -7,4 +7,6 @@ cd "$ROOT_DIR"
 PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 
 "$PYTHON_BIN" -m compileall src tests
+"$PYTHON_BIN" -m ruff check .
+"$PYTHON_BIN" -m mypy
 "$PYTHON_BIN" -m pytest -q

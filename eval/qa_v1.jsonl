@@ -1,10 +1,10 @@
 {"id": "readme_positioning", "category": "readme", "question": "What is DocFlow's one-line positioning?", "expected_files": ["README.md"], "expected_terms": ["Local-first personal knowledge Q&A"], "must_find": true}
 {"id": "readme_privacy_no_telemetry", "category": "readme", "question": "Does the README say DocFlow includes telemetry?", "expected_files": ["README.md"], "expected_terms": ["no telemetry"], "must_find": true}
-{"id": "readme_visible_sources", "category": "readme", "question": "How does the README describe answer sources?", "expected_files": ["README.md"], "expected_terms": ["visible sources"], "must_find": true}
+{"id": "readme_visible_sources", "category": "readme", "question": "How does the README describe answer sources?", "expected_files": ["README.md"], "expected_terms": ["source snippets"], "must_find": true}
 {"id": "readme_demo_entry", "category": "readme", "question": "Where does README mention 导入示例资料 for the first-run demo?", "expected_files": ["README.md"], "expected_terms": ["导入示例资料"], "must_find": true}
 {"id": "readme_sqlite_storage", "category": "readme", "question": "Where does DocFlow keep metadata?", "expected_files": ["README.md"], "expected_terms": ["SQLite"], "must_find": true}
 {"id": "readme_qdrant_vectors", "category": "readme", "question": "Where does DocFlow keep vectors?", "expected_files": ["README.md"], "expected_terms": ["Qdrant"], "must_find": true}
-{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["287"], "must_find": true}
+{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["304"], "must_find": true}
 {"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["73"], "must_find": true}
 {"id": "readme_offline_check", "category": "readme", "question": "What offline check is mentioned in README?", "expected_files": ["README.md"], "expected_terms": ["offline network check"], "must_find": true}
 {"id": "readme_license", "category": "readme", "question": "What license does README list?", "expected_files": ["README.md"], "expected_terms": ["MIT"], "must_find": true}
@@ -46,7 +46,7 @@
 {"id": "cli_python_main", "category": "cli", "question": "Where does CLI documentation mention python main.py?", "expected_files": ["docs/cli.md"], "expected_terms": ["python main.py"], "must_find": true}
 {"id": "dev_requirements_dev", "category": "development", "question": "Which requirements file is used for development?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-dev.txt"], "must_find": true}
 {"id": "dev_requirements_vision", "category": "development", "question": "Which optional requirements file installs image understanding support?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-vision.txt"], "must_find": true}
-{"id": "dev_pytest", "category": "development", "question": "Which command runs tests in development docs?", "expected_files": ["docs/development.md"], "expected_terms": [".venv/bin/python -m pytest"], "must_find": true}
+{"id": "dev_pytest", "category": "development", "question": "Which command runs tests in development docs?", "expected_files": ["docs/development.md"], "expected_terms": ["scripts/run_ci.sh"], "must_find": true}
 {"id": "dev_css_build", "category": "development", "question": "Which command rebuilds frontend styles?", "expected_files": ["docs/development.md"], "expected_terms": ["npm run build:css"], "must_find": true}
 {"id": "dev_product_rule", "category": "development", "question": "What should the normal browser UI feel like?", "expected_files": ["docs/development.md"], "expected_terms": ["finished personal knowledge product"], "must_find": true}
 {"id": "dev_developer_only", "category": "development", "question": "Where should developer-only commands belong?", "expected_files": ["docs/development.md"], "expected_terms": ["Developer-only commands"], "must_find": true}

@@ -4,7 +4,7 @@ DocFlow currently has several validation paths:
 
 ```bash
 .venv/bin/python -m pytest
-docflow eval retrieval --write-results
+docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
 docflow maturity-eval --no-rerank --source-filter
 docflow browser-acceptance
@@ -26,7 +26,7 @@ The 90-point roadmap replaces subjective maturity scoring with more measurable o
 
 ## Retrieval Metrics
 
-`docflow eval retrieval --write-results` runs `eval/qa_v1.jsonl` and reports:
+`docflow eval retrieval --refresh-sources --source-filter --write-results` refreshes the expected public source files, runs `eval/qa_v1.jsonl`, and reports:
 
 - Recall@5
 - MRR@5
@@ -36,7 +36,7 @@ The 90-point roadmap replaces subjective maturity scoring with more measurable o
 
 Results are written under `eval/results/`, which is local runtime output and is not committed.
 
-Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 171.11 ms and P95 186.46 ms after model warmup.
+Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 297.48 ms and P95 793.96 ms after model warmup.
 
 ## Parsing Regression
 

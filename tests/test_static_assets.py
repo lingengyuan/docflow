@@ -291,6 +291,27 @@ def test_phase57_library_exposes_real_knowledge_views():
     assert "knowledgeOverviewMarkup" in html
 
 
+def test_phase58_public_maintenance_surface_is_complete():
+    release_doc = Path("docs/release.md").read_text(encoding="utf-8")
+    pr_template = Path(".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert Path(".github/dependabot.yml").exists()
+    assert Path(".github/workflows/codeql.yml").exists()
+    assert Path(".github/ISSUE_TEMPLATE/bug.md").exists()
+    assert Path(".github/ISSUE_TEMPLATE/feature.md").exists()
+    assert Path(".github/ISSUE_TEMPLATE/question.md").exists()
+    assert Path(".github/ISSUE_TEMPLATE/config.yml").exists()
+    assert Path("docs/release.md").exists()
+    assert "version = \"0.58.0\"" in pyproject
+    assert "scripts/run_ci.sh" in release_doc
+    assert "docflow doctor --offline" in release_doc
+    assert "Known limitations" in release_doc
+    assert "Privacy impact reviewed" in pr_template
+    assert "Status Update Rule" in status_doc
+
+
 def test_phase18_frontend_uses_local_tailwind_build():
     html = frontend_source_text()
 
@@ -413,6 +434,7 @@ def test_phase18_release_docs_are_linked_from_readme():
         "docs/cli.md",
         "docs/development.md",
         "docs/evaluation.md",
+        "docs/release.md",
         "docs/assets/chat.png",
         "docs/assets/library.png",
         "docs/assets/notes.png",
@@ -426,6 +448,7 @@ def test_phase18_release_docs_are_linked_from_readme():
     assert "docs/cli.md" in readme
     assert "docs/development.md" in readme
     assert "docs/evaluation.md" in readme
+    assert "docs/release.md" in readme
     assert "docs/assets/chat.png" in readme
     assert "MIT." in readme
     assert "MIT。" in readme

@@ -1,0 +1,62 @@
+# Release Process
+
+Use this checklist before tagging a public DocFlow release.
+
+## 1. Prepare
+
+- Confirm `pyproject.toml` has the release version.
+- Confirm `CHANGELOG.md` has a dated entry for the release.
+- Confirm `README.md` and `docs/status.md` show the latest measured validation results.
+- Confirm screenshots in `docs/assets/` still match the current browser UI when the UI changed.
+- Confirm known limitations are listed in `docs/status.md`.
+
+## 2. Validate
+
+Run the release checks from a clean working tree:
+
+```bash
+scripts/run_ci.sh
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 docflow eval retrieval --refresh-sources --source-filter --write-results
+docflow eval parsing --write-results
+docflow browser-acceptance
+docflow doctor --offline
+```
+
+For visible UI changes, open the browser workspace and click the main flows for chat, library, notes, source preview, and settings.
+
+## 3. Update Status
+
+When a validation number changes, update both places in the same commit:
+
+- `README.md` Current Verification / 当前验证结果
+- `docs/status.md` Latest Local Validation
+
+Use measured command output only. Do not replace these results with subjective maturity scores.
+
+## 4. Tag
+
+Create a tag after the release commit is pushed:
+
+```bash
+git tag v0.58.0
+git push origin v0.58.0
+```
+
+Use the actual version for the release you are publishing.
+
+## 5. Release Notes
+
+GitHub release notes should include:
+
+- What changed.
+- Who should upgrade.
+- Validation results.
+- Screenshots when UI changed.
+- Known limitations.
+- Privacy or network behavior changes.
+
+## 6. After Release
+
+- Confirm CI, CodeQL, and Dependabot are active.
+- Confirm issue templates and pull request template still match the project workflow.
+- Start the next changelog entry only after the next user-facing or maintainer-facing change lands.
