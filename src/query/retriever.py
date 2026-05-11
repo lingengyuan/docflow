@@ -14,11 +14,10 @@ import logging
 import re
 from pathlib import Path
 
-from qdrant_client import QdrantClient
-
 from src.domain_types import RetrievalResult
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
+from src.vector_store import QdrantVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +208,8 @@ class HybridRetriever:
         self.top_k_retrieval = top_k_retrieval
         self.top_k_rerank = top_k_rerank
 
-        self._qdrant = QdrantClient(host=qdrant_host, port=qdrant_port)
+        self._vector_store = QdrantVectorStore(host=qdrant_host, port=qdrant_port)
+        self._qdrant = self._vector_store.client
         self._store = store or DocStore(db_path)
         self._embed_model = None
         self._reranker: MLXReranker | None = None
@@ -471,33 +471,23 @@ class HybridRetriever:
         file_filter: list[str] | None,
         limit: int | None = None,
     ) -> list[RetrievalResult]:
-        from qdrant_client.models import Filter, FieldCondition, MatchAny
-
-        search_filter = None
-        if file_filter:
-            search_filter = Filter(
-                must=[FieldCondition(key="file_name", match=MatchAny(any=file_filter))]
-            )
-
-        results = self._qdrant.query_points(
+        results = self._vector_store.search(
             collection_name=COLLECTION_NAME,
             query=query_vec,
-            query_filter=search_filter,
+            file_filter=file_filter,
             limit=limit or self.top_k_retrieval,
         )
         return [
             {
-                "qdrant_id": r.id,
-                "score": r.score,
-                **r.payload,
+                "qdrant_id": hit.id,
+                "score": hit.score,
+                **hit.payload,
             }
-            for r in results.points
+            for hit in results
         ]
 
     def close(self) -> None:
-        close = getattr(self._qdrant, "close", None)
-        if callable(close):
-            close()
+        self._vector_store.close()
 
     # ------------------------------------------------------------------
     # FTS5 keyword search (replaces pickle BM25)

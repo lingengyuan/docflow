@@ -15,11 +15,10 @@ import os
 from pathlib import Path
 
 import numpy as np
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.chunker import Chunk
+from src.vector_store import QdrantVectorStore, VectorPoint
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,8 @@ class Embedder:
         self._model = None          # lazy-loaded SentenceTransformer
         self._vector_dim: int | None = None
 
-        self._qdrant = QdrantClient(host=qdrant_host, port=qdrant_port)
+        self._vector_store = QdrantVectorStore(host=qdrant_host, port=qdrant_port)
+        self._qdrant = self._vector_store.client
 
         # Monotonic ID counter (safe after deletions)
         self._id_counter_path = Path(id_counter_path)
@@ -67,22 +67,17 @@ class Embedder:
         return self._model
 
     def _ensure_collection(self, vector_dim: int):
+        existing_dim = None
         if self._qdrant.collection_exists(COLLECTION_NAME):
             info = self._qdrant.get_collection(COLLECTION_NAME)
             existing_dim = info.config.params.vectors.size
-            if existing_dim == vector_dim:
-                return
+        self._vector_store.ensure_collection(COLLECTION_NAME, vector_dim)
+        if existing_dim is not None and existing_dim != vector_dim:
             logger.warning(
-                f"[embedder] Vector dim changed {existing_dim} → {vector_dim}. "
-                "Recreating Qdrant collection — all files need re-ingestion."
+                f"[embedder] Vector dim changed {existing_dim} -> {vector_dim}. "
+                "Recreating Qdrant collection - all files need re-ingestion."
             )
-            self._qdrant.delete_collection(COLLECTION_NAME)
             self._reset_id_counter()
-
-        self._qdrant.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config=VectorParams(size=vector_dim, distance=Distance.COSINE),
-        )
 
     # ------------------------------------------------------------------
     # Embed & store
@@ -182,7 +177,7 @@ class Embedder:
         ids = self._reserve_ids(len(chunks), min_next_id=min_next_id or 0)
 
         points = [
-            PointStruct(
+            VectorPoint(
                 id=ids[j],
                 vector=dense_vecs[j].tolist(),
                 payload={
@@ -204,7 +199,7 @@ class Embedder:
             for j in range(len(chunks))
         ]
 
-        self._qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
+        self._vector_store.upsert_points(collection_name=COLLECTION_NAME, points=points)
 
         return ids
 
@@ -271,23 +266,7 @@ class Embedder:
     def max_point_id(self) -> int:
         """Return the highest point ID in Qdrant, or -1 when the collection is empty."""
         try:
-            if not self._qdrant.collection_exists(COLLECTION_NAME):
-                return -1
-            max_id = -1
-            offset = None
-            while True:
-                records, offset = self._qdrant.scroll(
-                    collection_name=COLLECTION_NAME,
-                    limit=256,
-                    offset=offset,
-                    with_payload=False,
-                    with_vectors=False,
-                )
-                for record in records:
-                    max_id = max(max_id, int(record.id))
-                if offset is None:
-                    break
-            return max_id
+            return self._vector_store.max_point_id(COLLECTION_NAME)
         except Exception:
             logger.warning("[embedder] failed to inspect Qdrant point IDs", exc_info=True)
             raise
@@ -322,13 +301,7 @@ class Embedder:
         """删除某个文件的所有 Qdrant 向量（重新索引时调用）。FTS5 清理由 store.add_chunks() 负责。"""
         if not qdrant_ids:
             return
-        from qdrant_client.models import PointIdsList
-        self._qdrant.delete(
-            collection_name=COLLECTION_NAME,
-            points_selector=PointIdsList(points=qdrant_ids),
-        )
+        self._vector_store.delete_points(COLLECTION_NAME, qdrant_ids)
 
     def close(self) -> None:
-        close = getattr(self._qdrant, "close", None)
-        if callable(close):
-            close()
+        self._vector_store.close()
