@@ -5,6 +5,7 @@
 - Added Dependabot and CodeQL coverage for dependency and security maintenance.
 - Added feature and question issue templates, strengthened the pull request checklist, and documented the release process.
 - Updated the project version and status rules so README and status validation numbers stay tied to real checks.
+- Declared the multipart upload dependency required by the FastAPI upload route.
 
 ## 0.57.0 - 2026-05-12
 
