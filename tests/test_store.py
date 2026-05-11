@@ -2,7 +2,6 @@
 测试 DocStore SQLite 元数据存储。
 """
 
-import tempfile
 import sqlite3
 from pathlib import Path
 
@@ -86,8 +85,7 @@ class TestDocStore:
         h = DocStore.compute_hash(pdf)
         file_id = db.upsert_file(pdf, pdf.name, h)
         records = [
-            {"qdrant_id": i, "chunk_type": "text", "page_num": 1,
-             "section": "", "char_count": 100}
+            {"qdrant_id": i, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 100}
             for i in range(5)
         ]
         db.add_chunks(file_id, records)
@@ -99,8 +97,20 @@ class TestDocStore:
         h = DocStore.compute_hash(pdf)
         file_id = db.upsert_file(pdf, pdf.name, h)
         records = [
-            {"qdrant_id": 20, "chunk_type": "text", "page_num": 2, "section": "B", "char_count": 20},
-            {"qdrant_id": 10, "chunk_type": "table", "page_num": 1, "section": "A", "char_count": 10},
+            {
+                "qdrant_id": 20,
+                "chunk_type": "text",
+                "page_num": 2,
+                "section": "B",
+                "char_count": 20,
+            },
+            {
+                "qdrant_id": 10,
+                "chunk_type": "table",
+                "page_num": 1,
+                "section": "A",
+                "char_count": 10,
+            },
         ]
         db.add_chunks(file_id, records)
 
@@ -164,7 +174,9 @@ class TestDocStore:
             ]
             trigram_ids = [
                 row["rowid"]
-                for row in conn.execute("SELECT rowid FROM chunks_fts_trigram ORDER BY rowid").fetchall()
+                for row in conn.execute(
+                    "SELECT rowid FROM chunks_fts_trigram ORDER BY rowid"
+                ).fetchall()
             ]
 
         assert fts_ids == chunk_ids
@@ -180,8 +192,20 @@ class TestDocStore:
         db.add_chunks(
             file_id,
             [
-                {"qdrant_id": 20, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 10},
-                {"qdrant_id": 10, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 10},
+                {
+                    "qdrant_id": 20,
+                    "chunk_type": "text",
+                    "page_num": 1,
+                    "section": "",
+                    "char_count": 10,
+                },
+                {
+                    "qdrant_id": 10,
+                    "chunk_type": "text",
+                    "page_num": 1,
+                    "section": "",
+                    "char_count": 10,
+                },
             ],
         )
 
@@ -226,7 +250,13 @@ class TestDocStore:
         db.add_chunks(file_id, records_v1)
         # Re-ingest with different chunks
         records_v2 = [
-            {"qdrant_id": i + 100, "chunk_type": "text", "page_num": 1, "section": "", "char_count": 10}
+            {
+                "qdrant_id": i + 100,
+                "chunk_type": "text",
+                "page_num": 1,
+                "section": "",
+                "char_count": 10,
+            }
             for i in range(2)
         ]
         db.add_chunks(file_id, records_v2)
@@ -364,7 +394,9 @@ class TestDocStore:
 
         store = DocStore(db_path)
         with store._conn() as migrated:
-            columns = [row["name"] for row in migrated.execute("PRAGMA table_info(chunks)").fetchall()]
+            columns = [
+                row["name"] for row in migrated.execute("PRAGMA table_info(chunks)").fetchall()
+            ]
 
         assert "parent_id" in columns
         assert "parent_text" in columns

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +12,6 @@ import yaml
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 
-from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.chunker import Chunk
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.store import DocStore
@@ -86,7 +85,9 @@ def compare_index_state(
         status = "inconsistent"
     return ConsistencyReport(
         status=status,
-        sqlite_chunks=sqlite_chunk_count if sqlite_chunk_count is not None else len(sqlite_chunk_ids),
+        sqlite_chunks=sqlite_chunk_count
+        if sqlite_chunk_count is not None
+        else len(sqlite_chunk_ids),
         qdrant_points=len(qdrant_point_ids),
         id_counter=counter,
         missing_qdrant_points=missing_qdrant_points,
@@ -248,9 +249,7 @@ def repair_index_ids(config_path: str | Path = "config.yaml", dry_run: bool = Tr
     ingest_results = []
     for path in affected_paths:
         if not path.exists():
-            ingest_results.append(
-                {"status": "missing", "file": path.name, "path": str(path)}
-            )
+            ingest_results.append({"status": "missing", "file": path.name, "path": str(path)})
             continue
         store.set_status(path, "error", error_msg="Phase23 duplicate qdrant_id repair")
         ingest_results.append(pipeline.ingest(path))
@@ -352,7 +351,7 @@ def rebuild_qdrant_only(config_path: str | Path = "config.yaml", dry_run: bool =
         for i, row in enumerate(rows)
     ]
     for i in range(0, len(points), 100):
-        embedder._qdrant.upsert(collection_name=COLLECTION_NAME, points=points[i:i + 100])
+        embedder._qdrant.upsert(collection_name=COLLECTION_NAME, points=points[i : i + 100])
 
     next_id = max((int(row["qdrant_id"]) for row in rows), default=-1) + 1
     embedder.sync_id_counter(next_id)

@@ -44,6 +44,7 @@ class ImageParser:
             return
         from mlx_vlm import load
         from mlx_vlm.utils import load_config
+
         logger.info(f"[image_parser] Loading VLM: {self._vlm_model_name}")
         self._model, self._processor = load(self._vlm_model_name)
         self._config = load_config(self._vlm_model_name)
@@ -55,15 +56,21 @@ class ImageParser:
         if suffix in (".heic", ".heif"):
             try:
                 import pillow_heif
+
                 pillow_heif.register_heif_opener()
-            except ImportError:
-                raise ImportError("pillow-heif required for HEIC support: pip install pillow-heif")
+            except ImportError as exc:
+                raise ImportError(
+                    "pillow-heif required for HEIC support: pip install pillow-heif"
+                ) from exc
         if suffix in (".heic", ".heif"):
-            from PIL import Image
             import tempfile
+
+            from PIL import Image
+
             img = Image.open(str(file_path))
             fd, tmp_path = tempfile.mkstemp(suffix=".png")
             import os
+
             os.close(fd)
             tmp = Path(tmp_path)
             img.save(str(tmp), "PNG")

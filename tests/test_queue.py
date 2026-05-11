@@ -3,8 +3,8 @@ import time
 from pathlib import Path
 
 from src.ingest.chunker import Chunk
-from src.ingest.pipeline import IngestMetrics, PreparedIngestFile
 from src.ingest.pdf_analyzer import ParsedDocument
+from src.ingest.pipeline import IngestMetrics, PreparedIngestFile
 from src.ingest.queue import IngestQueue
 
 

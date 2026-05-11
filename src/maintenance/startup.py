@@ -10,12 +10,13 @@ import sqlite3
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import yaml
 
 from src import net
+
 STATUS_ORDER = {"ok": 0, "degraded": 1, "unavailable": 2}
 STARTUP_BLOCKERS = {"python", "config", "qdrant", "port"}
 
@@ -308,7 +309,9 @@ def check_app_port(port: int, host: str = "127.0.0.1") -> dict:
         "status": "unavailable" if in_use else "ok",
         "host": host,
         "port": int(port),
-        "actions": [f"Use another port, for example: docflow start --port {int(port) + 1}"] if in_use else [],
+        "actions": [f"Use another port, for example: docflow start --port {int(port) + 1}"]
+        if in_use
+        else [],
     }
 
 
@@ -322,7 +325,9 @@ def _run_command(args: list[str], timeout: float = 10.0) -> subprocess.Completed
     return subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
 
 
-def ensure_qdrant(cfg: dict, runner: Callable[[list[str], float], subprocess.CompletedProcess] = _run_command) -> dict:
+def ensure_qdrant(
+    cfg: dict, runner: Callable[[list[str], float], subprocess.CompletedProcess] = _run_command
+) -> dict:
     current = check_qdrant(cfg)
     if current["status"] != "unavailable":
         return {"attempted": False, "result": current, "actions": current.get("actions", [])}
@@ -379,19 +384,27 @@ def build_startup_report(
     if checks["config"]["status"] == "ok":
         cfg, _ = load_config(config_path)
         qdrant_result = ensure_qdrant(cfg)["result"] if try_start_qdrant else check_qdrant(cfg)
-        checks.update({
-            "sqlite": check_sqlite(cfg),
-            "qdrant": qdrant_result,
-            "ollama": check_ollama(cfg),
-            "port": check_app_port(app_port, host="127.0.0.1"),
-        })
+        checks.update(
+            {
+                "sqlite": check_sqlite(cfg),
+                "qdrant": qdrant_result,
+                "ollama": check_ollama(cfg),
+                "port": check_app_port(app_port, host="127.0.0.1"),
+            }
+        )
     else:
-        checks.update({
-            "sqlite": {"status": "unavailable", "actions": ["Fix config.yaml first."]},
-            "qdrant": {"status": "unavailable", "actions": ["Fix config.yaml first."]},
-            "ollama": {"status": "degraded", "optional": True, "actions": ["Fix config.yaml first."]},
-            "port": check_app_port(app_port, host="127.0.0.1"),
-        })
+        checks.update(
+            {
+                "sqlite": {"status": "unavailable", "actions": ["Fix config.yaml first."]},
+                "qdrant": {"status": "unavailable", "actions": ["Fix config.yaml first."]},
+                "ollama": {
+                    "status": "degraded",
+                    "optional": True,
+                    "actions": ["Fix config.yaml first."],
+                },
+                "port": check_app_port(app_port, host="127.0.0.1"),
+            }
+        )
 
     actions = []
     for check in checks.values():
@@ -487,7 +500,11 @@ def offline_doctor_command(
     as_json: bool = False,
 ) -> int:
     report = build_offline_report(config_path=config_path, app_port=app_port)
-    print(json.dumps(report, ensure_ascii=False, indent=2) if as_json else format_offline_report(report))
+    print(
+        json.dumps(report, ensure_ascii=False, indent=2)
+        if as_json
+        else format_offline_report(report)
+    )
     return 0 if report["unexpected_outbound_connections"] == 0 else 1
 
 

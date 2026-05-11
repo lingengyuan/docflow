@@ -11,8 +11,8 @@ DocFlow 入口。
   python main.py start [--host 0.0.0.0] [--port 8000] [--check-only] [--json]
 
   # macOS 后台服务（launchd）
-  python main.py install-local [--apply] [--with-service] [--skip-deps] [--host 127.0.0.1] [--port 8000]
-  python main.py service install [--dry-run] [--host 127.0.0.1] [--port 8000] [--python /path/to/python]
+  python main.py install-local [--apply] [--with-service] [--skip-deps]
+  python main.py service install [--dry-run] [--python /path/to/python]
   python main.py service status
   python main.py service uninstall [--dry-run]
 
@@ -34,7 +34,7 @@ DocFlow 入口。
   python main.py sample-suite
 
   # 运行浏览器验收检查（需要 Web 服务已启动）
-  python main.py browser-acceptance [--base-url http://127.0.0.1:8000] [--json] [--no-screenshots] [--headed]
+  python main.py browser-acceptance [--base-url http://127.0.0.1:8000] [--json]
 
   # 检查 SQLite 与 Qdrant 是否一致
   python main.py check
@@ -54,8 +54,8 @@ DocFlow 入口。
 """
 
 import json
-import sys
 import logging
+import sys
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,12 +68,15 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 def serve():
     _config_path()
     import uvicorn
+
     uvicorn.run("src.api.app:app", host="0.0.0.0", port=8000, reload=False)
 
 
 def doctor_command(args: list[str]):
     from src.maintenance.startup import (
         doctor_command as run_doctor,
+    )
+    from src.maintenance.startup import (
         offline_doctor_command as run_offline_doctor,
     )
 
@@ -156,6 +159,7 @@ def install_local_command(args: list[str]):
 
 def ingest(path: str):
     from src.ingest.pipeline import IngestPipeline
+
     pipeline = IngestPipeline.from_config(_config_path())
     result = pipeline.ingest(path)
     print(result)
@@ -169,9 +173,11 @@ def demo_command(args: list[str]):
 
 def scan():
     import yaml
-    from src.ingest.pipeline import IngestPipeline
+
     from src.api.app import _parse_watch_dirs
+    from src.ingest.pipeline import IngestPipeline
     from src.ingest.watcher import _is_excluded
+
     config_path = _config_path()
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
@@ -303,7 +309,7 @@ def _arg_value(args: list[str], name: str, default: str | None = None) -> str | 
     prefix = f"{name}="
     for arg in args:
         if arg.startswith(prefix):
-            return arg[len(prefix):]
+            return arg[len(prefix) :]
     if name in args:
         index = args.index(name)
         if index + 1 < len(args):

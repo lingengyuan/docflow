@@ -15,7 +15,9 @@ class FakeQdrantClient:
         return self.exists
 
     def get_collection(self, collection_name):
-        return SimpleNamespace(config=SimpleNamespace(params=SimpleNamespace(vectors=SimpleNamespace(size=3))))
+        return SimpleNamespace(
+            config=SimpleNamespace(params=SimpleNamespace(vectors=SimpleNamespace(size=3)))
+        )
 
     def create_collection(self, collection_name, vectors_config):
         self.created.append((collection_name, vectors_config.size))
@@ -51,7 +53,9 @@ def test_qdrant_vector_store_maps_points_and_search_hits():
     store = QdrantVectorStore(client=client)
 
     store.ensure_collection("docflow", 3)
-    store.upsert_points("docflow", [VectorPoint(id=1, vector=[0.1, 0.2, 0.3], payload={"file_name": "a.md"})])
+    store.upsert_points(
+        "docflow", [VectorPoint(id=1, vector=[0.1, 0.2, 0.3], payload={"file_name": "a.md"})]
+    )
     hits = store.search("docflow", [0.1, 0.2, 0.3], ["a.md"], 5)
 
     assert client.created == [("docflow", 3)]

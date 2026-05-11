@@ -11,7 +11,6 @@ from src.ingest.chunker import Chunk, StructuredChunker
 from src.ingest.parsers import ParserRegistry
 from src.ingest.pdf_analyzer import ParsedDocument
 
-
 DEFAULT_CORPUS_DIR = Path("eval/parsing_corpus")
 DEFAULT_EXPECTED_PATH = Path("eval/parsing_expected/parsing_v1.json")
 
@@ -82,7 +81,9 @@ def evaluate_document(
     try:
         doc = registry.resolve(path).parse(path)
     except Exception as exc:
-        return _result(expectation, path, False, [f"parse_error={type(exc).__name__}: {exc}"], {}, [])
+        return _result(
+            expectation, path, False, [f"parse_error={type(exc).__name__}: {exc}"], {}, []
+        )
 
     chunks = _chunk_document(doc, chunker)
     text = _document_text(doc)

@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
-
 
 Runner = Callable[[list[str], Path], subprocess.CompletedProcess]
 
@@ -55,7 +54,16 @@ def build_install_plan(
             _step(
                 "startup_check",
                 "Check local startup requirements",
-                [str(app_python), "main.py", "start", "--check-only", "--host", host, "--port", str(port)],
+                [
+                    str(app_python),
+                    "main.py",
+                    "start",
+                    "--check-only",
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
+                ],
             ),
             _step(
                 "restore_drill",

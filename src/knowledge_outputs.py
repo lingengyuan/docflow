@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT = 12_000
 
 

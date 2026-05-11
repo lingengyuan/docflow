@@ -81,10 +81,18 @@ ollama:
 """.format(db_path=tmp_path / "docflow.db"),
         encoding="utf-8",
     )
-    monkeypatch.setattr(startup, "check_python_dependencies", lambda: {"status": "ok", "actions": []})
-    monkeypatch.setattr(startup, "check_qdrant", lambda cfg: {"status": "unavailable", "actions": ["start qdrant"]})
-    monkeypatch.setattr(startup, "check_ollama", lambda cfg: {"status": "degraded", "actions": [], "optional": True})
-    monkeypatch.setattr(startup, "check_app_port", lambda port, host="127.0.0.1": {"status": "ok", "actions": []})
+    monkeypatch.setattr(
+        startup, "check_python_dependencies", lambda: {"status": "ok", "actions": []}
+    )
+    monkeypatch.setattr(
+        startup, "check_qdrant", lambda cfg: {"status": "unavailable", "actions": ["start qdrant"]}
+    )
+    monkeypatch.setattr(
+        startup, "check_ollama", lambda cfg: {"status": "degraded", "actions": [], "optional": True}
+    )
+    monkeypatch.setattr(
+        startup, "check_app_port", lambda port, host="127.0.0.1": {"status": "ok", "actions": []}
+    )
 
     report = startup.build_startup_report(config_path)
 
@@ -108,7 +116,9 @@ def test_offline_report_records_zero_unexpected_hosts(monkeypatch):
 
 def test_ensure_qdrant_suggests_run_command_when_container_is_missing(monkeypatch):
     cfg = {"qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"}}
-    monkeypatch.setattr(startup, "check_qdrant", lambda cfg: {"status": "unavailable", "actions": ["run qdrant"]})
+    monkeypatch.setattr(
+        startup, "check_qdrant", lambda cfg: {"status": "unavailable", "actions": ["run qdrant"]}
+    )
     monkeypatch.setattr(startup.shutil, "which", lambda name: "/usr/local/bin/docker")
 
     def runner(args: list[str], timeout: float):

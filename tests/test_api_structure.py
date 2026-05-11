@@ -9,11 +9,11 @@ from src.api.state import AppState, LLMSwitchState
 def test_phase34_api_routes_are_registered_from_route_modules():
     source = Path("src/api/app.py").read_text(encoding="utf-8")
 
-    assert "app.include_router(query_routes.create_router" in source
-    assert "app.include_router(library_routes.create_router" in source
-    assert "app.include_router(imports_routes.create_router" in source
-    assert "app.include_router(settings_routes.create_router" in source
-    assert "app.include_router(maintenance_routes.create_router" in source
+    assert "query_routes.create_router" in source
+    assert "library_routes.create_router" in source
+    assert "imports_routes.create_router" in source
+    assert "settings_routes.create_router" in source
+    assert "maintenance_routes.create_router" in source
     assert '@app.get("/api/' not in source
     assert '@app.post("/api/' not in source
     assert '@app.patch("/api/' not in source

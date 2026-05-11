@@ -2,7 +2,6 @@
 测试 HybridRetriever 的 RRF 融合和 BM25 逻辑（mock 向量检索和模型）。
 """
 
-import pytest
 from src.query.retriever import HybridRetriever, QueryRouter
 
 
@@ -69,6 +68,7 @@ class TestRRFFusion:
 class TestTableQueryDetection:
     def test_is_table_query(self):
         from src.query.engine import QueryEngine
+
         assert QueryEngine._is_table_query("Q3各区域销售数据汇总") is True
         assert QueryEngine._is_table_query("这份合同的违约条款是什么") is False
         assert QueryEngine._is_table_query("total sales amount") is True

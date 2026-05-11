@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.51.0 - 2026-05-12
+
+- Made full `ruff check .` pass across the repository.
+- Made the configured `mypy` check pass.
+- Updated CI to run full ruff, mypy, and pytest instead of only a small ruff safety subset.
+
 ## 0.50.0 - 2026-05-12
 
 - Added a full Docker Compose app service alongside Qdrant for one-command startup.

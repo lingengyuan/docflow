@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.quality.browser_acceptance import (
+from src.quality.browser_acceptance import (  # noqa: E402
     DEFAULT_BASE_URL,
     DEFAULT_SCREENSHOT_DIR,
     format_browser_acceptance_report,
@@ -30,8 +30,14 @@ def main() -> int:
     )
     parser.add_argument("--no-screenshots", action="store_true", help="Do not write screenshots")
     parser.add_argument("--headed", action="store_true", help="Run browser with a visible window")
-    parser.add_argument("--timeout-ms", type=int, default=8000, help="Per-check timeout in milliseconds")
-    parser.add_argument("--with-mutation-flow", action="store_true", help="Also create, query, and clean up a temporary note")
+    parser.add_argument(
+        "--timeout-ms", type=int, default=8000, help="Per-check timeout in milliseconds"
+    )
+    parser.add_argument(
+        "--with-mutation-flow",
+        action="store_true",
+        help="Also create, query, and clean up a temporary note",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 

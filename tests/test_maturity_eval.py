@@ -187,7 +187,9 @@ def test_eval_case_prefers_parent_expanded_evidence():
                             "file_name": "README.md",
                             "file_path": "/tmp/README.md",
                             "section": "Features",
-                            "text_preview": "Settings view shows model status and maintenance commands.",
+                            "text_preview": (
+                                "Settings view shows model status and maintenance commands."
+                            ),
                             "qdrant_id": 1,
                         }
                     ],

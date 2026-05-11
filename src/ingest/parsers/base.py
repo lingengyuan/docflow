@@ -14,5 +14,4 @@ from src.ingest.pdf_analyzer import ParsedDocument  # noqa: F401 (re-export)
 
 
 class FileParser(Protocol):
-    def parse(self, file_path: Path) -> ParsedDocument:
-        ...
+    def parse(self, file_path: Path) -> ParsedDocument: ...

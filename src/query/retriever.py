@@ -13,8 +13,8 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
-from src.domain_types import RetrievalResult
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
 from src.vector_store import QdrantVectorStore
@@ -30,6 +30,7 @@ QUERY_INSTRUCTION = "Retrieve relevant text passages that answer the query."
 # QueryRouter — 规则路由，0ms 开销，动态调整向量/关键词检索权重
 # ---------------------------------------------------------------------------
 
+
 class QueryRouter:
     """
     根据查询特征动态调整 BM25（FTS5）与向量检索的权重。
@@ -40,16 +41,16 @@ class QueryRouter:
     """
 
     _KEYWORD_PATTERNS = [
-        re.compile(r'"[^"]+"'),              # "精确短语"
-        re.compile(r'\b\d{4}[-/]\d{1,2}'),  # 日期 2024-01
-        re.compile(r'\.\w{2,4}\b'),          # 文件扩展名 .pdf
-        re.compile(r'[A-Z]{2,}\d+'),         # 编号 INV2024
+        re.compile(r'"[^"]+"'),  # "精确短语"
+        re.compile(r"\b\d{4}[-/]\d{1,2}"),  # 日期 2024-01
+        re.compile(r"\.\w{2,4}\b"),  # 文件扩展名 .pdf
+        re.compile(r"[A-Z]{2,}\d+"),  # 编号 INV2024
         re.compile(
-            r'[\u4e00-\u9fff].*\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|'
-            r'[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b'
-            r'|\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|'
-            r'[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b'
-            r'.*[\u4e00-\u9fff]'
+            r"[\u4e00-\u9fff].*\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|"
+            r"[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b"
+            r"|\b(?:[A-Z]{2,}|[A-Za-z]+[-_][A-Za-z0-9_-]+|"
+            r"[A-Za-z]*\d[A-Za-z0-9_-]*|fallback|reranked|backup|export-chunks|restore-plan)\b"
+            r".*[\u4e00-\u9fff]"
         ),
     ]
     _CROSS_DOC_PATTERNS = [
@@ -109,6 +110,7 @@ class QueryRouter:
 # MLXReranker
 # ---------------------------------------------------------------------------
 
+
 class MLXReranker:
     """
     Qwen3-Reranker-0.6B 生成式重排序模型，使用 mlx-lm 在 Apple Silicon 上推理。
@@ -132,18 +134,16 @@ class MLXReranker:
         self.max_length = max_length
 
         logger.info(f"[reranker] Loading MLX reranker: {model_name}")
-        self._model, self._tokenizer = load(model_name)
+        loaded = load(model_name)
+        self._model: Any = loaded[0]
+        self._tokenizer: Any = loaded[1]
 
         self._yes_id = self._tokenizer.encode("yes", add_special_tokens=False)[0]
         self._no_id = self._tokenizer.encode("no", add_special_tokens=False)[0]
         logger.info(f"[reranker] MLX reranker ready (yes_id={self._yes_id}, no_id={self._no_id})")
 
     def _build_prompt(self, query: str, passage: str) -> str:
-        user_msg = (
-            f"<Instruct>: {self.instruction}\n"
-            f"<Query>: {query}\n"
-            f"<Document>: {passage}"
-        )
+        user_msg = f"<Instruct>: {self.instruction}\n<Query>: {query}\n<Document>: {passage}"
         messages = [
             {"role": "system", "content": self.SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
@@ -191,6 +191,7 @@ class MLXReranker:
 # ---------------------------------------------------------------------------
 # HybridRetriever
 # ---------------------------------------------------------------------------
+
 
 class HybridRetriever:
     def __init__(
@@ -245,6 +246,7 @@ class HybridRetriever:
     @staticmethod
     def _tokenize(text: str) -> list[str]:
         import jieba
+
         return [t for t in jieba.cut(text.lower()) if t.strip()]
 
     # ------------------------------------------------------------------
@@ -259,12 +261,13 @@ class HybridRetriever:
         prefer_tables: bool = False,
         cancel_event=None,
         related_k: int = 0,
-    ) -> list[RetrievalResult]:
+    ) -> list[dict]:
         """
         混合检索 + 精排，返回 top-k 结果。
         每个结果：{qdrant_id, score, text, file_name, file_path, page_num, section, chunk_type}
         """
         import time as _time
+
         _t0 = _time.time()
 
         route = QueryRouter.classify(query)
@@ -285,16 +288,22 @@ class HybridRetriever:
                     normalize_embeddings=True,
                     convert_to_numpy=True,
                 )[0]
-                query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
-                logger.info(f"[perf] embed: {_time.time()-_t0:.2f}s")
+                query_vec_list = (
+                    query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+                )
+                logger.info(f"[perf] embed: {_time.time() - _t0:.2f}s")
                 if cancel_event is not None and cancel_event.is_set():
                     return []
 
                 _t1 = _time.time()
                 vec_results = self._vector_search(query_vec_list, file_filter, limit=search_limit)
-                logger.info(f"[perf] vector_search: {_time.time()-_t1:.2f}s ({len(vec_results)} results)")
+                logger.info(
+                    f"[perf] vector_search: {_time.time() - _t1:.2f}s ({len(vec_results)} results)"
+                )
             except Exception as exc:
-                logger.warning("[retriever] vector path unavailable; falling back to FTS", exc_info=True)
+                logger.warning(
+                    "[retriever] vector path unavailable; falling back to FTS", exc_info=True
+                )
                 degradations.append(self._degradation("vector", exc))
 
         if cancel_event is not None and cancel_event.is_set():
@@ -313,7 +322,7 @@ class HybridRetriever:
         except Exception as exc:
             logger.warning("[retriever] FTS path unavailable", exc_info=True)
             degradations.append(self._degradation("fts", exc))
-        logger.info(f"[perf] fts_search: {_time.time()-_t1:.2f}s ({len(fts_results)} results)")
+        logger.info(f"[perf] fts_search: {_time.time() - _t1:.2f}s ({len(fts_results)} results)")
         if cancel_event is not None and cancel_event.is_set():
             return []
 
@@ -346,8 +355,8 @@ class HybridRetriever:
         )
         result = self._expand_parent_context(result)
         self._attach_degradations(result, degradations)
-        logger.info(f"[perf] rerank: {_time.time()-_t1:.2f}s ({len(top_candidates)} pairs)")
-        logger.info(f"[perf] total_retrieve: {_time.time()-_t0:.2f}s ({len(result)} results)")
+        logger.info(f"[perf] rerank: {_time.time() - _t1:.2f}s ({len(top_candidates)} pairs)")
+        logger.info(f"[perf] total_retrieve: {_time.time() - _t0:.2f}s ({len(result)} results)")
         return result
 
     def debug_retrieve(
@@ -380,7 +389,9 @@ class HybridRetriever:
                     normalize_embeddings=True,
                     convert_to_numpy=True,
                 )[0]
-                query_vec_list = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+                query_vec_list = (
+                    query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
+                )
             except Exception as exc:
                 logger.warning("[retriever] debug vector encode failed", exc_info=True)
                 degradations.append(self._degradation("vector", exc))
@@ -470,7 +481,7 @@ class HybridRetriever:
         query_vec: list[float],
         file_filter: list[str] | None,
         limit: int | None = None,
-    ) -> list[RetrievalResult]:
+    ) -> list[dict]:
         results = self._vector_store.search(
             collection_name=COLLECTION_NAME,
             query=query_vec,
@@ -537,7 +548,9 @@ class HybridRetriever:
             )
             id_to_payload = {p.id: p.payload for p in fetched}
         except Exception as exc:
-            logger.warning("[retriever] Qdrant payload fetch failed; using SQLite FTS payloads", exc_info=True)
+            logger.warning(
+                "[retriever] Qdrant payload fetch failed; using SQLite FTS payloads", exc_info=True
+            )
             if degradations is not None:
                 degradations.append(self._degradation("fts_payload", exc))
             id_to_payload = {}
@@ -572,17 +585,19 @@ class HybridRetriever:
         """按 page_num 顺序获取文件的前 N 个 chunk，用于摘要生成。"""
         if not qdrant_ids:
             return []
-        sample_ids = qdrant_ids[:max_chunks * 3]
+        sample_ids = qdrant_ids[: max_chunks * 3]
         records = self._qdrant.retrieve(
             collection_name=COLLECTION_NAME,
             ids=sample_ids,
             with_payload=True,
         )
-        chunks = [{"qdrant_id": r.id, **r.payload} for r in records]
+        chunks = [{"qdrant_id": r.id, **dict(r.payload or {})} for r in records]
         chunks.sort(key=lambda c: (c.get("page_num", 0), c.get("qdrant_id", 0)))
         return chunks[:max_chunks]
 
-    def fetch_chunks_by_ids(self, qdrant_ids: list[int], max_text_chars: int = 500) -> dict[int, dict]:
+    def fetch_chunks_by_ids(
+        self, qdrant_ids: list[int], max_text_chars: int = 500
+    ) -> dict[int, dict]:
         """按 Qdrant id 批量获取 chunk payload，用于调试展示。"""
         if not qdrant_ids:
             return {}
@@ -590,7 +605,7 @@ class HybridRetriever:
 
         result: dict[int, dict] = {}
         for i in range(0, len(qdrant_ids), 100):
-            batch = qdrant_ids[i:i + 100]
+            batch = qdrant_ids[i : i + 100]
             records = self._qdrant.retrieve(
                 collection_name=COLLECTION_NAME,
                 ids=batch,
@@ -661,9 +676,13 @@ class HybridRetriever:
         for item in candidates:
             parent_id = item.get("parent_id", 0)
             if parent_id:
-                key = (item.get("file_path", ""), parent_id)
+                key: tuple[Any, ...] = (item.get("file_path", ""), parent_id)
             else:
-                key = (item.get("file_path", ""), item.get("page_num", 0), item.get("text", "")[:128])
+                key = (
+                    item.get("file_path", ""),
+                    item.get("page_num", 0),
+                    item.get("text", "")[:128],
+                )
             if key not in seen or item.get("rrf_score", 0) > seen[key].get("rrf_score", 0):
                 seen[key] = item
         return list(seen.values())
@@ -672,7 +691,9 @@ class HybridRetriever:
         if not candidates:
             return []
 
-        qdrant_ids = [int(item["qdrant_id"]) for item in candidates if item.get("qdrant_id") is not None]
+        qdrant_ids = [
+            int(item["qdrant_id"]) for item in candidates if item.get("qdrant_id") is not None
+        ]
         try:
             stored_contexts = self._store.get_chunk_context_by_qdrant_ids(qdrant_ids)
         except Exception:
@@ -684,7 +705,12 @@ class HybridRetriever:
         for item in candidates:
             qid = int(item["qdrant_id"]) if item.get("qdrant_id") is not None else 0
             stored = stored_contexts.get(qid, {})
-            child_text = stored.get("raw_text") or item.get("raw_text") or item.get("child_text") or item.get("text", "")
+            child_text = (
+                stored.get("raw_text")
+                or item.get("raw_text")
+                or item.get("child_text")
+                or item.get("text", "")
+            )
             parent_text = stored.get("parent_text") or item.get("parent_text") or child_text
             parent_id = stored.get("parent_id") or item.get("parent_id", 0)
             key = (
@@ -702,8 +728,8 @@ class HybridRetriever:
             expanded_item["text"] = parent_text
             expanded_item["parent_id"] = parent_id
             expanded_item["parent_text_length"] = len(parent_text)
-            expanded_item["contextual_prefix"] = (
-                stored.get("contextual_prefix") or item.get("contextual_prefix", "")
+            expanded_item["contextual_prefix"] = stored.get("contextual_prefix") or item.get(
+                "contextual_prefix", ""
             )
             expanded.append(expanded_item)
 
@@ -747,12 +773,14 @@ class HybridRetriever:
                 return reranked
             if cancel_event is not None and cancel_event.is_set():
                 return []
-            degradations.append({
-                "stage": "reranker",
-                "status": "degraded",
-                "error_type": "EmptyRerankResult",
-                "message": "Reranker returned no results; using fused candidates.",
-            })
+            degradations.append(
+                {
+                    "stage": "reranker",
+                    "status": "degraded",
+                    "error_type": "EmptyRerankResult",
+                    "message": "Reranker returned no results; using fused candidates.",
+                }
+            )
         except Exception as exc:
             logger.warning("[retriever] reranker failed; using fused candidates", exc_info=True)
             degradations.append(self._degradation("reranker", exc))
@@ -785,10 +813,14 @@ class HybridRetriever:
             "rerank_score": item.get("rerank_score"),
             "char_count": item.get("char_count", len(text)),
             "parent_id": item.get("parent_id", 0),
-            "parent_text_length": item.get("parent_text_length", len(item.get("parent_text", "") or "")),
+            "parent_text_length": item.get(
+                "parent_text_length", len(item.get("parent_text", "") or "")
+            ),
             "retrieval_status": item.get("retrieval_status", "ok"),
             "rerank_fallback": item.get("rerank_fallback", False),
-            "matched_text_preview": (item.get("matched_text") or item.get("child_text") or "")[:max_text_chars],
+            "matched_text_preview": (item.get("matched_text") or item.get("child_text") or "")[
+                :max_text_chars
+            ],
             "text_preview": text[:max_text_chars],
             "text_length": len(text),
         }

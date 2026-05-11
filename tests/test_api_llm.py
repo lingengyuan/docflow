@@ -84,7 +84,9 @@ def test_llm_switch_success_applies_loaded_candidate(monkeypatch):
         ["mlx-community/Qwen3-4B-4bit", "mlx-community/Qwen3-8B-4bit"],
     )
     monkeypatch.setattr(api_app, "_is_hf_model_cached", lambda model: True)
-    monkeypatch.setattr(api_app, "_load_mlx_model_candidate", lambda model: ("model-object", "tokenizer"))
+    monkeypatch.setattr(
+        api_app, "_load_mlx_model_candidate", lambda model: ("model-object", "tokenizer")
+    )
     client = TestClient(api_app.app)
 
     response = client.post("/api/llm", json={"model": "mlx-community/Qwen3-8B-4bit"})

@@ -11,9 +11,9 @@ import logging
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
-from typing import Callable
 
 from src.ingest.pipeline import PreparedIngestFile
 
@@ -381,10 +381,10 @@ class IngestQueue:
         if len(results) < len(batch):
             results = list(results) + [
                 {"status": "error", "file": prepared.path.name, "error": "Missing batch result"}
-                for prepared in batch[len(results):]
+                for prepared in batch[len(results) :]
             ]
 
-        for prepared, result in zip(batch, results):
+        for prepared, result in zip(batch, results, strict=False):
             logger.info(f"[queue] Done: {result}")
             if self._on_done:
                 self._on_done()
@@ -433,7 +433,10 @@ class IngestQueue:
                     break
                 batch.append(self._prepared.popleft())
                 chunk_total = next_chunk_total
-                if len(batch) >= self._microbatch_max_files or chunk_total >= self._microbatch_max_chunks:
+                if (
+                    len(batch) >= self._microbatch_max_files
+                    or chunk_total >= self._microbatch_max_chunks
+                ):
                     break
             self._prepared_ready_at = time.monotonic() if self._prepared else None
             return batch
@@ -504,7 +507,11 @@ class IngestQueue:
         active_paths = {prepared.path for prepared in self._active_batch}
         pending: list[Path] = []
         seen: set[Path] = set()
-        for path in list(self._prepare_futures.values()) + [prepared.path for prepared in self._prepared] + list(self._queue):
+        for path in (
+            list(self._prepare_futures.values())
+            + [prepared.path for prepared in self._prepared]
+            + list(self._queue)
+        ):
             if path in active_paths or path in seen:
                 continue
             seen.add(path)

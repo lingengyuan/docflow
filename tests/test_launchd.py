@@ -9,7 +9,9 @@ def test_build_plist_uses_start_command(tmp_path):
     root = tmp_path / "docflow"
     python_bin = root / ".venv" / "bin" / "python"
 
-    plist = launchd.build_plist(root=root, python_bin=python_bin, host="127.0.0.1", port=8010, log_dir=tmp_path)
+    plist = launchd.build_plist(
+        root=root, python_bin=python_bin, host="127.0.0.1", port=8010, log_dir=tmp_path
+    )
 
     assert plist["Label"] == "com.docflow.local"
     assert plist["ProgramArguments"] == [

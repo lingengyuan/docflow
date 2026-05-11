@@ -16,7 +16,6 @@ from src.ingest.parsers.markdown_parser import MarkdownParser
 from src.ingest.parsers.pdf_parser import PDFParser
 from src.ingest.parsers.txt_parser import TxtParser
 
-
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
 
 
@@ -42,7 +41,7 @@ class ParserRegistry:
         return list(self._parsers.keys())
 
     @classmethod
-    def from_config(cls, cfg: dict) -> "ParserRegistry":
+    def from_config(cls, cfg: dict) -> ParserRegistry:
         registry = cls()
         ollama_url = cfg["ollama"]["base_url"]
         ocr_model = cfg["ollama"]["ocr_model"]

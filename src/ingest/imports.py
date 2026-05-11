@@ -13,7 +13,6 @@ from pathlib import Path
 from src import net
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 
-
 MAX_WEBPAGE_BYTES = 2_000_000
 REQUEST_TIMEOUT_S = 15
 
@@ -60,7 +59,20 @@ class ReadableHTMLParser(HTMLParser):
             self._in_title = False
         if tag == "a":
             self._link_href = None
-        if tag in {"p", "div", "section", "article", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6"}:
+        if tag in {
+            "p",
+            "div",
+            "section",
+            "article",
+            "li",
+            "tr",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+        }:
             self._parts.append("\n")
 
     def handle_data(self, data: str):
@@ -97,7 +109,9 @@ def fetch_webpage_markdown(url: str, title: str | None = None) -> MarkdownImport
     else:
         parsed_title, body = "", decoded.strip()
 
-    final_title = _clean_title(title or parsed_title or urllib.parse.urlparse(normalized_url).netloc)
+    final_title = _clean_title(
+        title or parsed_title or urllib.parse.urlparse(normalized_url).netloc
+    )
     markdown = (
         _frontmatter(final_title, source_url=normalized_url, tags=["web-import"])
         + f"# {final_title}\n\n"
@@ -118,7 +132,9 @@ def _fetch_webpage_bytes(url: str) -> tuple[str, bytes]:
         ) as client:
             response = client.get(url)
             response.raise_for_status()
-            return response.headers.get("content-type", ""), response.content[: MAX_WEBPAGE_BYTES + 1]
+            return response.headers.get("content-type", ""), response.content[
+                : MAX_WEBPAGE_BYTES + 1
+            ]
     except net.ConnectTimeout as exc:
         raise TimeoutError("Timed out while connecting to webpage") from exc
     except net.ReadTimeout as exc:
@@ -137,7 +153,9 @@ def html_to_markdown(raw_html: str) -> tuple[str, str]:
     return title, body
 
 
-def build_quick_note_markdown(title: str, content: str, tags: list[str] | None = None) -> MarkdownImport:
+def build_quick_note_markdown(
+    title: str, content: str, tags: list[str] | None = None
+) -> MarkdownImport:
     final_title = _clean_title(title or "Untitled Note")
     body = content.strip()
     if not body:
@@ -179,7 +197,9 @@ def build_knowledge_output_markdown(
     body_text = body.strip()
     if not body_text:
         raise ValueError("Knowledge output content is empty")
-    clean_sources = [" ".join(str(item).split()) for item in (source_files or []) if str(item).strip()]
+    clean_sources = [
+        " ".join(str(item).split()) for item in (source_files or []) if str(item).strip()
+    ]
     parts = [
         _frontmatter(
             final_title,

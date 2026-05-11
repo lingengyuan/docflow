@@ -79,7 +79,9 @@ def create_demo_files(config_path: str | Path = "config.yaml") -> dict:
             status = "unchanged"
         else:
             path.write_text(content, encoding="utf-8")
-        files.append({"path": str(path), "name": name, "status": status, "bytes": path.stat().st_size})
+        files.append(
+            {"path": str(path), "name": name, "status": status, "bytes": path.stat().st_size}
+        )
 
     return {
         "status": "created",

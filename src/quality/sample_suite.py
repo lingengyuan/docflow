@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 import shutil
 import sys
 import types
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import fitz
 from fastapi.testclient import TestClient
@@ -17,7 +17,6 @@ from src.ingest.parsers.image_parser import ImageParser
 from src.ingest.pdf_analyzer import PDFAnalyzer
 from src.ingest.store import DocStore
 from src.ingest.watcher import WatchDir
-
 
 DEFAULT_SAMPLE_DIR = Path("/tmp/docflow-phase21-samples")
 
@@ -33,8 +32,14 @@ def run_sample_suite(output_dir: str | Path = DEFAULT_SAMPLE_DIR) -> dict[str, A
     _run_check(checks, "scanned_pdf_ocr", lambda: _check_scanned_pdf_ocr(samples["scanned_pdf"]))
     _run_check(checks, "vlm_image_parse", lambda: _check_vlm_image_parse(samples["screenshot_png"]))
     _run_check(checks, "table_chunking", lambda: _check_table_chunking(samples["table_markdown"]))
-    _run_check(checks, "source_preview_api", lambda: _check_source_preview(samples["table_markdown"], root))
-    _run_check(checks, "knowledge_output_api", lambda: _check_knowledge_output(samples["table_markdown"], root))
+    _run_check(
+        checks, "source_preview_api", lambda: _check_source_preview(samples["table_markdown"], root)
+    )
+    _run_check(
+        checks,
+        "knowledge_output_api",
+        lambda: _check_knowledge_output(samples["table_markdown"], root),
+    )
 
     passed = sum(1 for check in checks if check["passed"])
     return {
@@ -90,7 +95,9 @@ def generate_samples(root: Path) -> dict[str, Path]:
     }
 
 
-def _run_check(checks: list[dict[str, Any]], check_id: str, fn: Callable[[], dict[str, Any]]) -> None:
+def _run_check(
+    checks: list[dict[str, Any]], check_id: str, fn: Callable[[], dict[str, Any]]
+) -> None:
     try:
         details = fn()
         checks.append({"id": check_id, "passed": True, "details": details})
@@ -340,8 +347,7 @@ def _check_knowledge_output(markdown_path: Path, root: Path) -> dict[str, Any]:
 @contextmanager
 def _fake_mlx_vlm(description: str):
     old_modules = {
-        name: sys.modules.get(name)
-        for name in ("mlx_vlm", "mlx_vlm.utils", "mlx_vlm.prompt_utils")
+        name: sys.modules.get(name) for name in ("mlx_vlm", "mlx_vlm.utils", "mlx_vlm.prompt_utils")
     }
     missing = object()
     for name in old_modules:

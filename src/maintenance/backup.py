@@ -7,7 +7,7 @@ import shutil
 import sqlite3
 import tarfile
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -130,7 +130,8 @@ def restore_plan(archive_path: str | Path) -> dict[str, Any]:
             "Extract this archive into a temporary folder.",
             "Back up the current config.yaml and SQLite database before copying restored files in.",
             "Copy config.yaml and docflow.db from the archive to the intended project paths.",
-            "Run `.venv/bin/python main.py rebuild --qdrant-only` to restore Qdrant from SQLite chunks.",
+            "Run `.venv/bin/python main.py rebuild --qdrant-only` "
+            "to restore Qdrant from SQLite chunks.",
             "Run `.venv/bin/python main.py check` to confirm SQLite and Qdrant match.",
         ],
     }
@@ -310,7 +311,7 @@ def _load_config(config_path: str | Path) -> dict[str, Any]:
 
 
 def _timestamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+    return datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
 
 
 def _manifest(
@@ -320,13 +321,15 @@ def _manifest(
     chunks: list[dict[str, Any]],
 ) -> dict[str, Any]:
     return {
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "config_path": str(config_path),
         "db_path": str(db_path),
         "file_count": len(files),
         "chunk_count": len(chunks),
         "includes": ["config.yaml", "docflow.db", "chunks.jsonl"],
-        "restore_hint": "Restore config.yaml and docflow.db, then run rebuild --qdrant-only and check.",
+        "restore_hint": (
+            "Restore config.yaml and docflow.db, then run rebuild --qdrant-only and check."
+        ),
     }
 
 
@@ -377,9 +380,7 @@ def _reset_restore_drill_dir(drill_dir: Path) -> None:
     default_target = DEFAULT_RESTORE_DRILL_DIR.resolve()
     if target.exists():
         if not marker.exists() and target != default_target:
-            raise ValueError(
-                f"refusing to clear unmarked restore drill directory: {target}"
-            )
+            raise ValueError(f"refusing to clear unmarked restore drill directory: {target}")
         shutil.rmtree(target)
 
     target.mkdir(parents=True, exist_ok=True)

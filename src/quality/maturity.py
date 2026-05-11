@@ -126,7 +126,9 @@ def summarize_measurements(
                 "cases": parsing_eval.get("cases", 0),
                 "passed_cases": parsing_eval.get("passed", 0),
                 "failed_cases": parsing_eval.get("failed", 0),
-                "metrics": {"pass_rate": _ratio(parsing_eval.get("passed", 0), parsing_eval.get("cases", 0))},
+                "metrics": {
+                    "pass_rate": _ratio(parsing_eval.get("passed", 0), parsing_eval.get("cases", 0))
+                },
             }
         )
     return {
@@ -179,7 +181,8 @@ def format_report(report: dict) -> str:
             [
                 "",
                 "Retrieval evidence eval:",
-                f"- cases: {retrieval['cases']}, passed: {retrieval['passed']}, failed: {retrieval['failed']}",
+                f"- cases: {retrieval['cases']}, passed: {retrieval['passed']}, "
+                f"failed: {retrieval['failed']}",
                 f"- include_rerank: {retrieval['include_rerank']}",
                 f"- source_filter: {retrieval.get('source_filter', False)}",
             ]
@@ -194,7 +197,8 @@ def format_report(report: dict) -> str:
             [
                 "",
                 "Parsing eval:",
-                f"- cases: {parsing['cases']}, passed: {parsing['passed']}, failed: {parsing['failed']}",
+                f"- cases: {parsing['cases']}, passed: {parsing['passed']}, "
+                f"failed: {parsing['failed']}",
             ]
         )
     return "\n".join(lines)

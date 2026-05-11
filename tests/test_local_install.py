@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 from src.maintenance.local_install import build_install_plan, install_local
 

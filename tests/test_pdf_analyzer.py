@@ -4,19 +4,17 @@
 运行：cd ~/Projects/docflow && .venv/bin/python -m pytest tests/test_pdf_analyzer.py -v
 """
 
-import base64
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import fitz
-import pytest
 
-from src.ingest.pdf_analyzer import PDFAnalyzer, ParsedDocument, PageContent
-
+from src.ingest.pdf_analyzer import ParsedDocument, PDFAnalyzer
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_native_pdf(tmp_path: Path) -> Path:
     """生成一个含中英文的原生文字 PDF。"""
@@ -48,6 +46,7 @@ def make_blank_pdf(tmp_path: Path) -> Path:
 # Type detection tests
 # ---------------------------------------------------------------------------
 
+
 class TestTypeDetection:
     def test_native_pdf_is_not_scanned(self, tmp_path):
         pdf = make_native_pdf(tmp_path)
@@ -67,6 +66,7 @@ class TestTypeDetection:
 # ---------------------------------------------------------------------------
 # Native path tests
 # ---------------------------------------------------------------------------
+
 
 class TestNativeParsing:
     def test_extracts_text(self, tmp_path):
@@ -105,14 +105,19 @@ class TestNativeParsing:
 # OCR path tests (mocked)
 # ---------------------------------------------------------------------------
 
+
 class TestOCRParsing:
-    MOCK_OCR_RESPONSE = "# Sales Report Q3\n\nEast China: 2,450,000 RMB\n\n## Summary\n\nTotal: 7,460,000 RMB"
+    MOCK_OCR_RESPONSE = (
+        "# Sales Report Q3\n\nEast China: 2,450,000 RMB\n\n## Summary\n\nTotal: 7,460,000 RMB"
+    )
 
     def test_ocr_called_for_scanned_pdf(self, tmp_path):
         pdf = make_blank_pdf(tmp_path)
         analyzer = PDFAnalyzer()
 
-        with patch.object(analyzer, "_call_glm_ocr", return_value=self.MOCK_OCR_RESPONSE) as mock_ocr:
+        with patch.object(
+            analyzer, "_call_glm_ocr", return_value=self.MOCK_OCR_RESPONSE
+        ) as mock_ocr:
             result = analyzer.analyze(pdf)
 
         assert result.is_scanned is True

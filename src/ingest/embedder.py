@@ -43,7 +43,7 @@ class Embedder:
             model_name="Qwen/Qwen3-Embedding-0.6B"
         )
 
-        self._model = None          # lazy-loaded SentenceTransformer
+        self._model = None  # lazy-loaded SentenceTransformer
         self._vector_dim: int | None = None
 
         self._vector_store = QdrantVectorStore(host=qdrant_host, port=qdrant_port)
@@ -127,7 +127,7 @@ class Embedder:
 
         with ctx:
             for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
+                batch = texts[i : i + batch_size]
                 batch_vectors = self.model.encode(
                     batch,
                     batch_size=batch_size,
@@ -211,7 +211,7 @@ class Embedder:
         if self._id_counter_path.exists():
             try:
                 return int(self._id_counter_path.read_text(encoding="utf-8").strip())
-            except (ValueError, IOError):
+            except (OSError, ValueError):
                 pass
         try:
             return self.max_point_id() + 1
@@ -298,7 +298,7 @@ class Embedder:
         os.fsync(handle.fileno())
 
     def delete_file_vectors(self, qdrant_ids: list[int]):
-        """删除某个文件的所有 Qdrant 向量（重新索引时调用）。FTS5 清理由 store.add_chunks() 负责。"""
+        """删除某个文件的所有 Qdrant 向量。FTS5 清理由 store.add_chunks() 负责。"""
         if not qdrant_ids:
             return
         self._vector_store.delete_points(COLLECTION_NAME, qdrant_ids)

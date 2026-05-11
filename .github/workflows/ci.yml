@@ -28,7 +28,9 @@ jobs:
           python -m pip install -e .
       - name: Compile
         run: python -m py_compile main.py src/maintenance/startup.py src/api/app.py
-      - name: Ruff safety check
-        run: python -m ruff check . --select E9,F63,F7,F82
+      - name: Ruff
+        run: python -m ruff check .
+      - name: Mypy
+        run: python -m mypy
       - name: Tests
         run: python -m pytest

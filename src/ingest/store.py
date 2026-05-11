@@ -9,12 +9,12 @@ Schema:
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sqlite3
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-import json
 from typing import TYPE_CHECKING
 
 from src.domain_types import ChunkRecord, FileRecord, FileStatus
@@ -35,6 +35,7 @@ def _fts5_phrase(query: str) -> str:
 # ---------------------------------------------------------------------------
 # DocStore
 # ---------------------------------------------------------------------------
+
 
 class DocStore:
     def __init__(self, db_path: str | Path):
@@ -120,7 +121,8 @@ class DocStore:
                 CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
                 CREATE INDEX IF NOT EXISTS idx_files_hash     ON files(file_hash);
                 CREATE INDEX IF NOT EXISTS idx_files_status   ON files(status);
-                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id, id);
+                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
+                ON messages(conversation_id, id);
 
                 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
                     tokenized_text,
@@ -166,7 +168,9 @@ class DocStore:
                     conn.execute(sql)
                 except sqlite3.OperationalError:
                     pass  # 列已存在
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_chunks_parent_id ON chunks(file_id, parent_id)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_chunks_parent_id ON chunks(file_id, parent_id)"
+            )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_files_collection ON files(collection)")
 
     @contextmanager
@@ -254,8 +258,12 @@ class DocStore:
         path = str(file_path)
         status_value = self._normalize_status(status)
         with self._conn() as conn:
-            conn.execute("""
-                INSERT INTO files (file_path, file_name, file_hash, status, total_pages, is_scanned, tags, mtime_ns)
+            conn.execute(
+                """
+                INSERT INTO files (
+                    file_path, file_name, file_hash, status,
+                    total_pages, is_scanned, tags, mtime_ns
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_path) DO UPDATE SET
                     file_name   = excluded.file_name,
@@ -267,10 +275,21 @@ class DocStore:
                     mtime_ns    = excluded.mtime_ns,
                     error_msg   = '',
                     updated_at  = datetime('now')
-            """, (path, file_name, file_hash, status_value, total_pages, int(is_scanned), tags, mtime_ns))
-            file_id = conn.execute(
-                "SELECT id FROM files WHERE file_path = ?", (path,)
-            ).fetchone()["id"]
+            """,
+                (
+                    path,
+                    file_name,
+                    file_hash,
+                    status_value,
+                    total_pages,
+                    int(is_scanned),
+                    tags,
+                    mtime_ns,
+                ),
+            )
+            file_id = conn.execute("SELECT id FROM files WHERE file_path = ?", (path,)).fetchone()[
+                "id"
+            ]
         return file_id
 
     def reset_processing_files(self) -> int:
@@ -302,33 +321,43 @@ class DocStore:
                     if chunk_ids:
                         ph = ",".join("?" * len(chunk_ids))
                         conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({ph})", chunk_ids)
-                        conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({ph})", chunk_ids)
+                        conn.execute(
+                            f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({ph})", chunk_ids
+                        )
                     # 删除 chunks、favorites、file 记录
                     conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
                     conn.execute("DELETE FROM favorites WHERE file_id = ?", (file_id,))
                     conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
-                    removed.append({
-                        "file_name": row["file_name"],
-                        "qdrant_ids": qids,
-                    })
+                    removed.append(
+                        {
+                            "file_name": row["file_name"],
+                            "qdrant_ids": qids,
+                        }
+                    )
         return removed
 
     def set_status(self, file_path: str | Path, status: FileStatus | str, error_msg: str = ""):
         status_value = self._normalize_status(status)
         with self._conn() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE files
                 SET status = ?, error_msg = ?, updated_at = datetime('now')
                 WHERE file_path = ?
-            """, (status_value, error_msg, str(file_path)))
+            """,
+                (status_value, error_msg, str(file_path)),
+            )
 
     def set_chunk_count(self, file_path: str | Path, count: int):
         with self._conn() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE files
                 SET chunk_count = ?, updated_at = datetime('now')
                 WHERE file_path = ?
-            """, (count, str(file_path)))
+            """,
+                (count, str(file_path)),
+            )
 
     def add_chunks(self, file_id: int, chunk_records: list[ChunkRecord]):
         """
@@ -340,13 +369,18 @@ class DocStore:
         """
         with self._conn() as conn:
             # Delete old FTS5 entries before clearing chunks
-            old_ids = [r["id"] for r in conn.execute(
-                "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
-            ).fetchall()]
+            old_ids = [
+                r["id"]
+                for r in conn.execute(
+                    "SELECT id FROM chunks WHERE file_id = ?", (file_id,)
+                ).fetchall()
+            ]
             if old_ids:
                 placeholders = ",".join("?" * len(old_ids))
                 conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({placeholders})", old_ids)
-                conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", old_ids)
+                conn.execute(
+                    f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", old_ids
+                )
             conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
 
             if not chunk_records:
@@ -410,7 +444,7 @@ class DocStore:
         favorite: bool | None = None,
         kind: str | None = None,
         recent: bool | None = None,
-    ) -> list[dict]:
+    ) -> list[FileRecord]:
         query = """
             SELECT f.*, fav.id IS NOT NULL AS favorited
             FROM files f
@@ -432,7 +466,9 @@ class DocStore:
         kind_patterns = self._file_kind_patterns(kind)
         normalized_tag = self._normalize_tag(tag) if tag else ""
         if kind_patterns:
-            clauses.append("(" + " OR ".join("LOWER(f.file_name) LIKE ?" for _ in kind_patterns) + ")")
+            clauses.append(
+                "(" + " OR ".join("LOWER(f.file_name) LIKE ?" for _ in kind_patterns) + ")"
+            )
             params.extend(kind_patterns)
         if clauses:
             query += " WHERE " + " AND ".join(clauses)
@@ -448,18 +484,16 @@ class DocStore:
                 result = result[:30]
         return result
 
-    def get_file_by_path(self, file_path: str | Path) -> dict | None:
+    def get_file_by_path(self, file_path: str | Path) -> FileRecord | None:
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT * FROM files WHERE file_path = ?", (str(file_path),)
             ).fetchone()
         return self._file_row_to_dict(row) if row else None
 
-    def get_file_by_id(self, file_id: int) -> dict | None:
+    def get_file_by_id(self, file_id: int) -> FileRecord | None:
         with self._conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM files WHERE id = ?", (file_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM files WHERE id = ?", (file_id,)).fetchone()
         return self._file_row_to_dict(row) if row else None
 
     def update_file_metadata(
@@ -467,7 +501,7 @@ class DocStore:
         file_id: int,
         collection: str | None = None,
         user_tags: list[str] | None = None,
-    ) -> dict | None:
+    ) -> FileRecord | None:
         updates = []
         params: list = []
         if collection is not None:
@@ -495,8 +529,8 @@ class DocStore:
         file_ids: list[int],
         collection: str | None = None,
         user_tags: list[str] | None = None,
-    ) -> list[dict]:
-        updated: list[dict] = []
+    ) -> list[FileRecord]:
+        updated: list[FileRecord] = []
         for file_id in self._unique_ids(file_ids):
             record = self.update_file_metadata(file_id, collection=collection, user_tags=user_tags)
             if record is not None:
@@ -513,8 +547,12 @@ class DocStore:
                 ORDER BY lower(collection)
                 """
             ).fetchall()
-            rows = conn.execute("SELECT file_name, tags, user_tags, updated_at FROM files").fetchall()
-            favorite_count = conn.execute("SELECT COUNT(*) AS count FROM favorites").fetchone()["count"]
+            rows = conn.execute(
+                "SELECT file_name, tags, user_tags, updated_at FROM files"
+            ).fetchall()
+            favorite_count = conn.execute("SELECT COUNT(*) AS count FROM favorites").fetchone()[
+                "count"
+            ]
 
         user_tag_counts: dict[str, int] = {}
         document_tag_counts: dict[str, int] = {}
@@ -632,8 +670,9 @@ class DocStore:
         with self._conn() as conn:
             rows = conn.execute(
                 """
-                SELECT id, file_id, qdrant_id, chunk_type, page_num, section, char_count,
-                       parent_id, raw_text, embedding_text, parent_text, contextual_prefix, created_at
+                SELECT id, file_id, qdrant_id, chunk_type, page_num, section,
+                       char_count, parent_id, raw_text, embedding_text,
+                       parent_text, contextual_prefix, created_at
                 FROM chunks
                 WHERE file_id = ?
                 ORDER BY id
@@ -651,11 +690,12 @@ class DocStore:
         result: dict[int, dict] = {}
         with self._conn() as conn:
             for i in range(0, len(unique_ids), 500):
-                batch = unique_ids[i:i + 500]
+                batch = unique_ids[i : i + 500]
                 placeholders = ",".join("?" * len(batch))
                 rows = conn.execute(
                     f"""
-                    SELECT qdrant_id, parent_id, raw_text, embedding_text, parent_text, contextual_prefix
+                    SELECT qdrant_id, parent_id, raw_text, embedding_text,
+                           parent_text, contextual_prefix
                     FROM chunks
                     WHERE qdrant_id IN ({placeholders})
                     """,
@@ -669,7 +709,9 @@ class DocStore:
     # Embedding cache
     # ------------------------------------------------------------------
 
-    def get_cached_embeddings(self, model_name: str, text_hashes: list[str]) -> dict[str, "np.ndarray"]:
+    def get_cached_embeddings(
+        self, model_name: str, text_hashes: list[str]
+    ) -> dict[str, np.ndarray]:
         import numpy as np
 
         unique_hashes = list(dict.fromkeys(text_hashes))
@@ -679,7 +721,7 @@ class DocStore:
         result: dict[str, np.ndarray] = {}
         with self._conn() as conn:
             for i in range(0, len(unique_hashes), 500):
-                batch = unique_hashes[i:i + 500]
+                batch = unique_hashes[i : i + 500]
                 placeholders = ",".join("?" * len(batch))
                 rows = conn.execute(
                     f"""
@@ -690,12 +732,10 @@ class DocStore:
                     [model_name, *batch],
                 ).fetchall()
                 for row in rows:
-                    result[row["text_hash"]] = np.frombuffer(
-                        row["vector"], dtype=np.float32
-                    ).copy()
+                    result[row["text_hash"]] = np.frombuffer(row["vector"], dtype=np.float32).copy()
         return result
 
-    def put_cached_embeddings(self, model_name: str, vectors_by_hash: dict[str, "np.ndarray"]):
+    def put_cached_embeddings(self, model_name: str, vectors_by_hash: dict[str, np.ndarray]):
         import numpy as np
 
         if not vectors_by_hash:
@@ -876,7 +916,7 @@ class DocStore:
     def list_messages(self, conversation_id: int, limit: int | None = None) -> list[dict]:
         if limit is None:
             query = "SELECT * FROM messages WHERE conversation_id = ? ORDER BY id"
-            params = (conversation_id,)
+            params: tuple[int, ...] = (conversation_id,)
         else:
             query = """
                 SELECT *
@@ -899,7 +939,7 @@ class DocStore:
         title = " ".join(text.strip().split())
         if len(title) <= max_chars:
             return title
-        return title[:max_chars - 1] + "..."
+        return title[: max_chars - 1] + "..."
 
     # ------------------------------------------------------------------
     # Favorites
@@ -938,17 +978,17 @@ class DocStore:
                 )
             else:
                 placeholders = ",".join("?" * len(existing_ids))
-                conn.execute(f"DELETE FROM favorites WHERE file_id IN ({placeholders})", existing_ids)
+                conn.execute(
+                    f"DELETE FROM favorites WHERE file_id IN ({placeholders})", existing_ids
+                )
         return existing_ids
 
     def is_favorite(self, file_id: int) -> bool:
         with self._conn() as conn:
-            row = conn.execute(
-                "SELECT id FROM favorites WHERE file_id = ?", (file_id,)
-            ).fetchone()
+            row = conn.execute("SELECT id FROM favorites WHERE file_id = ?", (file_id,)).fetchone()
         return row is not None
 
-    def list_favorites(self) -> list[dict]:
+    def list_favorites(self) -> list[FileRecord]:
         with self._conn() as conn:
             rows = conn.execute("""
                 SELECT f.*, 1 AS favorited FROM files f
@@ -1081,7 +1121,7 @@ class DocStore:
         if not rows:
             return 0
 
-        chunk_ids = [r["id"] for r in rows]
+        [r["id"] for r in rows]
         qdrant_ids = [r["qdrant_id"] for r in rows]
         id_to_chunk_id = {r["qdrant_id"]: r["id"] for r in rows}
 

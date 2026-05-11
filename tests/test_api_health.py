@@ -41,11 +41,20 @@ def _patch_health_checks(
         lambda cfg: {
             "status": models_status,
             "local_cache": {
-                "embedding": {"model": "Qwen/Qwen3-Embedding-0.6B", "cached": models_status == "ok"},
+                "embedding": {
+                    "model": "Qwen/Qwen3-Embedding-0.6B",
+                    "cached": models_status == "ok",
+                },
                 "reranker": {"model": "Qwen/Qwen3-Reranker-0.6B", "cached": models_status == "ok"},
                 "llm": {"model": "mlx-community/Qwen3-4B-4bit", "cached": models_status == "ok"},
-                "llm_enhanced": {"model": "mlx-community/Qwen3-8B-4bit", "cached": models_status == "ok"},
-                "vlm": {"model": "mlx-community/Qwen3-VL-8B-Instruct-4bit", "cached": models_status == "ok"},
+                "llm_enhanced": {
+                    "model": "mlx-community/Qwen3-8B-4bit",
+                    "cached": models_status == "ok",
+                },
+                "vlm": {
+                    "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+                    "cached": models_status == "ok",
+                },
             },
             "missing_local_cache": [] if models_status == "ok" else ["mlx-community/Qwen3-4B-4bit"],
         },
@@ -157,11 +166,13 @@ def test_ollama_check_reports_guidance_when_service_is_closed(monkeypatch):
 
     monkeypatch.setattr(httpx, "get", broken_get)
 
-    result = api_app._check_ollama({
-        "ollama": {"base_url": "http://localhost:11434", "ocr_model": "glm-ocr"},
-        "ingest": {"contextual_prefix_mode": "metadata"},
-        "llm": {"backend": "mlx"},
-    })
+    result = api_app._check_ollama(
+        {
+            "ollama": {"base_url": "http://localhost:11434", "ocr_model": "glm-ocr"},
+            "ingest": {"contextual_prefix_mode": "metadata"},
+            "llm": {"backend": "mlx"},
+        }
+    )
 
     assert result["status"] == "degraded"
     assert result["models"]["ocr"] == {"model": "glm-ocr", "available": False}
@@ -186,11 +197,13 @@ def test_runtime_sqlite_health_skips_deep_quick_check(monkeypatch):
         def execute(self, sql, params=()):
             statements.append(sql)
             if "sqlite_master" in sql:
-                return FakeCursor([
-                    {"name": "chunks_fts"},
-                    {"name": "chunks_fts_trigram"},
-                    {"name": "history_fts"},
-                ])
+                return FakeCursor(
+                    [
+                        {"name": "chunks_fts"},
+                        {"name": "chunks_fts_trigram"},
+                        {"name": "history_fts"},
+                    ]
+                )
             return FakeCursor()
 
         def commit(self):

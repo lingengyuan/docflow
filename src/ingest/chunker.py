@@ -11,21 +11,21 @@ StructuredChunker — 三层切块策略。
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-
+from dataclasses import dataclass
 
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Chunk:
     text: str
-    chunk_type: str          # "text" | "table" | "table_summary"
+    chunk_type: str  # "text" | "table" | "table_summary"
     file_name: str
     file_path: str
     page_num: int
-    section: str = ""        # 面包屑路径，如 "章节一 > 1.2 背景"
+    section: str = ""  # 面包屑路径，如 "章节一 > 1.2 背景"
     char_count: int = 0
     raw_text: str = ""
     embedding_text: str = ""
@@ -44,6 +44,7 @@ class Chunk:
 # ---------------------------------------------------------------------------
 # StructuredChunker
 # ---------------------------------------------------------------------------
+
 
 class StructuredChunker:
     def __init__(
@@ -89,25 +90,29 @@ class StructuredChunker:
 
             if segment_type == "table":
                 # 整表作为独立 chunk
-                chunks.append(Chunk(
-                    text=content,
-                    chunk_type="table",
-                    file_name=file_name,
-                    file_path=file_path,
-                    page_num=page_num,
-                    section=" > ".join(breadcrumbs),
-                ))
-                # 规则生成摘要
-                summary = self._table_summary(content, breadcrumbs)
-                if summary:
-                    chunks.append(Chunk(
-                        text=summary,
-                        chunk_type="table_summary",
+                chunks.append(
+                    Chunk(
+                        text=content,
+                        chunk_type="table",
                         file_name=file_name,
                         file_path=file_path,
                         page_num=page_num,
                         section=" > ".join(breadcrumbs),
-                    ))
+                    )
+                )
+                # 规则生成摘要
+                summary = self._table_summary(content, breadcrumbs)
+                if summary:
+                    chunks.append(
+                        Chunk(
+                            text=summary,
+                            chunk_type="table_summary",
+                            file_name=file_name,
+                            file_path=file_path,
+                            page_num=page_num,
+                            section=" > ".join(breadcrumbs),
+                        )
+                    )
             else:
                 # 文字段：按标题边界分组，再递归切块
                 sub_sections = self._split_by_headers(content)
@@ -115,21 +120,23 @@ class StructuredChunker:
                     if header:
                         # 更新面包屑
                         level = self._header_level(header)
-                        breadcrumbs = breadcrumbs[:level - 1] + [header.lstrip("#").strip()]
+                        breadcrumbs = breadcrumbs[: level - 1] + [header.lstrip("#").strip()]
 
                     if not body.strip():
                         continue
 
                     section_path = " > ".join(breadcrumbs)
                     for sub_chunk in self._recursive_split(body.strip()):
-                        chunks.append(Chunk(
-                            text=sub_chunk,
-                            chunk_type="text",
-                            file_name=file_name,
-                            file_path=file_path,
-                            page_num=page_num,
-                            section=section_path,
-                        ))
+                        chunks.append(
+                            Chunk(
+                                text=sub_chunk,
+                                chunk_type="text",
+                                file_name=file_name,
+                                file_path=file_path,
+                                page_num=page_num,
+                                section=section_path,
+                            )
+                        )
 
         return chunks
 
@@ -198,7 +205,7 @@ class StructuredChunker:
         last_header = ""
 
         for m in header_re.finditer(text):
-            body = text[last_end:m.start()].strip()
+            body = text[last_end : m.start()].strip()
             result.append((last_header, body))
             last_header = m.group(0)
             last_end = m.end()
@@ -293,7 +300,7 @@ class StructuredChunker:
         规则生成表格摘要，作为检索入口。
         格式：[表格] {上下文} 包含 {N 行} 数据，列：{col1, col2, ...}
         """
-        lines = [l.strip() for l in table_text.splitlines() if l.strip()]
+        lines = [line.strip() for line in table_text.splitlines() if line.strip()]
         # Find header row (first non-separator row with |)
         header_row = ""
         data_rows = 0

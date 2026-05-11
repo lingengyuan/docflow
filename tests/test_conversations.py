@@ -282,7 +282,9 @@ def test_stream_query_timeout_reports_error_and_skips_assistant_message(monkeypa
     client = TestClient(api_app.app)
 
     try:
-        with client.stream("POST", "/api/query/stream", json={"question": "慢流式问题"}) as response:
+        with client.stream(
+            "POST", "/api/query/stream", json={"question": "慢流式问题"}
+        ) as response:
             body = response.read().decode("utf-8")
 
         assert response.status_code == 200

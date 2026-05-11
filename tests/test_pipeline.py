@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 
 from src.ingest.chunker import Chunk
-from src.ingest.pipeline import IngestPipeline
 from src.ingest.pdf_analyzer import PageContent, ParsedDocument
+from src.ingest.pipeline import IngestPipeline
 from src.ingest.store import DocStore
 
 
@@ -73,7 +73,7 @@ class FakeEmbedder:
                     "total_texts": len(texts),
                     "batch_size": len(texts) or 1,
                 }
-        )
+            )
         return np.asarray([[0.1, 0.2, 0.3] for _ in texts], dtype=np.float32)
 
     def upsert_embeddings(self, chunks, dense_vecs, min_next_id=None):

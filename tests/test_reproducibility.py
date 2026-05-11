@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 from src.query.generator import AnswerGenerator
 
-
 CHUNKS = [
     {
         "text": "DocFlow keeps private notes local by default.",

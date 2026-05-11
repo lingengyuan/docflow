@@ -7,10 +7,18 @@ Qdrant remains the active vector store.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, FieldCondition, Filter, MatchAny, PointIdsList, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchAny,
+    PointIdsList,
+    PointStruct,
+    VectorParams,
+)
 
 
 @dataclass(frozen=True)
@@ -28,11 +36,9 @@ class VectorSearchHit:
 
 
 class VectorStore(Protocol):
-    def ensure_collection(self, collection_name: str, vector_dim: int) -> None:
-        ...
+    def ensure_collection(self, collection_name: str, vector_dim: int) -> None: ...
 
-    def upsert_points(self, collection_name: str, points: list[VectorPoint]) -> None:
-        ...
+    def upsert_points(self, collection_name: str, points: list[VectorPoint]) -> None: ...
 
     def search(
         self,
@@ -40,17 +46,13 @@ class VectorStore(Protocol):
         query: list[float],
         file_filter: list[str] | None,
         limit: int,
-    ) -> list[VectorSearchHit]:
-        ...
+    ) -> list[VectorSearchHit]: ...
 
-    def delete_points(self, collection_name: str, point_ids: list[int]) -> None:
-        ...
+    def delete_points(self, collection_name: str, point_ids: list[int]) -> None: ...
 
-    def max_point_id(self, collection_name: str) -> int:
-        ...
+    def max_point_id(self, collection_name: str) -> int: ...
 
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
 
 class QdrantVectorStore:
@@ -65,7 +67,13 @@ class QdrantVectorStore:
     def ensure_collection(self, collection_name: str, vector_dim: int) -> None:
         if self.client.collection_exists(collection_name):
             info = self.client.get_collection(collection_name)
-            existing_dim = info.config.params.vectors.size
+            vectors = info.config.params.vectors
+            if isinstance(vectors, VectorParams):
+                existing_dim = vectors.size
+            elif isinstance(vectors, dict) and vectors:
+                existing_dim = next(iter(vectors.values())).size
+            else:
+                existing_dim = None
             if existing_dim == vector_dim:
                 return
             self.client.delete_collection(collection_name)
@@ -102,7 +110,11 @@ class QdrantVectorStore:
             limit=limit,
         )
         return [
-            VectorSearchHit(id=point.id, score=point.score, payload=point.payload or {})
+            VectorSearchHit(
+                id=point.id if isinstance(point.id, (int, str)) else str(point.id),
+                score=point.score,
+                payload=point.payload or {},
+            )
             for point in results.points
         ]
 
@@ -111,7 +123,7 @@ class QdrantVectorStore:
             return
         self.client.delete(
             collection_name=collection_name,
-            points_selector=PointIdsList(points=point_ids),
+            points_selector=PointIdsList(points=cast(Any, point_ids)),
         )
 
     def max_point_id(self, collection_name: str) -> int:

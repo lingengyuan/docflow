@@ -10,15 +10,14 @@ import subprocess
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.query.engine import QueryEngine
-
+from src.query.engine import QueryEngine  # noqa: E402
 
 DEFAULT_EVAL_PATH = Path("eval/qa_v1.jsonl")
 DEFAULT_RESULTS_DIR = Path("eval/results")
@@ -38,7 +37,7 @@ class EvalCase:
 def load_cases(path: Path) -> list[EvalCase]:
     cases: list[EvalCase] = []
     with path.open(encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
+        for _line_no, line in enumerate(f, 1):
             line = line.strip()
             if not line:
                 continue
@@ -66,10 +65,11 @@ def expected_source_names(cases: Iterable[EvalCase]) -> list[str]:
 
 
 def refresh_eval_sources(cases: list[EvalCase], config_path: str | Path) -> dict:
+    import yaml
+
     from src.api.app import _parse_watch_dirs
     from src.ingest.pipeline import IngestPipeline
     from src.ingest.watcher import _is_excluded
-    import yaml
 
     config_path = Path(config_path)
     with config_path.open(encoding="utf-8") as f:
@@ -132,7 +132,9 @@ def evaluate_case(
     include_rerank: bool,
     source_filter: bool = False,
 ) -> dict:
-    file_filter = case.expected_files if source_filter and case.must_find and case.expected_files else None
+    file_filter = (
+        case.expected_files if source_filter and case.must_find and case.expected_files else None
+    )
     debug = engine.retriever.debug_retrieve(
         case.question,
         file_filter=file_filter,
@@ -156,14 +158,23 @@ def evaluate_case(
     matched_files = [
         expected
         for expected in case.expected_files
-        if any(expected == item.get("file_name") or item.get("file_path", "").endswith(expected) for item in final_stage)
+        if any(
+            expected == item.get("file_name") or item.get("file_path", "").endswith(expected)
+            for item in final_stage
+        )
     ]
     matched_terms = [term for term in case.expected_terms if contains_term(combined, term)]
 
     if case.must_find:
-        passed = bool(final_stage) and len(matched_files) == len(case.expected_files) and len(matched_terms) == len(case.expected_terms)
+        passed = (
+            bool(final_stage)
+            and len(matched_files) == len(case.expected_files)
+            and len(matched_terms) == len(case.expected_terms)
+        )
     else:
-        passed = not final_stage or not any(contains_term(combined, term) for term in case.expected_terms)
+        passed = not final_stage or not any(
+            contains_term(combined, term) for term in case.expected_terms
+        )
     evidence_status = _evidence_status(case, passed, final_stage, matched_files, matched_terms)
     failure_reason = _failure_reason(case, final_stage, matched_files, matched_terms)
 
@@ -268,9 +279,7 @@ def _combined_stage_text(final_stage: list[dict]) -> str:
 
 def retrieval_metrics(results: list[dict], k: int = METRIC_K) -> dict:
     eligible = [
-        result
-        for result in results
-        if result.get("must_find") and result.get("expected_files")
+        result for result in results if result.get("must_find") and result.get("expected_files")
     ]
     if not eligible:
         return {
@@ -353,7 +362,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run DocFlow retrieval eval cases.")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
     parser.add_argument("--cases", default=str(DEFAULT_EVAL_PATH), help="JSONL eval case file")
-    parser.add_argument("--no-rerank", action="store_true", help="Skip reranker and evaluate deduped fused results")
+    parser.add_argument(
+        "--no-rerank", action="store_true", help="Skip reranker and evaluate deduped fused results"
+    )
     parser.add_argument(
         "--refresh-sources",
         action="store_true",
@@ -369,7 +380,9 @@ def main() -> int:
         action="store_true",
         help="Write eval output to eval/results/<git-sha>.json and eval/results/latest.json",
     )
-    parser.add_argument("--results-dir", default=str(DEFAULT_RESULTS_DIR), help="Directory for --write-results")
+    parser.add_argument(
+        "--results-dir", default=str(DEFAULT_RESULTS_DIR), help="Directory for --write-results"
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 
@@ -390,7 +403,8 @@ def main() -> int:
         ]
     except Exception as exc:
         print(
-            "Eval failed before completion. Check that Qdrant is running and the expected documents are ingested.",
+            "Eval failed before completion. Check that Qdrant is running "
+            "and the expected documents are ingested.",
             file=sys.stderr,
         )
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
@@ -399,7 +413,7 @@ def main() -> int:
     passed = sum(1 for result in results if result["passed"])
     summary = {
         "schema": "docflow.retrieval_eval.v1",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "git_sha": current_git_sha(),
         "cases": len(results),
         "passed": passed,
@@ -431,7 +445,10 @@ def main() -> int:
             mark = "PASS" if result["passed"] else "FAIL"
             print(f"[{mark}] {result['id']} :: {result['question']}")
             if not result["passed"]:
-                print(f"  missing_files={result['missing_files']} missing_terms={result['missing_terms']}")
+                print(
+                    f"  missing_files={result['missing_files']} "
+                    f"missing_terms={result['missing_terms']}"
+                )
                 print(f"  top_files={result['top_files']}")
 
     return 0 if passed == len(results) else 1

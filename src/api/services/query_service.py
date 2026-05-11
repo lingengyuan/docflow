@@ -22,8 +22,17 @@ class QueryService:
     def looks_like_followup(self, question: str) -> bool:
         q = question.strip().lower()
         chinese_markers = (
-            "展开", "继续", "上面", "刚才", "前面", "这个", "那个", "这点", "第二点",
-            "第三点", "第一点",
+            "展开",
+            "继续",
+            "上面",
+            "刚才",
+            "前面",
+            "这个",
+            "那个",
+            "这点",
+            "第二点",
+            "第三点",
+            "第一点",
         )
         if any(marker in q for marker in chinese_markers):
             return True
@@ -54,10 +63,17 @@ class QueryService:
         seen_chunks: dict[str, dict] = {}
         for chunk in chunks:
             qdrant_id = chunk.get("qdrant_id")
-            chunk_id = str(chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else ""))
+            chunk_id = str(
+                chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else "")
+            )
             key = chunk_id or chunk.get("file_path") or chunk["file_name"]
             score = chunk.get("rerank_score", chunk.get("rrf_score", 0.0))
-            matched_text = chunk.get("matched_text") or chunk.get("child_text") or chunk.get("raw_text") or chunk.get("text", "")
+            matched_text = (
+                chunk.get("matched_text")
+                or chunk.get("child_text")
+                or chunk.get("raw_text")
+                or chunk.get("text", "")
+            )
             parent_text = chunk.get("text") or chunk.get("parent_text") or matched_text
             char_start = parent_text.find(matched_text) if matched_text else 0
             if char_start < 0:
@@ -71,7 +87,9 @@ class QueryService:
                     "snippet": matched_text[:200],
                     "score": round(score, 4),
                     "chunk_id": chunk_id,
-                    "document_id": str(chunk.get("document_id") or chunk.get("file_path") or chunk["file_name"]),
+                    "document_id": str(
+                        chunk.get("document_id") or chunk.get("file_path") or chunk["file_name"]
+                    ),
                     "qdrant_id": int(qdrant_id) if qdrant_id is not None else None,
                     "char_start": char_start,
                     "char_end": char_start + len(matched_text),

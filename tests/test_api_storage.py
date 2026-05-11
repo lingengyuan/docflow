@@ -43,7 +43,9 @@ ingest: {{}}
 
     monkeypatch.setattr(api_app, "CONFIG_PATH", config_path)
     monkeypatch.setattr(api_app, "store", FakeStore())
-    monkeypatch.setattr(api_app.shutil, "disk_usage", lambda path: usage(total=1000, used=400, free=600))
+    monkeypatch.setattr(
+        api_app.shutil, "disk_usage", lambda path: usage(total=1000, used=400, free=600)
+    )
     monkeypatch.setattr(api_app, "_configured_model_cache_paths", lambda cfg: [model_dir])
     client = TestClient(api_app.app)
 

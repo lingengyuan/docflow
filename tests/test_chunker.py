@@ -3,8 +3,8 @@
 """
 
 import pytest
-from src.ingest.chunker import StructuredChunker, Chunk
 
+from src.ingest.chunker import Chunk, StructuredChunker
 
 CTX = dict(file_name="test.pdf", file_path="/tmp/test.pdf", page_num=1)
 
@@ -83,7 +83,12 @@ class TestRecursiveSplit:
 
 class TestTableSummary:
     def test_generates_summary(self):
-        table = "| 区域 | Q3销售额 | 增长率 |\n|---|---|---|\n| 华东 | 2,450,000 | 15% |\n| 华北 | 1,890,000 | 8% |"
+        table = (
+            "| 区域 | Q3销售额 | 增长率 |\n"
+            "|---|---|---|\n"
+            "| 华东 | 2,450,000 | 15% |\n"
+            "| 华北 | 1,890,000 | 8% |"
+        )
         summary = StructuredChunker._table_summary(table, ["第三章", "销售数据"])
         assert "[表格]" in summary
         assert "2 行" in summary
@@ -123,8 +128,9 @@ class TestChunkPage:
 
     def test_metadata_propagated(self):
         c = StructuredChunker()
-        chunks = c.chunk_page("Some content.", file_name="doc.pdf",
-                               file_path="/docs/doc.pdf", page_num=3)
+        chunks = c.chunk_page(
+            "Some content.", file_name="doc.pdf", file_path="/docs/doc.pdf", page_num=3
+        )
         assert all(ch.file_name == "doc.pdf" for ch in chunks)
         assert all(ch.page_num == 3 for ch in chunks)
 

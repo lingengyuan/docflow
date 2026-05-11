@@ -5,7 +5,7 @@ from __future__ import annotations
 import socket
 from dataclasses import dataclass, field
 from types import TracebackType
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import httpx
@@ -84,7 +84,7 @@ class Client:
         self._allow_external = allow_external
         self._client = httpx.Client(*args, **kwargs)
 
-    def __enter__(self) -> "Client":
+    def __enter__(self) -> Client:
         self._client.__enter__()
         return self
 
@@ -94,7 +94,8 @@ class Client:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> bool | None:
-        return self._client.__exit__(exc_type, exc, traceback)
+        self._client.__exit__(exc_type, exc, traceback)
+        return None
 
     def get(self, url: str, **kwargs: Any) -> httpx.Response:
         assert_allowed_url(url, allow_external=self._allow_external)
@@ -113,7 +114,7 @@ class NetworkGuard:
     unexpected_hosts: set[str] = field(default_factory=set)
     _original_create_connection: Any = None
 
-    def __enter__(self) -> "NetworkGuard":
+    def __enter__(self) -> NetworkGuard:
         self._original_create_connection = socket.create_connection
 
         def guarded_create_connection(
@@ -131,7 +132,7 @@ class NetworkGuard:
                 source_address=source_address,
             )
 
-        socket.create_connection = guarded_create_connection
+        socket.create_connection = cast(Any, guarded_create_connection)
         return self
 
     def __exit__(
@@ -140,7 +141,7 @@ class NetworkGuard:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> bool:
-        socket.create_connection = self._original_create_connection
+        socket.create_connection = cast(Any, self._original_create_connection)
         return isinstance(exc, UnexpectedNetworkAccess)
 
     def _is_allowed(self, host: str | None) -> bool:

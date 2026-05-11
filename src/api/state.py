@@ -31,13 +31,15 @@ class LLMSwitchState(MutableMapping[str, Any]):
     def set(self, state: str, *, model: str | None = None, message: str = "") -> None:
         now = time()
         with self._lock:
-            self._data.update({
-                "state": state,
-                "model": model,
-                "message": message,
-                "started_at": now if state == "switching" else self._data.get("started_at"),
-                "finished_at": None if state == "switching" else now,
-            })
+            self._data.update(
+                {
+                    "state": state,
+                    "model": model,
+                    "message": message,
+                    "started_at": now if state == "switching" else self._data.get("started_at"),
+                    "finished_at": None if state == "switching" else now,
+                }
+            )
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:

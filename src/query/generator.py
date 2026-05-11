@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 from src import net
 from src.knowledge_outputs import get_knowledge_output_type
@@ -32,7 +33,8 @@ SUMMARIZE_PROMPT = """你是一个专业的文档摘要助手。请基于提供�
 
 规则：使用中文，简洁专业，严格基于文档内容，不要编造。"""
 
-KNOWLEDGE_OUTPUT_SYSTEM_PROMPT = """你是一个本地知识工作流助手。请把用户提供的资料整理成可保存、可复用的 Markdown 知识产物。
+KNOWLEDGE_OUTPUT_SYSTEM_PROMPT = """你是一个本地知识工作流助手。
+请把用户提供的资料整理成可保存、可复用的 Markdown 知识产物。
 
 规则：
 1. 严格基于资料内容，不要编造事实、日期、结论或来源
@@ -91,10 +93,10 @@ class AnswerGenerator:
         self.temperature = temperature
         self.top_p = top_p
         self.max_tokens = max_tokens
-        self._anthropic_client = None
+        self._anthropic_client: Any | None = None
         # MLX model instance (loaded lazily via _load_mlx_model)
-        self._mlx_model = None
-        self._mlx_tokenizer = None
+        self._mlx_model: Any | None = None
+        self._mlx_tokenizer: Any | None = None
 
     @property
     def current_model(self) -> str:
@@ -317,13 +319,18 @@ class AnswerGenerator:
     def _load_mlx_model(self, model_name: str | None = None) -> None:
         """加载（或切换）MLX LLM 模型。必须在 ml_executor 线程内调用。"""
         from mlx_lm import load
+
         target = model_name or self.mlx_model_name
         if self._mlx_model is None or target != self.mlx_model_name:
-            self._mlx_model, self._mlx_tokenizer = load(target)
+            loaded = load(target)
+            self._mlx_model = loaded[0]
+            self._mlx_tokenizer = loaded[1]
             self.mlx_model_name = target
 
     def _build_prompt_nothink(self, system: str, user: str) -> str:
         """构建 enable_thinking=False prompt，注入空 think 块，跳过推理过程。"""
+        if self._mlx_tokenizer is None:
+            raise RuntimeError("MLX tokenizer is not loaded")
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -338,11 +345,16 @@ class AnswerGenerator:
     def _stream_mlx(self, system: str, user: str, cancel_event=None):
         """通过 mlx_lm.stream_generate 逐 token yield。"""
         from mlx_lm import stream_generate
+
         prompt = self._build_prompt_nothink(system, user)
         generation_kwargs = self._mlx_generation_kwargs()
+        if self._mlx_model is None or self._mlx_tokenizer is None:
+            raise RuntimeError("MLX model is not loaded")
         for response in stream_generate(
-            self._mlx_model, self._mlx_tokenizer,
-            prompt=prompt, **generation_kwargs,
+            self._mlx_model,
+            self._mlx_tokenizer,
+            prompt=prompt,
+            **generation_kwargs,
         ):
             if cancel_event is not None and cancel_event.is_set():
                 break
@@ -352,11 +364,17 @@ class AnswerGenerator:
     def _call_mlx(self, system: str, user: str) -> str:
         """非流式 MLX 生成（用于 summarize / generate）。"""
         from mlx_lm import generate as mlx_generate
+
         prompt = self._build_prompt_nothink(system, user)
         generation_kwargs = self._mlx_generation_kwargs()
+        if self._mlx_model is None or self._mlx_tokenizer is None:
+            raise RuntimeError("MLX model is not loaded")
         return mlx_generate(
-            self._mlx_model, self._mlx_tokenizer,
-            prompt=prompt, verbose=False, **generation_kwargs,
+            self._mlx_model,
+            self._mlx_tokenizer,
+            prompt=prompt,
+            verbose=False,
+            **generation_kwargs,
         )
 
     # ------------------------------------------------------------------
@@ -384,8 +402,16 @@ class AnswerGenerator:
 def citation_from_chunk(chunk: dict) -> Citation:
     qdrant_id = chunk.get("qdrant_id")
     chunk_id = str(chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else ""))
-    document_id = str(chunk.get("document_id") or chunk.get("file_path") or chunk.get("file_name") or "")
-    matched_text = chunk.get("matched_text") or chunk.get("child_text") or chunk.get("raw_text") or chunk.get("text") or ""
+    document_id = str(
+        chunk.get("document_id") or chunk.get("file_path") or chunk.get("file_name") or ""
+    )
+    matched_text = (
+        chunk.get("matched_text")
+        or chunk.get("child_text")
+        or chunk.get("raw_text")
+        or chunk.get("text")
+        or ""
+    )
     parent_text = chunk.get("text") or chunk.get("parent_text") or matched_text
     char_start = parent_text.find(matched_text) if matched_text else 0
     if char_start < 0:
@@ -408,7 +434,10 @@ def citation_from_chunk(chunk: dict) -> Citation:
 
 def validate_citations(citations: list[Citation], chunks: list[dict]) -> list[Citation]:
     valid_chunk_ids = {
-        str(chunk.get("chunk_id") or (f"q:{chunk.get('qdrant_id')}" if chunk.get("qdrant_id") is not None else ""))
+        str(
+            chunk.get("chunk_id")
+            or (f"q:{chunk.get('qdrant_id')}" if chunk.get("qdrant_id") is not None else "")
+        )
         for chunk in chunks
     }
     valid_chunk_ids.discard("")

@@ -12,11 +12,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_eval import DEFAULT_EVAL_PATH, evaluate_case, load_cases, refresh_eval_sources, retrieval_metrics
-from src.quality.parsing_eval import run_parsing_eval
-from src.quality.maturity import build_report, format_report, load_dimensions
-from src.query.engine import QueryEngine
-
+from scripts.run_eval import (  # noqa: E402
+    DEFAULT_EVAL_PATH,
+    evaluate_case,
+    load_cases,
+    refresh_eval_sources,
+    retrieval_metrics,
+)
+from src.quality.maturity import build_report, format_report, load_dimensions  # noqa: E402
+from src.quality.parsing_eval import run_parsing_eval  # noqa: E402
+from src.query.engine import QueryEngine  # noqa: E402
 
 DEFAULT_DIMENSIONS = Path("eval/phase11_maturity_dimensions.json")
 DEFAULT_CASES = DEFAULT_EVAL_PATH
@@ -61,11 +66,21 @@ def run_retrieval_eval(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the DocFlow maturity baseline.")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
-    parser.add_argument("--dimensions", default=str(DEFAULT_DIMENSIONS), help="Maturity dimension JSON file")
-    parser.add_argument("--cases", default=str(DEFAULT_CASES), help="Retrieval evidence eval JSONL file")
-    parser.add_argument("--no-rerank", action="store_true", help="Skip reranker in retrieval evidence eval")
-    parser.add_argument("--skip-retrieval", action="store_true", help="Only score maturity dimensions")
-    parser.add_argument("--skip-parsing", action="store_true", help="Skip parsing regression checks")
+    parser.add_argument(
+        "--dimensions", default=str(DEFAULT_DIMENSIONS), help="Maturity dimension JSON file"
+    )
+    parser.add_argument(
+        "--cases", default=str(DEFAULT_CASES), help="Retrieval evidence eval JSONL file"
+    )
+    parser.add_argument(
+        "--no-rerank", action="store_true", help="Skip reranker in retrieval evidence eval"
+    )
+    parser.add_argument(
+        "--skip-retrieval", action="store_true", help="Only score maturity dimensions"
+    )
+    parser.add_argument(
+        "--skip-parsing", action="store_true", help="Skip parsing regression checks"
+    )
     parser.add_argument(
         "--parsing-config",
         default="config.example.yaml",

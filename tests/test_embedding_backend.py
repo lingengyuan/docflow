@@ -65,6 +65,7 @@ def test_load_embedding_model_reloads_local_onnx_export(monkeypatch, tmp_path):
         (export_dir / f"model_{optimization_config}.onnx").write_text("optimized", encoding="utf-8")
 
     import sentence_transformers
+
     monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeSentenceTransformer)
     monkeypatch.setattr(
         sentence_transformers,

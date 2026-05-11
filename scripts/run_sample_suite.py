@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.quality.sample_suite import DEFAULT_SAMPLE_DIR, run_sample_suite
+from src.quality.sample_suite import DEFAULT_SAMPLE_DIR, run_sample_suite  # noqa: E402
 
 
 def main() -> int:

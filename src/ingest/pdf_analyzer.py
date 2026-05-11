@@ -9,25 +9,25 @@ PDFAnalyzer — 检测 PDF 类型并路由到对应解析路径。
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 import fitz  # PyMuPDF
 
 from src import net
 
-
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PageContent:
-    page_num: int          # 1-based
+    page_num: int  # 1-based
     text: str
-    headers: list[str]     # lines identified as headers (large font / bold)
-    is_ocr: bool = False   # True if this page was processed by GLM-OCR
+    headers: list[str]  # lines identified as headers (large font / bold)
+    is_ocr: bool = False  # True if this page was processed by GLM-OCR
 
 
 @dataclass
@@ -46,6 +46,7 @@ class ParsedDocument:
 # ---------------------------------------------------------------------------
 # PDFAnalyzer
 # ---------------------------------------------------------------------------
+
 
 class PDFAnalyzer:
     def __init__(
@@ -102,9 +103,7 @@ class PDFAnalyzer:
     # Parsing
     # ------------------------------------------------------------------
 
-    def _parse_pages(
-        self, doc: fitz.Document, is_scanned: bool
-    ) -> Iterator[PageContent]:
+    def _parse_pages(self, doc: fitz.Document, is_scanned: bool) -> Iterator[PageContent]:
         for i, page in enumerate(doc):
             page_num = i + 1
             if is_scanned:

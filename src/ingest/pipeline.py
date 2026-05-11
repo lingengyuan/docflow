@@ -14,10 +14,10 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
-from typing import Callable
 
 import numpy as np
 import yaml
@@ -54,6 +54,7 @@ def _fts_tokenize(text: str, is_cjk: bool | None = None) -> str:
         is_cjk = _is_cjk_dominant(text)
     if is_cjk:
         import jieba
+
         return " ".join(t for t in jieba.cut(text.lower()) if t.strip())
     return text.lower()
 
@@ -114,7 +115,7 @@ class IngestPipeline:
         self.parent_context_chars = parent_context_chars
 
     @classmethod
-    def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> "IngestPipeline":
+    def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> IngestPipeline:
         with open(config_path) as f:
             cfg = yaml.safe_load(f)
 
@@ -127,9 +128,7 @@ class IngestPipeline:
             chunk_size=cfg["chunking"]["chunk_size"],
             chunk_overlap=cfg["chunking"]["chunk_overlap"],
         )
-        id_counter = Path(
-            cfg["paths"].get("id_counter", "qdrant_id_counter.txt")
-        ).expanduser()
+        id_counter = Path(cfg["paths"].get("id_counter", "qdrant_id_counter.txt")).expanduser()
         embedder = Embedder(
             qdrant_host=cfg["qdrant"]["host"],
             qdrant_port=cfg["qdrant"]["port"],
@@ -378,7 +377,7 @@ class IngestPipeline:
         missing_hashes: list[str] = []
         missing_texts: list[str] = []
         seen_missing: set[str] = set()
-        for text_hash, text in zip(text_hashes, embedding_texts):
+        for text_hash, text in zip(text_hashes, embedding_texts, strict=False):
             if text_hash in cached_hashes or text_hash in seen_missing:
                 continue
             seen_missing.add(text_hash)
@@ -447,7 +446,9 @@ class IngestPipeline:
                 }
             )
 
-        vectors = np.stack([vectors_by_hash[text_hash] for text_hash in text_hashes]).astype(np.float32)
+        vectors = np.stack([vectors_by_hash[text_hash] for text_hash in text_hashes]).astype(
+            np.float32
+        )
         embed_s = perf_counter() - embed_start
         return vectors, text_hashes, cached_hashes, embed_s
 
@@ -490,7 +491,8 @@ class IngestPipeline:
             for prepared in prepared_files:
                 if prepared.old_qdrant_ids:
                     logger.info(
-                        f"  Re-ingesting: removing {len(prepared.old_qdrant_ids)} old vectors for {prepared.path.name}"
+                        "  Re-ingesting: removing "
+                        f"{len(prepared.old_qdrant_ids)} old vectors for {prepared.path.name}"
                     )
                     self.embedder.delete_file_vectors(prepared.old_qdrant_ids)
             qdrant_ids = self.embedder.upsert_embeddings(
@@ -525,7 +527,9 @@ class IngestPipeline:
                     "processed_chunks": total_chunks,
                     "total_chunks": total_chunks,
                     "cache_hits": sum(1 for text_hash in text_hashes if text_hash in cached_hashes),
-                    "cache_misses": sum(1 for text_hash in text_hashes if text_hash not in cached_hashes),
+                    "cache_misses": sum(
+                        1 for text_hash in text_hashes if text_hash not in cached_hashes
+                    ),
                     "adaptive_batch_size": None,
                 }
             )
@@ -540,7 +544,9 @@ class IngestPipeline:
             ratio = (len(prepared.chunks) / total_chunks) if total_chunks else 0.0
             metrics.embed_s = embed_s * ratio
             metrics.qdrant_s = qdrant_s * ratio
-            metrics.cache_hits = sum(1 for text_hash in file_text_hashes if text_hash in cached_hashes)
+            metrics.cache_hits = sum(
+                1 for text_hash in file_text_hashes if text_hash in cached_hashes
+            )
             metrics.cache_misses = len(file_text_hashes) - metrics.cache_hits
 
             if progress_callback:
@@ -571,7 +577,9 @@ class IngestPipeline:
                         "embedding_text": prepared.chunks[i].embedding_text,
                         "parent_text": prepared.chunks[i].parent_text,
                         "contextual_prefix": prepared.chunks[i].contextual_prefix,
-                        "tokenized_text": _fts_tokenize(prepared.chunks[i].raw_text, is_cjk=prepared.is_cjk),
+                        "tokenized_text": _fts_tokenize(
+                            prepared.chunks[i].raw_text, is_cjk=prepared.is_cjk
+                        ),
                     }
                     for i in range(len(prepared.chunks))
                 ]
@@ -639,7 +647,8 @@ class IngestPipeline:
 
     def benchmark_file(self, file_path: str | Path) -> dict:
         """
-        端到端 benchmark（dry-run）：parse / chunk / embed 全部执行，但不写入 Qdrant / SQLite chunk 元数据。
+        端到端 benchmark（dry-run）：执行 parse / chunk / embed，
+        但不写入 Qdrant / SQLite chunk 元数据。
         """
         path = Path(file_path).expanduser().resolve()
         if not self.registry.supports(path):

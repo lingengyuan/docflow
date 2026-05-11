@@ -127,12 +127,14 @@ def install_service(
     results = []
     for args in commands:
         result = _run(args)
-        results.append({
-            "command": args,
-            "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-        })
+        results.append(
+            {
+                "command": args,
+                "returncode": result.returncode,
+                "stdout": result.stdout.strip(),
+                "stderr": result.stderr.strip(),
+            }
+        )
         if args[1] != "bootout" and result.returncode != 0:
             return {**written, "status": "error", "commands": commands, "results": results}
     return {**written, "status": "ok", "commands": commands, "results": results}

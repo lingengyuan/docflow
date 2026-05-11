@@ -11,19 +11,33 @@ from pathlib import Path
 import yaml
 
 from src.embedding_backend import embedding_backend_config_from_dict
+from src.ingest.store import DocStore
 from src.query.generator import Answer, AnswerGenerator, citation_from_chunk
 from src.query.retriever import HybridRetriever
-from src.ingest.store import DocStore
 
-
-TABLE_KEYWORDS = {"表格", "数据", "统计", "总计", "合计", "金额", "数量", "比例",
-                  "table", "data", "total", "sum", "amount", "count", "ratio", "percent"}
+TABLE_KEYWORDS = {
+    "表格",
+    "数据",
+    "统计",
+    "总计",
+    "合计",
+    "金额",
+    "数量",
+    "比例",
+    "table",
+    "data",
+    "total",
+    "sum",
+    "amount",
+    "count",
+    "ratio",
+    "percent",
+}
 
 logger = logging.getLogger(__name__)
 
 INSUFFICIENT_EVIDENCE_MESSAGE = (
-    "在现有文档中未找到足够可靠的信息。"
-    "请扩大提问范围、换个问法，或确认相关文件已经完成入库。"
+    "在现有文档中未找到足够可靠的信息。请扩大提问范围、换个问法，或确认相关文件已经完成入库。"
 )
 MIN_RERANK_SCORE = 0.12
 MIN_VECTOR_SCORE = 0.40
@@ -39,7 +53,7 @@ class QueryEngine:
         self.generator = generator
 
     @classmethod
-    def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> "QueryEngine":
+    def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> QueryEngine:
         with open(config_path) as f:
             cfg = yaml.safe_load(f)
 
@@ -101,7 +115,9 @@ class QueryEngine:
             answer.related_notes = related_notes
             return answer
         except Exception as exc:
-            logger.warning("[query] answer generation failed; returning retrieved snippets", exc_info=True)
+            logger.warning(
+                "[query] answer generation failed; returning retrieved snippets", exc_info=True
+            )
             answer = self._fallback_answer(answer_chunks, exc)
             answer.related_notes = related_notes
             return answer
@@ -215,7 +231,10 @@ class QueryEngine:
                 conversation_context=conversation_context,
             )
         except Exception as exc:
-            logger.warning("[query] deep research generation failed; returning retrieved snippets", exc_info=True)
+            logger.warning(
+                "[query] deep research generation failed; returning retrieved snippets",
+                exc_info=True,
+            )
             answer = self._fallback_answer(answer_chunks, exc)
         answer.related_notes = related_notes
         answer.research_steps = steps
@@ -349,5 +368,7 @@ class QueryEngine:
         except Exception as exc:
             if cancel_event is not None and cancel_event.is_set():
                 return
-            logger.warning("[query] stream generation failed; returning fallback message", exc_info=True)
+            logger.warning(
+                "[query] stream generation failed; returning fallback message", exc_info=True
+            )
             yield self._fallback_answer(chunks, exc).text

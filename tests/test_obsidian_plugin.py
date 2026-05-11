@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 PLUGIN_DIR = Path("obsidian-plugin/docflow-assistant")
 
 

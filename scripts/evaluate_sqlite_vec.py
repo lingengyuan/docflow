@@ -34,13 +34,16 @@ def build_report(db_path: str | Path = "docflow.db") -> dict:
             "export current chunk metadata and embeddings",
             "load a copy into sqlite-vec",
             "run the same benchmark question set against Qdrant and sqlite-vec",
-            "compare top-k overlap, citation accuracy, p50/p95 latency, ingest time, and storage size",
+            "compare top-k overlap, citation accuracy, p50/p95 latency, "
+            "ingest time, and storage size",
         ],
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate sqlite-vec readiness without migrating storage.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate sqlite-vec readiness without migrating storage."
+    )
     parser.add_argument("--db-path", default="docflow.db")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

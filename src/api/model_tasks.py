@@ -6,10 +6,11 @@ import asyncio
 import logging
 import threading
 import uuid
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from time import perf_counter, time
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -91,7 +92,7 @@ class ModelTaskController:
         task = self.submit(name, fn)
         try:
             return await asyncio.wait_for(asyncio.wrap_future(task.future), timeout=timeout_s)
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             task.future.cancel()
             self.retire(reason=f"timeout after {timeout_s:.1f}s", task=task)
             raise ModelTaskTimeout(task.task_id, name, timeout_s) from exc

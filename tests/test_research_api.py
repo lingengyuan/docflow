@@ -39,7 +39,13 @@ class FakeResearchQueryEngine:
             ],
             related_notes=[{"file_name": "Related.md"}],
             research_steps=[
-                {"step": 1, "query": question, "result_count": 2, "new_results": 2, "top_files": ["Research.md"]}
+                {
+                    "step": 1,
+                    "query": question,
+                    "result_count": 2,
+                    "new_results": 2,
+                    "top_files": ["Research.md"],
+                }
             ],
         )
 

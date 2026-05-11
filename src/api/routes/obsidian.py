@@ -9,7 +9,9 @@ from src.api.schemas import ObsidianRelatedRequest
 
 def create_router(handlers) -> APIRouter:
     router = APIRouter()
-    router.add_api_route("/api/obsidian/related", handlers["obsidian_related_notes"], methods=["POST"])
+    router.add_api_route(
+        "/api/obsidian/related", handlers["obsidian_related_notes"], methods=["POST"]
+    )
     return router
 
 

@@ -77,7 +77,7 @@ class MarkdownParser:
                 tags.append(fm_tags)
             if fm.get("aliases"):
                 metadata["aliases"] = fm["aliases"]
-            raw = raw[fm_match.end():]
+            raw = raw[fm_match.end() :]
 
         # 2. 提取行内 #tags（在清洗前）
         inline_tags = _extract_inline_tags(raw)
@@ -87,13 +87,13 @@ class MarkdownParser:
 
         # 3. 清洗 Obsidian 语法
         text = raw
-        text = _COMMENT_RE.sub("", text)             # %%comments%%
-        text = _EMBED_RE.sub("", text)                # ![[embeds]]
-        text = _WIKILINK_RE.sub(                      # [[links]]
+        text = _COMMENT_RE.sub("", text)  # %%comments%%
+        text = _EMBED_RE.sub("", text)  # ![[embeds]]
+        text = _WIKILINK_RE.sub(  # [[links]]
             lambda m: m.group(2) or m.group(1), text
         )
-        text = _CALLOUT_RE.sub(r"\1\3", text)         # > [!type] title
-        text = _BLOCK_ID_RE.sub("", text)             # ^block-id
+        text = _CALLOUT_RE.sub(r"\1\3", text)  # > [!type] title
+        text = _BLOCK_ID_RE.sub("", text)  # ^block-id
 
         # 去除多余空行
         text = re.sub(r"\n{3,}", "\n\n", text).strip()

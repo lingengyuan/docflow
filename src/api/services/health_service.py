@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 
 class HealthService:
@@ -53,7 +53,9 @@ class HealthService:
         disk = disk_usage(Path.home())
         files = doc_store.list_files()
         source_usage = self.source_file_usage(files)
-        model_cache_bytes = sum(self.safe_path_size(path) for path in configured_model_cache_paths(cfg))
+        model_cache_bytes = sum(
+            self.safe_path_size(path) for path in configured_model_cache_paths(cfg)
+        )
         app_data_bytes = sum(self.safe_path_size(path) for path in app_data_paths(cfg))
         known_bytes = source_usage["bytes"] + model_cache_bytes + app_data_bytes
         other_bytes = max(0, int(disk.used) - known_bytes)

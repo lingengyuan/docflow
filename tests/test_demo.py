@@ -34,8 +34,10 @@ def test_create_demo_files_writes_small_first_run_library(tmp_path):
     assert result["status"] == "created"
     assert result["file_count"] == 4
     assert demo_dir.exists()
-    assert (demo_dir / "docflow-overview.md").read_text(encoding="utf-8").startswith(
-        "# DocFlow Demo Overview"
+    assert (
+        (demo_dir / "docflow-overview.md")
+        .read_text(encoding="utf-8")
+        .startswith("# DocFlow Demo Overview")
     )
 
     second = create_demo_files(config_path)

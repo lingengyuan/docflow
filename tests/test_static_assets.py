@@ -10,8 +10,7 @@ from src.api import app as api_app
 def frontend_source_text() -> str:
     html = Path("frontend/index.html").read_text(encoding="utf-8")
     scripts = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted(Path("frontend/js").glob("*.js"))
+        path.read_text(encoding="utf-8") for path in sorted(Path("frontend/js").glob("*.js"))
     )
     return f"{html}\n{scripts}"
 
@@ -187,7 +186,7 @@ def test_phase31_supplemental_polish_stays_in_place():
     assert 'id="health-details" class="grid grid-cols-2 xl:grid-cols-3 gap-2' in html
     assert 'id="notes-content-input" rows="10"' in html
     assert 'id="knowledge-source-input" rows="2"' in html
-    assert 'border-outline-variant/35 rounded-lg px-3 py-2' in html
+    assert "border-outline-variant/35 rounded-lg px-3 py-2" in html
 
 
 def test_phase32_queue_polling_refreshes_only_on_state_change():

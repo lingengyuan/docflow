@@ -41,8 +41,7 @@ class ImportService:
             raise ValueError("Knowledge output source is empty")
         if len(source) > KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT:
             source = (
-                source[:KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT].rstrip()
-                + "\n\n[内容已按长度上限截断]"
+                source[:KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT].rstrip() + "\n\n[内容已按长度上限截断]"
             )
         return source, source_files
 
@@ -80,7 +79,9 @@ class ImportService:
             total_pages=1,
             mtime_ns=path.stat().st_mtime_ns,
         )
-        record = state.store.update_file_metadata(file_id, collection=collection, user_tags=user_tags)
+        record = state.store.update_file_metadata(
+            file_id, collection=collection, user_tags=user_tags
+        )
         queue_result = state.ingest_queue.submit(path)
         return {
             "status": "queued",

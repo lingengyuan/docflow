@@ -32,7 +32,13 @@ def build_browser_acceptance_plan() -> list[ViewAcceptance]:
             label="Chat",
             nav_selector="#nav-chat",
             view_selector="#view-chat",
-            visible_selectors=("#global-search-input", "#input", "#send-btn", "#query-scope-mode", "#chat-context-sources"),
+            visible_selectors=(
+                "#global-search-input",
+                "#input",
+                "#send-btn",
+                "#query-scope-mode",
+                "#chat-context-sources",
+            ),
             expected_text=("DocFlow", "全部知识库"),
         ),
         ViewAcceptance(
@@ -50,7 +56,14 @@ def build_browser_acceptance_plan() -> list[ViewAcceptance]:
                 "#file-tbody",
                 "#library-context-panel",
             ),
-            expected_text=("文件库", "刷新列表", "扫描文件夹", "全部文件", "最近导入", "拖拽文件至此或点击上传"),
+            expected_text=(
+                "文件库",
+                "刷新列表",
+                "扫描文件夹",
+                "全部文件",
+                "最近导入",
+                "拖拽文件至此或点击上传",
+            ),
         ),
         ViewAcceptance(
             id="source",
@@ -155,7 +168,11 @@ def run_browser_acceptance(
         )
         for index, view in enumerate(build_browser_acceptance_plan(), start=1):
             _run_view_checks(page, view, checks, timeout_ms)
-            _run_check(checks, f"{view.id}_ready_for_screenshot", lambda view=view: _wait_for_view_ready(page, view, timeout_ms))
+            _run_check(
+                checks,
+                f"{view.id}_ready_for_screenshot",
+                lambda view=view: _wait_for_view_ready(page, view, timeout_ms),
+            )
             if output_dir:
                 screenshot = output_dir / f"{index:02d}-{view.id}.png"
                 page.screenshot(path=str(screenshot), full_page=True)
@@ -190,7 +207,9 @@ def format_browser_acceptance_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any]], timeout_ms: int) -> None:
+def _run_view_checks(
+    page: Any, view: ViewAcceptance, checks: list[dict[str, Any]], timeout_ms: int
+) -> None:
     _run_check(
         checks,
         f"{view.id}_nav",
@@ -217,12 +236,24 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
             lambda text=text: _assert_text(page, text, timeout_ms),
         )
     if view.id == "settings":
-        _run_check(checks, "settings_has_no_developer_language", lambda: _assert_no_settings_developer_language(page, timeout_ms))
+        _run_check(
+            checks,
+            "settings_has_no_developer_language",
+            lambda: _assert_no_settings_developer_language(page, timeout_ms),
+        )
     if view.id == "library":
-        _run_check(checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms))
-        _run_check(checks, "library_source_review_opens", lambda: _check_library_source_review(page, timeout_ms))
+        _run_check(
+            checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms)
+        )
+        _run_check(
+            checks,
+            "library_source_review_opens",
+            lambda: _check_library_source_review(page, timeout_ms),
+        )
     if view.id == "source":
-        _run_check(checks, "source_preview_loaded", lambda: _check_source_preview_loaded(page, timeout_ms))
+        _run_check(
+            checks, "source_preview_loaded", lambda: _check_source_preview_loaded(page, timeout_ms)
+        )
 
 
 def _check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
@@ -289,7 +320,8 @@ def _check_library_source_review(page: Any, timeout_ms: int) -> dict[str, Any]:
             const el = document.querySelector('#library-source-review');
             if (!el) return false;
             const text = el.innerText || '';
-            return ['为什么引用这些片段', '还没有可预览', '读取失败'].some(token => text.includes(token));
+            return ['为什么引用这些片段', '还没有可预览', '读取失败']
+              .some(token => text.includes(token));
         }
         """,
         timeout=timeout_ms,
@@ -320,7 +352,9 @@ def _check_source_preview_loaded(page: Any, timeout_ms: int) -> dict[str, Any]:
     return {"state": page.locator("#source-detail-panel").inner_text(timeout=timeout_ms)[:80]}
 
 
-def _check_note_ingest_query_cleanup_flow(page: Any, base_url: str, timeout_ms: int) -> dict[str, Any]:
+def _check_note_ingest_query_cleanup_flow(
+    page: Any, base_url: str, timeout_ms: int
+) -> dict[str, Any]:
     stamp = str(int(time.time()))
     title = f"phase32-acceptance-{stamp}"
     token = f"phase32-token-{stamp}"
@@ -339,11 +373,16 @@ def _check_note_ingest_query_cleanup_flow(page: Any, base_url: str, timeout_ms: 
         )
         page.locator("#notes-submit-btn").click(timeout=timeout_ms)
         page.wait_for_function(
-            "() => (document.querySelector('#notes-status')?.innerText || '').includes('已加入入库队列')",
+            """
+            () => (document.querySelector('#notes-status')?.innerText || '')
+              .includes('已加入入库队列')
+            """,
             timeout=timeout_ms,
         )
         file_record = _wait_for_file_by_title(base_url, title, max(timeout_ms, 60_000))
-        file_record = _wait_for_file_status(base_url, int(file_record["id"]), "done", max(timeout_ms, 120_000))
+        file_record = _wait_for_file_status(
+            base_url, int(file_record["id"]), "done", max(timeout_ms, 120_000)
+        )
         query_details = _query_temporary_note(page, file_record, token, question, timeout_ms)
         conversation_id = query_details.get("conversation_id")
         return {
@@ -354,10 +393,16 @@ def _check_note_ingest_query_cleanup_flow(page: Any, base_url: str, timeout_ms: 
         }
     finally:
         if file_record:
-            cleanup_details.update(_cleanup_mutation_file(file_record, conversation_id=conversation_id, question=question))
+            cleanup_details.update(
+                _cleanup_mutation_file(
+                    file_record, conversation_id=conversation_id, question=question
+                )
+            )
 
 
-def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, question: str, timeout_ms: int) -> dict[str, Any]:
+def _query_temporary_note(
+    page: Any, file_record: dict[str, Any], token: str, question: str, timeout_ms: int
+) -> dict[str, Any]:
     file_id = int(file_record["id"])
     file_name = str(file_record["file_name"])
     page.locator("#nav-chat").click(timeout=timeout_ms)
@@ -365,7 +410,9 @@ def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, qu
         """
         ({ fileId }) => {
             const select = document.querySelector('#query-scope-file');
-            return Boolean(select && [...select.options].some(option => option.value === String(fileId)));
+            return Boolean(
+              select && [...select.options].some(option => option.value === String(fileId))
+            );
         }
         """,
         arg={"fileId": file_id},
@@ -394,14 +441,23 @@ def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, qu
         timeout=max(timeout_ms, 120_000),
     )
     text = page.locator("#messages").inner_text(timeout=timeout_ms)
-    failure_terms = ("本次查询失败", "本次回答失败", "回答失败", "连接中断", "耗时太久", "暂时连接不上")
+    failure_terms = (
+        "本次查询失败",
+        "本次回答失败",
+        "回答失败",
+        "连接中断",
+        "耗时太久",
+        "暂时连接不上",
+    )
     matched_failures = [term for term in failure_terms if term in text]
     if matched_failures:
         raise AssertionError(f"temporary note query failed: {', '.join(matched_failures)}")
     answer_visible = bool(text.strip())
     if not answer_visible:
         raise AssertionError("temporary note query did not render an answer")
-    conversation_id = page.evaluate("typeof currentConversationId === 'number' ? currentConversationId : null")
+    conversation_id = page.evaluate(
+        "typeof currentConversationId === 'number' ? currentConversationId : null"
+    )
     return {
         "answer_visible": answer_visible,
         "citation_visible": file_name in text,
@@ -410,7 +466,9 @@ def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, qu
     }
 
 
-def _api_json(base_url: str, path: str, timeout_ms: int, *, method: str = "GET", payload: dict | None = None) -> Any:
+def _api_json(
+    base_url: str, path: str, timeout_ms: int, *, method: str = "GET", payload: dict | None = None
+) -> Any:
     headers = {"Content-Type": "application/json"} if payload is not None else {}
     response = net.request(
         method,
@@ -436,7 +494,9 @@ def _wait_for_file_by_title(base_url: str, title: str, timeout_ms: int) -> dict[
     raise AssertionError(f"temporary note was not listed: {title}")
 
 
-def _wait_for_file_status(base_url: str, file_id: int, status: str, timeout_ms: int) -> dict[str, Any]:
+def _wait_for_file_status(
+    base_url: str, file_id: int, status: str, timeout_ms: int
+) -> dict[str, Any]:
     deadline = time.perf_counter() + timeout_ms / 1000
     last_status = ""
     while time.perf_counter() < deadline:
@@ -450,7 +510,9 @@ def _wait_for_file_status(base_url: str, file_id: int, status: str, timeout_ms: 
             if last_status == "error":
                 raise AssertionError(f"temporary note ingest failed: {item.get('error_msg', '')}")
         time.sleep(1)
-    raise AssertionError(f"temporary note did not reach {status}; last status: {last_status or 'missing'}")
+    raise AssertionError(
+        f"temporary note did not reach {status}; last status: {last_status or 'missing'}"
+    )
 
 
 def _cleanup_mutation_file(
@@ -503,13 +565,17 @@ def _delete_file_record(cfg: dict[str, Any], file_path: Path) -> list[int] | Non
         if row is None:
             return None
         file_id = int(row[0])
-        chunk_rows = conn.execute("SELECT id, qdrant_id FROM chunks WHERE file_id = ?", (file_id,)).fetchall()
+        chunk_rows = conn.execute(
+            "SELECT id, qdrant_id FROM chunks WHERE file_id = ?", (file_id,)
+        ).fetchall()
         chunk_ids = [int(row[0]) for row in chunk_rows]
         qdrant_ids = [int(row[1]) for row in chunk_rows]
         if chunk_ids:
             placeholders = ",".join("?" * len(chunk_ids))
             conn.execute(f"DELETE FROM chunks_fts WHERE rowid IN ({placeholders})", chunk_ids)
-            conn.execute(f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", chunk_ids)
+            conn.execute(
+                f"DELETE FROM chunks_fts_trigram WHERE rowid IN ({placeholders})", chunk_ids
+            )
         conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
         conn.execute("DELETE FROM favorites WHERE file_id = ?", (file_id,))
         conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
@@ -595,7 +661,9 @@ def _wait_for_view_ready(page: Any, view: ViewAcceptance, timeout_ms: int) -> di
     return {"ready": "static view"}
 
 
-def _wait_for_library_loaded(page: Any, timeout_ms: int, *, expect_rows: bool = False) -> dict[str, Any]:
+def _wait_for_library_loaded(
+    page: Any, timeout_ms: int, *, expect_rows: bool = False
+) -> dict[str, Any]:
     page.wait_for_function(
         """
         ({ expectRows }) => {
@@ -603,7 +671,8 @@ def _wait_for_library_loaded(page: Any, timeout_ms: int, *, expect_rows: bool = 
             if (!tbody) return false;
             const text = tbody.innerText || '';
             const rows = tbody.querySelectorAll('tr[data-file-id]').length;
-            const total = Number((document.querySelector('#library-group-all-count')?.innerText || '0').trim()) || 0;
+            const totalText = document.querySelector('#library-group-all-count')?.innerText || '0';
+            const total = Number(totalText.trim()) || 0;
             if (expectRows && total > 0) return rows > 0;
             return rows > 0 || text.includes('暂无匹配文件') || text.includes('加载失败');
         }

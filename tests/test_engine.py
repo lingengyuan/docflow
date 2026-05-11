@@ -3,7 +3,6 @@ import yaml
 from src.query.engine import QueryEngine
 from src.query.generator import Answer
 
-
 CHUNKS = [
     {
         "text": "Health checks report degraded optional capabilities.",

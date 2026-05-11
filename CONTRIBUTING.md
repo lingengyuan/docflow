@@ -30,7 +30,7 @@ docflow browser-acceptance
 docflow doctor --offline
 ```
 
-The full lint/type checks are part of the public-quality roadmap. If a check fails because of existing debt, note the failure clearly in the pull request.
+All listed checks are expected to pass before a pull request is ready for review.
 
 ## Pull Request Expectations
 

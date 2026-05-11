@@ -41,7 +41,7 @@ def test_note_markdown_builders_validate_content():
         citations=[{"file_name": "README.md", "page_num": 1}],
     )
 
-    assert "title: \"Quick Idea\"" in note.markdown
+    assert 'title: "Quick Idea"' in note.markdown
     assert "# Quick Idea" in note.markdown
     assert "## Question" in answer.markdown
     assert "README.md p.1" in answer.markdown
@@ -57,8 +57,8 @@ def test_knowledge_output_markdown_builder_adds_type_sources_and_tags():
         tags=["phase17"],
     )
 
-    assert "title: \"Sprint Brief\"" in output.markdown
-    assert "output_type: \"project_brief\"" in output.markdown
+    assert 'title: "Sprint Brief"' in output.markdown
+    assert 'output_type: "project_brief"' in output.markdown
     assert "knowledge-output" in output.markdown
     assert "phase17" in output.markdown
     assert "docs/phase16-handoff.md" in output.markdown
@@ -202,7 +202,7 @@ def test_knowledge_output_endpoint_writes_generated_markdown(monkeypatch, tmp_pa
     assert path.exists()
     saved = path.read_text(encoding="utf-8")
     assert "## 当前状态" in saved
-    assert "output_type: \"project_brief\"" in saved
+    assert 'output_type: "project_brief"' in saved
     assert generated["output_type"] == "project_brief"
     assert "Phase 17 adds" in generated["source_text"]
     assert body["file"]["collection"] == "Knowledge Outputs"

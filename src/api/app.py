@@ -4,37 +4,26 @@ DocFlow FastAPI 后端。
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
-import asyncio
 import queue
 import shutil
 import sqlite3
+import sys
 import threading
+import types
 from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
-import sys
-import types
 
 import yaml
-import json
-
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.domain_types import FileStatus, HealthAction
-from src.ingest.pipeline import IngestPipeline
-from src.ingest.queue import IngestQueue
-from src.ingest.imports import (
-    build_answer_note_markdown,
-    build_knowledge_output_markdown,
-    build_quick_note_markdown,
-    fetch_webpage_markdown,
-)
-from src.ingest.store import DocStore
-from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
+from src import net
 from src.api.model_tasks import ModelTaskController, ModelTaskTimeout
 from src.api.routes import imports as imports_routes
 from src.api.routes import library as library_routes
@@ -66,11 +55,21 @@ from src.api.services.health_service import HealthService
 from src.api.services.import_service import ImportService
 from src.api.services.query_service import QueryService
 from src.api.state import AppState
+from src.domain_types import FileStatus, HealthAction
+from src.ingest.imports import (
+    build_answer_note_markdown,
+    build_knowledge_output_markdown,
+    build_quick_note_markdown,
+    fetch_webpage_markdown,
+)
+from src.ingest.pipeline import IngestPipeline
+from src.ingest.queue import IngestQueue
+from src.ingest.store import DocStore
+from src.ingest.watcher import FolderWatcher, WatchDir, _is_excluded
 from src.knowledge_outputs import (
     get_knowledge_output_type,
     knowledge_output_tags,
 )
-from src import net
 from src.maintenance.startup import ensure_config_file
 from src.query.engine import QueryEngine
 
@@ -157,11 +156,13 @@ def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:
         if isinstance(entry, str):
             result.append(WatchDir(path=Path(entry).expanduser(), recursive=False))
         else:
-            result.append(WatchDir(
-                path=Path(entry["path"]).expanduser(),
-                recursive=entry.get("recursive", False),
-                extensions=entry.get("extensions", []),
-            ))
+            result.append(
+                WatchDir(
+                    path=Path(entry["path"]).expanduser(),
+                    recursive=entry.get("recursive", False),
+                    extensions=entry.get("extensions", []),
+                )
+            )
     return result
 
 
@@ -175,8 +176,11 @@ def _configured_model_names(cfg: dict) -> dict[str, str]:
     return {
         "embedding": embedding_cfg.get("model", ""),
         "reranker": reranker_cfg.get("model", ""),
-        "llm": llm_cfg.get("mlx_model") or llm_cfg.get("ollama_model") or ollama_cfg.get("llm_model", ""),
-        "llm_enhanced": llm_cfg.get("mlx_model_enhanced") or ollama_cfg.get("llm_model_enhanced", ""),
+        "llm": llm_cfg.get("mlx_model")
+        or llm_cfg.get("ollama_model")
+        or ollama_cfg.get("llm_model", ""),
+        "llm_enhanced": llm_cfg.get("mlx_model_enhanced")
+        or ollama_cfg.get("llm_model_enhanced", ""),
         "ocr": ollama_cfg.get("ocr_model", ""),
         "contextual_prefix": ingest_cfg.get("contextual_prefix_model", ""),
         "vlm": vlm_cfg.get("model", ""),
@@ -247,10 +251,12 @@ def _app_data_paths(cfg: dict) -> list[Path]:
         _config_path("qdrant_storage"),
     ]
     db_path = _config_path(paths_cfg.get("db_path", "docflow.db"))
-    candidates.extend([
-        Path(f"{db_path}-wal"),
-        Path(f"{db_path}-shm"),
-    ])
+    candidates.extend(
+        [
+            Path(f"{db_path}-wal"),
+            Path(f"{db_path}-shm"),
+        ]
+    )
     return _unique_existing_paths(candidates)
 
 
@@ -306,20 +312,34 @@ async def lifespan(app: FastAPI):
     ingest_cfg = cfg.get("ingest", {})
     backend = llm_cfg.get("backend", "local")
     if backend == "mlx":
-        llm_options = list(dict.fromkeys([
-            llm_cfg.get("mlx_model", ""),
-            llm_cfg.get("mlx_model_enhanced", ""),
-        ]))
+        llm_options = list(
+            dict.fromkeys(
+                [
+                    llm_cfg.get("mlx_model", ""),
+                    llm_cfg.get("mlx_model_enhanced", ""),
+                ]
+            )
+        )
     elif backend == "claude":
-        llm_options = list(dict.fromkeys([
-            llm_cfg.get("claude_model", ""),
-            llm_cfg.get("claude_model_enhanced", ""),
-        ]))
+        llm_options = list(
+            dict.fromkeys(
+                [
+                    llm_cfg.get("claude_model", ""),
+                    llm_cfg.get("claude_model_enhanced", ""),
+                ]
+            )
+        )
     else:
-        llm_options = list(dict.fromkeys([
-            llm_cfg.get("ollama_model", cfg["ollama"]["llm_model"]),
-            llm_cfg.get("ollama_model_enhanced", cfg["ollama"].get("llm_model_enhanced", "")),
-        ]))
+        llm_options = list(
+            dict.fromkeys(
+                [
+                    llm_cfg.get("ollama_model", cfg["ollama"]["llm_model"]),
+                    llm_cfg.get(
+                        "ollama_model_enhanced", cfg["ollama"].get("llm_model_enhanced", "")
+                    ),
+                ]
+            )
+        )
     llm_options = [m for m in llm_options if m]
     app_state.llm_options = llm_options
 
@@ -350,8 +370,12 @@ async def lifespan(app: FastAPI):
         microbatch_max_files=ingest_cfg.get("microbatch_max_files", 8),
         microbatch_max_chunks=ingest_cfg.get("microbatch_max_chunks", 128),
         microbatch_linger_ms=ingest_cfg.get("microbatch_linger_ms", 75),
-        should_pause_background=lambda: model_tasks.is_foreground_active(grace_s=FOREGROUND_PAUSE_GRACE_S),
-        pause_check_interval_ms=ingest_cfg.get("pause_check_interval_ms", INGEST_PAUSE_CHECK_INTERVAL_MS),
+        should_pause_background=lambda: model_tasks.is_foreground_active(
+            grace_s=FOREGROUND_PAUSE_GRACE_S
+        ),
+        pause_check_interval_ms=ingest_cfg.get(
+            "pause_check_interval_ms", INGEST_PAUSE_CHECK_INTERVAL_MS
+        ),
     )
     ingest_queue.start()
     app_state.ingest_queue = ingest_queue
@@ -397,13 +421,15 @@ async def lifespan(app: FastAPI):
                     )
                 except Exception as e:
                     logger.warning(f"[cleanup] Failed to delete vectors for {r['file_name']}: {e}")
-            logger.info(f"[cleanup] Removed deleted file: {r['file_name']} ({len(r['qdrant_ids'])} vectors)")
+            logger.info(
+                f"[cleanup] Removed deleted file: {r['file_name']} ({len(r['qdrant_ids'])} vectors)"
+            )
 
     # Background scan: enqueue existing files (skip .obsidian/.trash/.git)
     supported_exts = pipeline.registry.supported_extensions
     all_files: list[Path] = []
     for wd in watch_dirs:
-        for ext in (wd.extensions if wd.extensions else supported_exts):
+        for ext in wd.extensions if wd.extensions else supported_exts:
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
             all_files.extend(f for f in wd.path.glob(pattern) if not _is_excluded(f))
     if all_files:
@@ -740,11 +766,17 @@ async def query_stream(req: QueryRequest, request: Request):
                 event, data = await loop.run_in_executor(None, q.get, True, STREAM_QUEUE_POLL_S)
             except queue.Empty:
                 now = perf_counter()
-                if first_content_at is None and now - task.started_at > STREAM_FIRST_CONTENT_TIMEOUT_S:
+                if (
+                    first_content_at is None
+                    and now - task.started_at > STREAM_FIRST_CONTENT_TIMEOUT_S
+                ):
                     cancel.set()
+                    reason = (
+                        f"stream first content timeout after {STREAM_FIRST_CONTENT_TIMEOUT_S:.1f}s"
+                    )
                     model_tasks.cancel_and_retire(
                         task,
-                        reason=f"stream first content timeout after {STREAM_FIRST_CONTENT_TIMEOUT_S:.1f}s",
+                        reason=reason,
                     )
                     yield (
                         "event: error\n"
@@ -837,7 +869,7 @@ async def trigger_ingest():
     supported_exts = pipeline.registry.supported_extensions
     all_files: list[Path] = []
     for wd in watch_dirs:
-        for ext in (wd.extensions if wd.extensions else supported_exts):
+        for ext in wd.extensions if wd.extensions else supported_exts:
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
             all_files.extend(f for f in wd.path.glob(pattern) if not _is_excluded(f))
     result = ingest_queue.submit_many(all_files)
@@ -865,7 +897,9 @@ def _warmup_models():
     """预热 embedding + reranker + LLM 模型。"""
     try:
         em = query_engine.retriever.embed_model
-        warmup_query = "Instruct: Retrieve relevant text passages that answer the query.\nQuery: warmup"
+        warmup_query = (
+            "Instruct: Retrieve relevant text passages that answer the query.\nQuery: warmup"
+        )
         em.encode([warmup_query], normalize_embeddings=True, convert_to_numpy=True)
         logger.info("[warmup] Embedding model ready")
     except Exception as e:
@@ -1226,11 +1260,13 @@ async def list_file_chunks(file_id: int, max_text_chars: int = 500):
     chunks = []
     for row in chunk_rows:
         payload = payloads.get(row["qdrant_id"], {})
-        chunks.append({
-            **row,
-            "text_preview": payload.get("text_preview", ""),
-            "text_length": payload.get("text_length", 0),
-        })
+        chunks.append(
+            {
+                **row,
+                "text_preview": payload.get("text_preview", ""),
+                "text_length": payload.get("text_length", 0),
+            }
+        )
     return {"file": record, "chunks": chunks, "count": len(chunks)}
 
 
@@ -1325,7 +1361,9 @@ async def debug_retrieve(req: DebugRetrieveRequest):
             timeout_s=MODEL_TASK_TIMEOUT_S,
         )
     except ModelTaskTimeout as exc:
-        logger.warning("[api/debug/retrieve] timeout id=%s question=%r", exc.task_id, req.question[:80])
+        logger.warning(
+            "[api/debug/retrieve] timeout id=%s question=%r", exc.task_id, req.question[:80]
+        )
         raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
 
 
@@ -1558,11 +1596,7 @@ def _check_models(cfg: dict) -> dict:
         for name, model in names.items()
         if model and "/" in model
     }
-    missing = [
-        item["model"]
-        for item in local_models.values()
-        if not item["cached"]
-    ]
+    missing = [item["model"] for item in local_models.values() if not item["cached"]]
     return {
         "status": "ok" if not missing else "degraded",
         "local_cache": local_models,
@@ -1577,12 +1611,9 @@ def _health_capabilities(cfg: dict, checks: dict) -> dict:
     ingest_cfg = cfg.get("ingest", {})
     vlm_cfg = cfg.get("vlm", {})
     contextual_prefix_enabled = ingest_cfg.get("contextual_prefix", False)
-    contextual_prefix_available = (
-        contextual_prefix_enabled
-        and (
-            ingest_cfg.get("contextual_prefix_mode") != "ollama"
-            or ollama_models.get("contextual_prefix", {}).get("available", False)
-        )
+    contextual_prefix_available = contextual_prefix_enabled and (
+        ingest_cfg.get("contextual_prefix_mode") != "ollama"
+        or ollama_models.get("contextual_prefix", {}).get("available", False)
     )
     vlm_enabled = vlm_cfg.get("enabled", True)
     return {
@@ -1603,7 +1634,7 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
     local_models = checks["models"].get("local_cache", {})
     missing_local_cache = set(checks["models"].get("missing_local_cache", []))
     vlm_cfg = cfg.get("vlm", {})
-    ingest_cfg = cfg.get("ingest", {})
+    cfg.get("ingest", {})
 
     def core_item(
         key: str,
@@ -1622,11 +1653,16 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
         }
 
     def check_item(key: str, label: str, check: dict, fallback_detail: str) -> dict:
-        detail = check.get("error") or check.get("note") or check.get("collection") or fallback_detail
+        detail = (
+            check.get("error") or check.get("note") or check.get("collection") or fallback_detail
+        )
         actions = []
         if check.get("status") != "ok":
             if key == "sqlite":
-                actions = ["运行 python main.py doctor --strict", "必要时先备份，再运行 python main.py rebuild --dry-run"]
+                actions = [
+                    "运行 python main.py doctor --strict",
+                    "必要时先备份，再运行 python main.py rebuild --dry-run",
+                ]
             elif key == "qdrant":
                 actions = ["确认 Docker/Qdrant 已启动", "运行 python main.py check --json"]
         return {
@@ -1715,7 +1751,10 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
                     capabilities.get("ingest", False),
                     "可以解析文件并写入索引。",
                     "SQLite 或 Qdrant 不可用，入库不可用。",
-                    ["运行 python main.py check --json", "必要时运行 python main.py rebuild --dry-run"],
+                    [
+                        "运行 python main.py check --json",
+                        "必要时运行 python main.py rebuild --dry-run",
+                    ],
                 ),
                 check_item("sqlite", "SQLite", checks["sqlite"], "本地记录库可用。"),
                 check_item("qdrant", "Qdrant", checks["qdrant"], "向量库可用。"),
@@ -1724,8 +1763,12 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
         "runtime": {
             "label": "模型运行时",
             "items": [
-                model_cache_item("embedding", "向量模型", model_names.get("embedding", ""), critical=True),
-                model_cache_item("reranker", "精排模型", model_names.get("reranker", ""), critical=True),
+                model_cache_item(
+                    "embedding", "向量模型", model_names.get("embedding", ""), critical=True
+                ),
+                model_cache_item(
+                    "reranker", "精排模型", model_names.get("reranker", ""), critical=True
+                ),
                 model_cache_item("llm", "回答模型", model_names.get("llm", ""), critical=True),
                 model_cache_item("llm_enhanced", "增强回答模型", enhanced_model, critical=False),
                 optional_item(
@@ -1733,7 +1776,8 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
                     "OCR 模型",
                     bool(checks["ollama"].get("models", {}).get("ocr")),
                     capabilities.get("ocr", False),
-                    checks["ollama"].get("models", {}).get("ocr", {}).get("model", "OCR 模型") + " 可用。",
+                    checks["ollama"].get("models", {}).get("ocr", {}).get("model", "OCR 模型")
+                    + " 可用。",
                     f"缺失：{ocr_missing or 'OCR 模型或 Ollama'}。",
                     ["打开 Ollama", f"运行 ollama pull {model_names.get('ocr', 'glm-ocr')}"],
                 ),
@@ -1758,7 +1802,8 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
                     bool(enhanced_model),
                     capabilities.get("enhanced_llm", False),
                     "增强问答模型已缓存。",
-                    f"只影响增强模型切换；缺失：{enhanced_model or missing_model_text or '增强模型缓存'}。",
+                    "只影响增强模型切换；缺失："
+                    f"{enhanced_model or missing_model_text or '增强模型缓存'}。",
                     [f"联网后准备模型缓存：{enhanced_model}"] if enhanced_model else [],
                 ),
                 optional_item(
@@ -1788,12 +1833,14 @@ def _health_actions(checks: dict, capabilities: dict) -> list[HealthAction]:
     actions: list[HealthAction] = []
 
     def add(label: str, detail: str, command: str = "", kind: str = "repair") -> None:
-        actions.append({
-            "label": label,
-            "detail": detail,
-            "command": command,
-            "kind": kind,
-        })
+        actions.append(
+            {
+                "label": label,
+                "detail": detail,
+                "command": command,
+                "kind": kind,
+            }
+        )
 
     if checks["sqlite"].get("status") != "ok":
         add(
@@ -1861,55 +1908,79 @@ def _aggregate_health_status(checks: dict) -> str:
 
 
 def _register_api_routes() -> None:
-    app.include_router(query_routes.create_router({
-        "query": query,
-        "research": research,
-        "query_stream": query_stream,
-        "list_conversations": list_conversations,
-        "create_conversation": create_conversation,
-        "list_conversation_messages": list_conversation_messages,
-        "delete_conversation": delete_conversation,
-    }))
-    app.include_router(library_routes.create_router({
-        "trigger_ingest": trigger_ingest,
-        "queue_status": queue_status,
-        "list_files": list_files,
-        "library_meta": library_meta,
-        "storage_usage": storage_usage,
-        "update_file_metadata": update_file_metadata,
-        "batch_favorite": batch_favorite,
-        "batch_update_file_metadata": batch_update_file_metadata,
-        "batch_rebuild_files": batch_rebuild_files,
-        "preview_file": preview_file,
-        "preview_file_head": preview_file_head,
-        "list_file_chunks": list_file_chunks,
-        "list_history": list_history,
-        "search_history": search_history,
-        "clear_history": clear_history,
-        "list_favorites": list_favorites,
-        "toggle_favorite": toggle_favorite,
-        "summarize_files": summarize_files,
-    }))
-    app.include_router(imports_routes.create_router({
-        "import_url": import_url,
-        "create_note": create_note,
-        "save_answer_note": save_answer_note,
-        "create_knowledge_output": create_knowledge_output,
-        "upload_file": upload_file,
-        "create_demo_library": create_demo_library,
-    }))
-    app.include_router(settings_routes.create_router({
-        "get_llm": get_llm,
-        "set_llm": set_llm,
-        "list_sources": list_sources,
-        "health": health,
-    }))
-    app.include_router(maintenance_routes.create_router({
-        "debug_retrieve": debug_retrieve,
-    }))
-    app.include_router(obsidian_routes.create_router({
-        "obsidian_related_notes": obsidian_related_notes,
-    }))
+    app.include_router(
+        query_routes.create_router(
+            {
+                "query": query,
+                "research": research,
+                "query_stream": query_stream,
+                "list_conversations": list_conversations,
+                "create_conversation": create_conversation,
+                "list_conversation_messages": list_conversation_messages,
+                "delete_conversation": delete_conversation,
+            }
+        )
+    )
+    app.include_router(
+        library_routes.create_router(
+            {
+                "trigger_ingest": trigger_ingest,
+                "queue_status": queue_status,
+                "list_files": list_files,
+                "library_meta": library_meta,
+                "storage_usage": storage_usage,
+                "update_file_metadata": update_file_metadata,
+                "batch_favorite": batch_favorite,
+                "batch_update_file_metadata": batch_update_file_metadata,
+                "batch_rebuild_files": batch_rebuild_files,
+                "preview_file": preview_file,
+                "preview_file_head": preview_file_head,
+                "list_file_chunks": list_file_chunks,
+                "list_history": list_history,
+                "search_history": search_history,
+                "clear_history": clear_history,
+                "list_favorites": list_favorites,
+                "toggle_favorite": toggle_favorite,
+                "summarize_files": summarize_files,
+            }
+        )
+    )
+    app.include_router(
+        imports_routes.create_router(
+            {
+                "import_url": import_url,
+                "create_note": create_note,
+                "save_answer_note": save_answer_note,
+                "create_knowledge_output": create_knowledge_output,
+                "upload_file": upload_file,
+                "create_demo_library": create_demo_library,
+            }
+        )
+    )
+    app.include_router(
+        settings_routes.create_router(
+            {
+                "get_llm": get_llm,
+                "set_llm": set_llm,
+                "list_sources": list_sources,
+                "health": health,
+            }
+        )
+    )
+    app.include_router(
+        maintenance_routes.create_router(
+            {
+                "debug_retrieve": debug_retrieve,
+            }
+        )
+    )
+    app.include_router(
+        obsidian_routes.create_router(
+            {
+                "obsidian_related_notes": obsidian_related_notes,
+            }
+        )
+    )
 
 
 _register_api_routes()
@@ -1921,6 +1992,7 @@ _register_api_routes()
 
 STATIC_DIR = Path(__file__).parent.parent.parent / "frontend"
 if STATIC_DIR.exists():
+
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon_ico():
         return FileResponse(str(STATIC_DIR / "favicon.svg"), media_type="image/svg+xml")

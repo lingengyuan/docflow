@@ -4,10 +4,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from src.query.generator import Answer, AnswerGenerator, Citation
-
+from src.query.generator import Answer, AnswerGenerator
 
 CHUNKS = [
     {

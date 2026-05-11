@@ -10,6 +10,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - First-run users can create a small demo library from the CLI or browser empty state.
 - Runtime dependencies are smaller and optional image support is split out.
 - CI, ruff, pre-commit, issue template, and PR template are present.
+- CI now runs full ruff, mypy, and pytest on Ubuntu and macOS.
 - Local privacy has an offline doctor check.
 - Citations include chunk identity and source span metadata.
 - Local answer generation uses deterministic defaults.
@@ -19,6 +20,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 ## Latest Local Validation
 
 - Unit/integration tests: 264 passed.
+- Ruff: passed.
+- Mypy: passed.
 - Browser acceptance: 73 checks passed.
 - Retrieval eval: 8/8 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0.
 - Parsing eval: 2/2 passed.
