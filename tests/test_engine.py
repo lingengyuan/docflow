@@ -1,3 +1,5 @@
+import yaml
+
 from src.query.engine import QueryEngine
 from src.query.generator import Answer
 
@@ -237,3 +239,37 @@ def test_query_refuses_low_evidence_before_generation():
     assert "未找到足够可靠的信息" in answer.text
     assert answer.citations == []
     assert generator.calls == []
+
+
+def test_from_config_passes_query_generation_settings(tmp_path, monkeypatch):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "paths": {"db_path": str(tmp_path / "docflow.db")},
+                "qdrant": {"host": "localhost", "port": 6333},
+                "ollama": {
+                    "base_url": "http://localhost:11434",
+                    "llm_model": "qwen2.5:7b",
+                },
+                "llm": {"backend": "local"},
+                "query": {
+                    "seed": 7,
+                    "temperature": 0.1,
+                    "top_p": 0.8,
+                    "max_tokens": 512,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("src.query.engine.embedding_backend_config_from_dict", lambda *_: None)
+    monkeypatch.setattr("src.query.engine.HybridRetriever", lambda **_: FakeRetriever())
+
+    engine = QueryEngine.from_config(config_path)
+
+    assert engine.generator.seed == 7
+    assert engine.generator.temperature == 0.1
+    assert engine.generator.top_p == 0.8
+    assert engine.generator.max_tokens == 512

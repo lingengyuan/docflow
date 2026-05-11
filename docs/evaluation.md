@@ -22,3 +22,15 @@ The 90-point roadmap replaces subjective maturity scoring with more measurable o
 - Incremental indexing checks.
 - Reproducibility checks.
 - Offline privacy checks.
+
+## Reproducibility
+
+Local answer generation defaults to deterministic settings in `config.example.yaml`:
+
+```yaml
+query:
+  seed: 42
+  temperature: 0.0
+```
+
+Cloud LLM backends are reported as not reproducible because DocFlow cannot control their full serving environment.

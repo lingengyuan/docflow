@@ -56,6 +56,7 @@ class QueryEngine:
             embedding_config=embedding_config,
         )
         llm_cfg = cfg.get("llm", {})
+        query_cfg = cfg.get("query", {})
         generator = AnswerGenerator(
             backend=llm_cfg.get("backend", cfg.get("llm_backend", "local")),
             ollama_base_url=cfg["ollama"]["base_url"],
@@ -64,6 +65,10 @@ class QueryEngine:
             mlx_model_enhanced=llm_cfg.get("mlx_model_enhanced", "mlx-community/Qwen3-8B-4bit"),
             claude_model=llm_cfg.get("claude_model", "claude-sonnet-4-6"),
             claude_api_key=llm_cfg.get("claude_api_key", os.getenv("ANTHROPIC_API_KEY", "")),
+            seed=query_cfg.get("seed", 42),
+            temperature=float(query_cfg.get("temperature", 0.0)),
+            top_p=float(query_cfg.get("top_p", 1.0)),
+            max_tokens=int(query_cfg.get("max_tokens", 2048)),
         )
         return cls(retriever, generator)
 

@@ -62,6 +62,7 @@ class Answer:
     citations: list[Citation] = field(default_factory=list)
     related_notes: list[dict] = field(default_factory=list)
     research_steps: list[dict] = field(default_factory=list)
+    reproducible: bool = True
 
 
 class AnswerGenerator:
@@ -74,6 +75,10 @@ class AnswerGenerator:
         mlx_model_enhanced: str = "mlx-community/Qwen3-8B-4bit",
         claude_model: str = "claude-sonnet-4-6",
         claude_api_key: str = "",
+        seed: int | None = 42,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        max_tokens: int = 2048,
     ):
         self.backend = backend
         self.ollama_base_url = ollama_base_url.rstrip("/")
@@ -82,6 +87,10 @@ class AnswerGenerator:
         self.mlx_model_enhanced = mlx_model_enhanced
         self.claude_model = claude_model
         self.claude_api_key = claude_api_key
+        self.seed = seed
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
         self._anthropic_client = None
         # MLX model instance (loaded lazily via _load_mlx_model)
         self._mlx_model = None
@@ -151,7 +160,7 @@ class AnswerGenerator:
             [citation_from_chunk(chunk) for chunk in chunks],
             chunks,
         )
-        return Answer(text=answer_text, citations=citations)
+        return Answer(text=answer_text, citations=citations, reproducible=self.is_reproducible)
 
     # ------------------------------------------------------------------
     # Context builder
@@ -196,6 +205,7 @@ class AnswerGenerator:
     # ------------------------------------------------------------------
 
     def _call_ollama_with_system(self, system_prompt: str, user_msg: str) -> str:
+        options = self._ollama_options()
         payload = {
             "model": self.ollama_model,
             "messages": [
@@ -203,7 +213,7 @@ class AnswerGenerator:
                 {"role": "user", "content": user_msg},
             ],
             "stream": False,
-            "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
+            "options": options,
         }
         response = net.post(
             f"{self.ollama_base_url}/api/chat",
@@ -216,6 +226,7 @@ class AnswerGenerator:
 
     def _stream_ollama_with_system(self, system_prompt: str, user_msg: str, cancel_event=None):
         """Yield token strings as they arrive from Ollama."""
+        options = self._ollama_options()
         payload = {
             "model": self.ollama_model,
             "messages": [
@@ -223,7 +234,7 @@ class AnswerGenerator:
                 {"role": "user", "content": user_msg},
             ],
             "stream": True,
-            "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
+            "options": options,
         }
         with net.stream(
             "POST",
@@ -274,6 +285,35 @@ class AnswerGenerator:
     # MLX (in-process, Apple Silicon)
     # ------------------------------------------------------------------
 
+    @property
+    def is_reproducible(self) -> bool:
+        return self.backend in {"local", "ollama", "mlx"} and (
+            self.temperature == 0.0 or self.seed is not None
+        )
+
+    def _ollama_options(self) -> dict:
+        options = {
+            "think": False,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+        }
+        if self.seed is not None:
+            options["seed"] = self.seed
+        return options
+
+    def _mlx_generation_kwargs(self) -> dict:
+        from mlx_lm.sample_utils import make_sampler
+
+        kwargs = {
+            "max_tokens": self.max_tokens,
+            "sampler": make_sampler(temp=self.temperature, top_p=self.top_p),
+        }
+        if self.seed is not None:
+            import mlx.core as mx
+
+            mx.random.seed(self.seed)
+        return kwargs
+
     def _load_mlx_model(self, model_name: str | None = None) -> None:
         """加载（或切换）MLX LLM 模型。必须在 ml_executor 线程内调用。"""
         from mlx_lm import load
@@ -299,9 +339,10 @@ class AnswerGenerator:
         """通过 mlx_lm.stream_generate 逐 token yield。"""
         from mlx_lm import stream_generate
         prompt = self._build_prompt_nothink(system, user)
+        generation_kwargs = self._mlx_generation_kwargs()
         for response in stream_generate(
             self._mlx_model, self._mlx_tokenizer,
-            prompt=prompt, max_tokens=2048,
+            prompt=prompt, **generation_kwargs,
         ):
             if cancel_event is not None and cancel_event.is_set():
                 break
@@ -312,9 +353,10 @@ class AnswerGenerator:
         """非流式 MLX 生成（用于 summarize / generate）。"""
         from mlx_lm import generate as mlx_generate
         prompt = self._build_prompt_nothink(system, user)
+        generation_kwargs = self._mlx_generation_kwargs()
         return mlx_generate(
             self._mlx_model, self._mlx_tokenizer,
-            prompt=prompt, max_tokens=2048, verbose=False,
+            prompt=prompt, verbose=False, **generation_kwargs,
         )
 
     # ------------------------------------------------------------------

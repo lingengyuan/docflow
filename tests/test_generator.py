@@ -102,13 +102,19 @@ class TestOllamaGenerate:
         assert answer.citations == []
 
     def test_ollama_payload_format(self):
-        gen = AnswerGenerator(backend="local", ollama_model="qwen2.5:7b")
+        gen = AnswerGenerator(
+            backend="local",
+            ollama_model="qwen2.5:7b",
+            seed=123,
+            temperature=0.2,
+            top_p=0.8,
+        )
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"message": {"content": "answer"}}
         mock_resp.raise_for_status.return_value = None
 
         with patch("src.net.post", return_value=mock_resp) as mock_post:
-            gen.generate(
+            answer = gen.generate(
                 "test question",
                 CHUNKS,
                 conversation_context=[{"role": "user", "content": "previous question"}],
@@ -121,6 +127,17 @@ class TestOllamaGenerate:
         assert payload["messages"][1]["role"] == "user"
         assert "test question" in payload["messages"][1]["content"]
         assert "previous question" in payload["messages"][1]["content"]
+        assert payload["options"] == {
+            "think": False,
+            "temperature": 0.2,
+            "top_p": 0.8,
+            "seed": 123,
+        }
+        assert answer.reproducible is True
+
+    def test_non_seeded_sampling_marks_answer_not_reproducible(self):
+        gen = AnswerGenerator(backend="local", seed=None, temperature=0.7)
+        assert gen.is_reproducible is False
 
     def test_knowledge_output_payload_uses_template_instruction(self):
         gen = AnswerGenerator(backend="local", ollama_model="qwen2.5:7b")
@@ -161,3 +178,12 @@ class TestOllamaGenerate:
 
         assert tokens == []
         mock_call.assert_not_called()
+
+    def test_claude_answer_is_marked_not_reproducible(self):
+        gen = AnswerGenerator(backend="claude", claude_api_key="test-key")
+
+        with patch.object(gen, "_call_with_system", return_value="claude answer"):
+            answer = gen.generate("test question", CHUNKS)
+
+        assert answer.text == "claude answer"
+        assert answer.reproducible is False

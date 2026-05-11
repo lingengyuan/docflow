@@ -36,6 +36,7 @@ class QueryResponse(BaseModel):
     related_notes: list[dict] = Field(default_factory=list)
     conversation_id: int | None = None
     scope: dict | None = None
+    reproducible: bool = True
 
 
 class ResearchRequest(QueryRequest):

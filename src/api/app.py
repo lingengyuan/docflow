@@ -589,6 +589,7 @@ async def query(req: QueryRequest):
         related_notes=getattr(result, "related_notes", []),
         conversation_id=conversation_id,
         scope=options.scope,
+        reproducible=getattr(result, "reproducible", True),
     )
 
 
@@ -645,6 +646,7 @@ async def research(req: ResearchRequest):
         research_steps=getattr(result, "research_steps", []),
         conversation_id=conversation_id,
         scope=options.scope,
+        reproducible=getattr(result, "reproducible", True),
     )
 
 
