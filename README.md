@@ -24,16 +24,14 @@ DocFlow watches folders on your machine, indexes supported files, and answers qu
 ```bash
 git clone https://github.com/lingengyuan/docflow.git
 cd docflow
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-docker compose up -d qdrant && docflow serve
+docker compose up --build
 ```
 
-Open [http://localhost:8000](http://localhost:8000).
+Open [http://localhost:8000](http://localhost:8000), then choose **导入示例资料** to try a small local library.
 
 ### Current Verification
 
-Latest local checks in this repository: `262` tests passed, `73` browser checks passed, retrieval eval `8/8` with Recall@5 `1.0`, parsing eval `2/2`, and offline startup check reported `0` unexpected outbound connections.
+Latest local checks in this repository: `264` tests passed, `73` browser checks passed, retrieval eval `8/8` with Recall@5 `1.0`, parsing eval `2/2`, and offline startup check reported `0` unexpected outbound connections.
 
 The eval sets are still small. Treat these numbers as the current baseline, not a broad public benchmark.
 
@@ -68,6 +66,10 @@ DocFlow creates `config.yaml` from `config.example.yaml` on first run. Configure
 ### Development and Testing
 
 ```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+docker compose up -d qdrant
+docflow demo --create-only
 .venv/bin/python -m pytest -q
 docflow eval retrieval --write-results
 docflow eval parsing --write-results
@@ -105,16 +107,14 @@ DocFlow 会监听你机器上的本地文件夹，把资料写入本地索引，
 ```bash
 git clone https://github.com/lingengyuan/docflow.git
 cd docflow
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-docker compose up -d qdrant && docflow serve
+docker compose up --build
 ```
 
-打开 [http://localhost:8000](http://localhost:8000)。
+打开 [http://localhost:8000](http://localhost:8000)，然后选择 **导入示例资料** 体验一个小型本地资料库。
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`262` 个测试通过，`73` 个浏览器检查通过，检索评估 `8/8` 且 Recall@5 `1.0`，解析评估 `2/2`，离线启动检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`264` 个测试通过，`73` 个浏览器检查通过，检索评估 `8/8` 且 Recall@5 `1.0`，解析评估 `2/2`，离线启动检查报告 `0` 个意外外连。
 
 评估集目前仍然偏小。这些数字是当前基线，不应当当作大规模公开 benchmark。
 
@@ -149,6 +149,10 @@ DocFlow 首次运行会从 `config.example.yaml` 创建 `config.yaml`。监听�
 ### 开发与测试
 
 ```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+docker compose up -d qdrant
+docflow demo --create-only
 .venv/bin/python -m pytest -q
 docflow eval retrieval --write-results
 docflow eval parsing --write-results

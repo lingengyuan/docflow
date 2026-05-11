@@ -6,6 +6,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 - README is concise and points to focused public docs.
 - New users can start from `config.example.yaml`, `docker-compose.yml`, and the `docflow` command.
+- Docker Compose now defines both the DocFlow app and Qdrant service for first-run startup.
+- First-run users can create a small demo library from the CLI or browser empty state.
 - Runtime dependencies are smaller and optional image support is split out.
 - CI, ruff, pre-commit, issue template, and PR template are present.
 - Local privacy has an offline doctor check.
@@ -16,7 +18,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 261 passed.
+- Unit/integration tests: 264 passed.
 - Browser acceptance: 73 checks passed.
 - Retrieval eval: 8/8 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0.
 - Parsing eval: 2/2 passed.

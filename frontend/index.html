@@ -559,19 +559,19 @@
           </div>
           <div class="text-sm text-on-surface leading-relaxed">
             你好，我是 DocFlow — 你的本地知识助手。<br>
-            把文件拖进资料库，或去笔记页导入网页、写临时笔记，再回到这里选择范围提问。
+            可以先导入示例资料，也可以上传自己的文件，完成整理后再回到这里选择范围提问。
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <button onclick="switchView('library')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
-                <span class="block font-semibold text-on-surface">整理文件库</span>
-                <span class="text-on-surface-variant/70">上传、打标签、分集合</span>
+              <button onclick="createDemoLibrary()" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">导入示例资料</span>
+                <span class="text-on-surface-variant/70">快速体验来源问答</span>
               </button>
-              <button onclick="switchView('notes')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
-                <span class="block font-semibold text-on-surface">采集新资料</span>
-                <span class="text-on-surface-variant/70">网页和临时笔记</span>
+              <button onclick="switchView('library'); setTimeout(() => document.getElementById('file-input')?.click(), 120)" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">上传本地文件</span>
+                <span class="text-on-surface-variant/70">PDF、笔记、代码</span>
               </button>
-              <button onclick="switchView('settings')" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
-                <span class="block font-semibold text-on-surface">检查状态</span>
-                <span class="text-on-surface-variant/70">模型、路径、状态</span>
+              <button onclick="switchView('library'); triggerIngest()" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">扫描本地文件夹</span>
+                <span class="text-on-surface-variant/70">整理已配置目录</span>
               </button>
             </div>
           </div>

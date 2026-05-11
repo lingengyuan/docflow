@@ -12,6 +12,7 @@ def create_router(handlers) -> APIRouter:
     router.add_api_route("/api/notes/from-answer", handlers["save_answer_note"], methods=["POST"])
     router.add_api_route("/api/knowledge-output", handlers["create_knowledge_output"], methods=["POST"])
     router.add_api_route("/api/upload", handlers["upload_file"], methods=["POST"])
+    router.add_api_route("/api/demo", handlers["create_demo_library"], methods=["POST"])
     return router
 
 

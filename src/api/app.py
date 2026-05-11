@@ -1160,6 +1160,18 @@ async def upload_file(file: UploadFile):
     return ingest_queue.submit(dest)
 
 
+async def create_demo_library():
+    if ingest_queue is None:
+        raise HTTPException(503, "Not ready")
+    from src.maintenance.demo import create_demo_files
+
+    result = create_demo_files(CONFIG_PATH)
+    queued = []
+    for item in result["files"]:
+        queued.append(ingest_queue.submit(Path(item["path"])))
+    return {**result, "queued": len(queued), "queue_results": queued}
+
+
 async def preview_file(file_id: int):
     file_path, media_type = _resolve_preview_file(file_id)
     return FileResponse(str(file_path), media_type=media_type)
@@ -1884,6 +1896,7 @@ def _register_api_routes() -> None:
         "save_answer_note": save_answer_note,
         "create_knowledge_output": create_knowledge_output,
         "upload_file": upload_file,
+        "create_demo_library": create_demo_library,
     }))
     app.include_router(settings_routes.create_router({
         "get_llm": get_llm,

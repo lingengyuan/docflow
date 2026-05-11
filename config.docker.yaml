@@ -1,0 +1,77 @@
+ollama:
+  base_url: "http://host.docker.internal:11434"
+  ocr_model: "glm-ocr"
+  llm_model: "qwen2.5:7b"
+  llm_model_enhanced: "qwen3:8b"
+
+embedding:
+  model: "Qwen/Qwen3-Embedding-0.6B"
+  backend: "torch"
+  batch_size: 32
+  device: "cpu"
+  mps_memory_fraction: 0.7
+  mps_empty_cache: true
+  mps_inference_mode: true
+  onnx_provider: "CPUExecutionProvider"
+  onnx_optimization: ""
+  onnx_quantization: ""
+  onnx_cache_dir: "data/embedding_onnx"
+
+ingest:
+  parse_workers: 2
+  microbatch_max_files: 8
+  microbatch_max_chunks: 128
+  microbatch_linger_ms: 75
+  adaptive_batch_char_budget: 32768
+  adaptive_batch_max: 64
+  embedding_cache: true
+  parent_context_chars: 2048
+  contextual_prefix: false
+  contextual_prefix_mode: "metadata"
+  contextual_prefix_model: "qwen2.5:7b"
+
+reranker:
+  model: "Qwen/Qwen3-Reranker-0.6B"
+  instruction: "Given a search query, retrieve relevant text passages that answer the query."
+
+qdrant:
+  host: "qdrant"
+  port: 6333
+  collection: "docflow"
+
+chunking:
+  chunk_size: 512
+  chunk_overlap: 51
+  ocr_text_threshold: 0.10
+
+paths:
+  watch_dirs:
+    - path: "data/watch"
+      recursive: true
+      extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
+  supported_extensions: [".pdf", ".md", ".markdown", ".txt", ".docx", ".py", ".rs", ".ts", ".css", ".sh"]
+  db_path: "data/docflow.db"
+  id_counter: "data/qdrant_id_counter.txt"
+
+vlm:
+  enabled: false
+  model: "mlx-community/Qwen3-VL-8B-Instruct-4bit"
+  prompt: "请用中文详细描述这张图片的内容，包括文字、图表、场景、颜色等所有可见信息。如图片含表格或数据，请列出关键数据。输出纯文字，不要 Markdown。"
+  max_tokens: 512
+
+llm:
+  backend: "ollama"
+  mlx_model: "mlx-community/Qwen3-4B-4bit"
+  mlx_model_enhanced: "mlx-community/Qwen3-8B-4bit"
+  ollama_model: "qwen2.5:7b"
+  ollama_model_enhanced: "qwen3:8b"
+
+query:
+  seed: 42
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 2048
+
+privacy:
+  allow_model_download: false
+  allowed_hosts: []

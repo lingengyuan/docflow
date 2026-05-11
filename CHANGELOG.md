@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.0 - 2026-05-12
+
+- Added a full Docker Compose app service alongside Qdrant for one-command startup.
+- Added a demo library command and browser entry point for first-run users.
+- Improved empty-library guidance with real actions for demo data, uploads, and folder scanning.
+
 ## 0.49.0 - 2026-05-12
 
 - Upgraded the public README with a clearer first screen, verification baseline, privacy promise, and contributor links.

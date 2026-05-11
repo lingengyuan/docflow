@@ -18,6 +18,7 @@ DocFlow 入口。
 
   # 手动 ingest 单个文件
   python main.py ingest /path/to/file.pdf
+  python main.py demo [--create-only] [--json]
 
   # dry-run benchmark 一个或多个文件
   python main.py benchmark /path/to/file1.md /path/to/file2.pdf
@@ -158,6 +159,12 @@ def ingest(path: str):
     pipeline = IngestPipeline.from_config(_config_path())
     result = pipeline.ingest(path)
     print(result)
+
+
+def demo_command(args: list[str]):
+    from src.maintenance.demo import demo_command as run_demo
+
+    return run_demo(args)
 
 
 def scan():
@@ -329,6 +336,8 @@ def cli() -> int:
             return 1
         ingest(sys.argv[2])
         return 0
+    elif cmd == "demo":
+        return demo_command(sys.argv[2:])
     elif cmd == "scan":
         scan()
         return 0

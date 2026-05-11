@@ -88,6 +88,21 @@ async function triggerIngest() {
   }
 }
 
+async function createDemoLibrary() {
+  setScanButtonState('loading');
+  try {
+    const r = await fetch(`${API}/api/demo`, { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
+    switchView('library');
+    setScanButtonState('queued');
+    startQueuePolling();
+    setTimeout(refreshFiles, 500);
+    setTimeout(() => setScanButtonState('idle'), 1200);
+  } catch {
+    setScanButtonState('idle');
+  }
+}
+
 async function handleFileSelect(e) {
   await uploadFiles([...e.target.files]);
   e.target.value = '';
