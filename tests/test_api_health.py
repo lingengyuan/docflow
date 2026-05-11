@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import requests
+import httpx
 from fastapi.testclient import TestClient
 
 from src.api import app as api_app
@@ -153,9 +153,9 @@ def test_health_runtime_group_reports_missing_model_cache(monkeypatch):
 
 def test_ollama_check_reports_guidance_when_service_is_closed(monkeypatch):
     def broken_get(*args, **kwargs):
-        raise requests.ConnectionError("connection refused")
+        raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(requests, "get", broken_get)
+    monkeypatch.setattr(httpx, "get", broken_get)
 
     result = api_app._check_ollama({
         "ollama": {"base_url": "http://localhost:11434", "ocr_model": "glm-ocr"},

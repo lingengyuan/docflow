@@ -16,6 +16,7 @@ from pathlib import Path
 
 from qdrant_client import QdrantClient
 
+from src.domain_types import RetrievalResult
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
 
@@ -257,7 +258,7 @@ class HybridRetriever:
         retrieval_mode: str = "hybrid",
         prefer_tables: bool = False,
         cancel_event=None,
-    ) -> list[dict]:
+    ) -> list[RetrievalResult]:
         """
         混合检索 + 精排，返回 top-k 结果。
         每个结果：{qdrant_id, score, text, file_name, file_path, page_num, section, chunk_type}
@@ -467,7 +468,7 @@ class HybridRetriever:
         query_vec: list[float],
         file_filter: list[str] | None,
         limit: int | None = None,
-    ) -> list[dict]:
+    ) -> list[RetrievalResult]:
         from qdrant_client.models import Filter, FieldCondition, MatchAny
 
         search_filter = None
@@ -490,6 +491,11 @@ class HybridRetriever:
             }
             for r in results.points
         ]
+
+    def close(self) -> None:
+        close = getattr(self._qdrant, "close", None)
+        if callable(close):
+            close()
 
     # ------------------------------------------------------------------
     # FTS5 keyword search (replaces pickle BM25)

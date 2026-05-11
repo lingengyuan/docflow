@@ -5,7 +5,6 @@
 """
 
 import base64
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -135,19 +134,16 @@ class TestOCRParsing:
 
     def test_call_glm_ocr_sends_correct_payload(self):
         analyzer = PDFAnalyzer(ollama_base_url="http://localhost:11434", ocr_model="glm-ocr")
-        fake_response = json.dumps({"response": "# Test OCR"}).encode()
 
         mock_resp = MagicMock()
-        mock_resp.read.return_value = fake_response
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_resp.json.return_value = {"response": "# Test OCR"}
+        mock_resp.raise_for_status.return_value = None
 
-        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
             result = analyzer._call_glm_ocr("base64imagedata")
 
         assert result == "# Test OCR"
-        call_args = mock_url.call_args[0][0]
-        payload = json.loads(call_args.data.decode())
+        payload = mock_post.call_args.kwargs["json"]
         assert payload["model"] == "glm-ocr"
         assert payload["images"] == ["base64imagedata"]
         assert payload["stream"] is False

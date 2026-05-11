@@ -17,6 +17,7 @@ from time import perf_counter
 import sys
 import types
 
+import httpx
 import yaml
 import json
 
@@ -24,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.domain_types import FileStatus, HealthAction
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.imports import (
@@ -408,6 +410,12 @@ async def lifespan(app: FastAPI):
         watcher.stop()
     if ingest_queue:
         ingest_queue.stop()
+    if query_engine:
+        query_engine.close()
+    if pipeline:
+        pipeline.close()
+    if store:
+        store.close()
     model_tasks.shutdown()
     app_state.clear_runtime()
 
@@ -457,7 +465,7 @@ def _resolve_query_options(req) -> QueryOptions:
         collection = str(getattr(req, "collection", "") or "").strip()
         if not collection:
             raise HTTPException(400, "Collection is required for collection scope")
-        files = store.list_files(status="done", collection=collection)
+        files = store.list_files(status=FileStatus.DONE, collection=collection)
         file_names = _unique_file_names(files)
         if not file_names:
             raise HTTPException(404, f"No indexed files found in collection: {collection}")
@@ -1146,7 +1154,7 @@ async def summarize_files(req: SummarizeRequest):
     summaries: list[str] = []
     for fid in req.file_ids:
         record = store.get_file_by_id(fid)
-        if not record or record["status"] != "done":
+        if not record or record["status"] != FileStatus.DONE:
             continue
         qdrant_ids = store.get_file_qdrant_ids(fid)
         try:
@@ -1331,19 +1339,22 @@ def _check_qdrant(cfg: dict) -> dict:
     from qdrant_client import QdrantClient
 
     client = QdrantClient(host=cfg["qdrant"]["host"], port=cfg["qdrant"]["port"], timeout=2)
-    collection = cfg.get("qdrant", {}).get("collection", COLLECTION_NAME)
-    info = client.get_collection(collection)
-    return {
-        "status": "ok",
-        "collection": collection,
-        "points_count": getattr(info, "points_count", 0),
-        "vectors_count": getattr(info, "vectors_count", None),
-    }
+    try:
+        collection = cfg.get("qdrant", {}).get("collection", COLLECTION_NAME)
+        info = client.get_collection(collection)
+        return {
+            "status": "ok",
+            "collection": collection,
+            "points_count": getattr(info, "points_count", 0),
+            "vectors_count": getattr(info, "vectors_count", None),
+        }
+    finally:
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
 
 
 def _check_ollama(cfg: dict) -> dict:
-    import requests
-
     ollama_cfg = cfg.get("ollama", {})
     ingest_cfg = cfg.get("ingest", {})
     llm_cfg = cfg.get("llm", {})
@@ -1360,48 +1371,57 @@ def _check_ollama(cfg: dict) -> dict:
         else "",
     }
     try:
-        response = requests.get(f"{base_url}/api/tags", timeout=2)
+        response = httpx.get(
+            f"{base_url}/api/tags",
+            timeout=httpx.Timeout(2.0, connect=1.0),
+        )
         response.raise_for_status()
         data = response.json()
+    except httpx.ConnectTimeout as exc:
+        error = f"connection timeout: {exc}"
+    except httpx.ReadTimeout as exc:
+        error = f"read timeout: {exc}"
     except Exception as exc:
-        models = {
-            purpose: {"model": model, "available": False}
-            for purpose, model in required.items()
-            if model
-        }
+        error = str(exc)
+    else:
+        installed = set()
+        for item in data.get("models", []):
+            name = item.get("name", "")
+            if not name:
+                continue
+            installed.add(name)
+            installed.add(name.split(":", 1)[0])
+
+        models = {}
+        missing = []
+        for purpose, model in required.items():
+            if not model:
+                continue
+            available = model in installed or model.split(":", 1)[0] in installed
+            models[purpose] = {"model": model, "available": available}
+            if not available:
+                missing.append(model)
+
+        status = "ok" if not missing else "degraded"
         return {
-            "status": "degraded",
+            "status": status,
             "base_url": base_url,
             "models": models,
-            "missing_models": [model for model in required.values() if model],
-            "error": str(exc),
-            "actions": ["打开 Ollama；只有 OCR 或 Ollama 后端功能需要它。"],
+            "missing_models": missing,
         }
 
-    installed = set()
-    for item in data.get("models", []):
-        name = item.get("name", "")
-        if not name:
-            continue
-        installed.add(name)
-        installed.add(name.split(":", 1)[0])
-
-    models = {}
-    missing = []
-    for purpose, model in required.items():
-        if not model:
-            continue
-        available = model in installed or model.split(":", 1)[0] in installed
-        models[purpose] = {"model": model, "available": available}
-        if not available:
-            missing.append(model)
-
-    status = "ok" if not missing else "degraded"
+    models = {
+        purpose: {"model": model, "available": False}
+        for purpose, model in required.items()
+        if model
+    }
     return {
-        "status": status,
+        "status": "degraded",
         "base_url": base_url,
         "models": models,
-        "missing_models": missing,
+        "missing_models": [model for model in required.values() if model],
+        "error": error,
+        "actions": ["打开 Ollama；只有 OCR 或 Ollama 后端功能需要它。"],
     }
 
 
@@ -1641,8 +1661,8 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
     }
 
 
-def _health_actions(checks: dict, capabilities: dict) -> list[dict]:
-    actions: list[dict] = []
+def _health_actions(checks: dict, capabilities: dict) -> list[HealthAction]:
+    actions: list[HealthAction] = []
 
     def add(label: str, detail: str, command: str = "", kind: str = "repair") -> None:
         actions.append({

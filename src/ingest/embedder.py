@@ -327,3 +327,8 @@ class Embedder:
             collection_name=COLLECTION_NAME,
             points_selector=PointIdsList(points=qdrant_ids),
         )
+
+    def close(self) -> None:
+        close = getattr(self._qdrant, "close", None)
+        if callable(close):
+            close()

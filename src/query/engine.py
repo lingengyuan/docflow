@@ -129,6 +129,9 @@ class QueryEngine:
         """生成可保存为本地 Markdown 的知识产物。"""
         return self.generator.generate_knowledge_output(output_type, title, source_text)
 
+    def close(self) -> None:
+        self.retriever.close()
+
     @staticmethod
     def _is_table_query(question: str) -> bool:
         q_lower = question.lower()

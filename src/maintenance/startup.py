@@ -10,11 +10,10 @@ import sqlite3
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Callable
 
+import httpx
 import yaml
 
 STATUS_ORDER = {"ok": 0, "degraded": 1, "unavailable": 2}
@@ -152,10 +151,13 @@ def check_sqlite(cfg: dict) -> dict:
 
 
 def _http_json(url: str, timeout: float = 2.0) -> tuple[int, dict]:
-    request = urllib.request.Request(url, headers={"Accept": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = response.read().decode("utf-8")
-        return response.status, json.loads(body or "{}")
+    response = httpx.get(
+        url,
+        headers={"Accept": "application/json"},
+        timeout=httpx.Timeout(timeout, connect=min(timeout, 1.0)),
+    )
+    response.raise_for_status()
+    return response.status_code, response.json()
 
 
 def check_qdrant(cfg: dict) -> dict:
@@ -165,8 +167,8 @@ def check_qdrant(cfg: dict) -> dict:
     base_url = f"http://{host}:{port}"
     try:
         _, data = _http_json(f"{base_url}/collections/{collection}", timeout=2)
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
             return {
                 "status": "degraded",
                 "host": host,

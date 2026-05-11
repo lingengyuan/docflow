@@ -9,8 +9,9 @@ AnswerGenerator — 基于检索结果生成带引用的答案。
 from __future__ import annotations
 
 import json
-import urllib.request
 from dataclasses import dataclass, field
+
+import httpx
 
 from src.knowledge_outputs import get_knowledge_output_type
 
@@ -205,13 +206,13 @@ class AnswerGenerator:
             "stream": False,
             "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
         }
-        req = urllib.request.Request(
+        response = httpx.post(
             f"{self.ollama_base_url}/api/chat",
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=httpx.Timeout(600.0, connect=5.0),
         )
-        with urllib.request.urlopen(req, timeout=600) as resp:
-            result = json.load(resp)
+        response.raise_for_status()
+        result = response.json()
         return result["message"]["content"].strip()
 
     def _stream_ollama_with_system(self, system_prompt: str, user_msg: str, cancel_event=None):
@@ -225,13 +226,14 @@ class AnswerGenerator:
             "stream": True,
             "options": {"think": False},  # Qwen3 thinking mode off：RAG 不需要思考过程
         }
-        req = urllib.request.Request(
+        with httpx.stream(
+            "POST",
             f"{self.ollama_base_url}/api/chat",
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=600) as resp:
-            for line in resp:
+            json=payload,
+            timeout=httpx.Timeout(600.0, connect=5.0),
+        ) as resp:
+            resp.raise_for_status()
+            for line in resp.iter_lines():
                 if cancel_event is not None and cancel_event.is_set():
                     break
                 if not line:

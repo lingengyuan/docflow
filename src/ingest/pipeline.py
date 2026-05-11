@@ -20,8 +20,10 @@ from time import perf_counter
 from typing import Callable
 
 import numpy as np
+import httpx
 import yaml
 
+from src.domain_types import FileStatus
 from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.chunker import Chunk, StructuredChunker
 from src.ingest.embedder import Embedder
@@ -247,8 +249,6 @@ class IngestPipeline:
         return " | ".join(parts)
 
     def _build_ollama_contextual_prefix(self, chunk: Chunk) -> str:
-        import requests
-
         prompt = (
             "Write one short retrieval context prefix for this document chunk. "
             "Use facts only from the metadata and text. Do not add new facts.\n\n"
@@ -259,7 +259,7 @@ class IngestPipeline:
             "Prefix:"
         )
         try:
-            response = requests.post(
+            response = httpx.post(
                 f"{self.ollama_base_url}/api/generate",
                 json={
                     "model": self.contextual_prefix_model,
@@ -267,7 +267,7 @@ class IngestPipeline:
                     "stream": False,
                     "options": {"temperature": 0, "num_predict": 80},
                 },
-                timeout=20,
+                timeout=httpx.Timeout(20.0, connect=5.0),
             )
             response.raise_for_status()
             prefix = response.json().get("response", "").strip()
@@ -275,6 +275,9 @@ class IngestPipeline:
         except Exception:
             logger.warning("[ingest] contextual prefix generation failed", exc_info=True)
             return ""
+
+    def close(self) -> None:
+        self.embedder.close()
 
     @staticmethod
     def _chunk_embedding_text(chunk: Chunk) -> str:
@@ -305,7 +308,7 @@ class IngestPipeline:
             file_path=path,
             file_name=path.name,
             file_hash=file_hash,
-            status="processing",
+            status=FileStatus.PROCESSING,
             mtime_ns=mtime_ns,
         )
 
@@ -319,7 +322,7 @@ class IngestPipeline:
                 file_path=path,
                 file_name=path.name,
                 file_hash=file_hash,
-                status="processing",
+                status=FileStatus.PROCESSING,
                 total_pages=doc.total_pages,
                 is_scanned=doc.is_scanned,
                 tags=tags_json,
@@ -349,7 +352,7 @@ class IngestPipeline:
             )
         except Exception as e:
             logger.exception(f"Error preparing {path.name}")
-            self.store.set_status(path, "error", error_msg=str(e))
+            self.store.set_status(path, FileStatus.ERROR, error_msg=str(e))
             return {"status": "error", "file": path.name, "error": str(e)}
 
     def _build_vectors(
@@ -500,7 +503,7 @@ class IngestPipeline:
             logger.exception("Error embedding ingest batch")
             results = []
             for prepared in prepared_files:
-                self.store.set_status(prepared.path, "error", error_msg=str(e))
+                self.store.set_status(prepared.path, FileStatus.ERROR, error_msg=str(e))
                 metrics = prepared.metrics
                 metrics.embed_s = embed_s if "embed_s" in locals() else 0.0
                 metrics.qdrant_s = 0.0
@@ -574,7 +577,7 @@ class IngestPipeline:
                 ]
                 self.store.add_chunks(prepared.file_id, chunk_records)
                 self.store.set_chunk_count(prepared.path, len(prepared.chunks))
-                self.store.set_status(prepared.path, "done")
+                self.store.set_status(prepared.path, FileStatus.DONE)
                 metrics.sqlite_s = perf_counter() - sqlite_start
                 metrics.total_s = (
                     metrics.parse_s
@@ -595,7 +598,7 @@ class IngestPipeline:
                 )
             except Exception as e:
                 logger.exception(f"Error finalizing {prepared.path.name}")
-                self.store.set_status(prepared.path, "error", error_msg=str(e))
+                self.store.set_status(prepared.path, FileStatus.ERROR, error_msg=str(e))
                 self.embedder.delete_file_vectors(file_qdrant_ids)
                 metrics.sqlite_s = perf_counter() - sqlite_start
                 metrics.total_s = (

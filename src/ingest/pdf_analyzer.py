@@ -9,13 +9,12 @@ PDFAnalyzer — 检测 PDF 类型并路由到对应解析路径。
 from __future__ import annotations
 
 import base64
-import json
-import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
 import fitz  # PyMuPDF
+import httpx
 
 
 # ---------------------------------------------------------------------------
@@ -186,14 +185,13 @@ class PDFAnalyzer:
             "images": [img_b64],
             "stream": False,
         }
-        data = json.dumps(payload).encode()
-        req = urllib.request.Request(
+        response = httpx.post(
             f"{self.ollama_base_url}/api/generate",
-            data=data,
-            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=httpx.Timeout(300.0, connect=5.0),
         )
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            result = json.load(resp)
+        response.raise_for_status()
+        result = response.json()
         return result.get("response", "").strip()
 
     @staticmethod

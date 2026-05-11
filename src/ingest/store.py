@@ -12,31 +12,13 @@ import hashlib
 import sqlite3
 import threading
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 import json
 
+from src.domain_types import ChunkRecord, FileRecord, FileStatus
+
 
 DEFAULT_COLLECTION = "Inbox"
-
-
-# ---------------------------------------------------------------------------
-# Data types
-# ---------------------------------------------------------------------------
-
-@dataclass
-class FileRecord:
-    id: int
-    file_path: str
-    file_name: str
-    file_hash: str
-    status: str          # pending | processing | done | error
-    total_pages: int
-    is_scanned: bool
-    chunk_count: int
-    error_msg: str
-    created_at: str
-    updated_at: str
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +173,12 @@ class DocStore:
             conn.rollback()
             raise
 
+    def close(self) -> None:
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            conn.close()
+            self._local.conn = None
+
     # ------------------------------------------------------------------
     # File operations
     # ------------------------------------------------------------------
@@ -227,7 +215,11 @@ class DocStore:
             ).fetchone()
         if row is None:
             return True, None
-        if row["status"] in ("pending", "error", "processing"):
+        if row["status"] in {
+            FileStatus.PENDING.value,
+            FileStatus.ERROR.value,
+            FileStatus.PROCESSING.value,
+        }:
             return True, None
         # mtime 快跳：未变则大概率不需要重新 ingest
         current_mtime = path.stat().st_mtime_ns
@@ -242,13 +234,14 @@ class DocStore:
         file_path: str | Path,
         file_name: str,
         file_hash: str,
-        status: str = "pending",
+        status: FileStatus | str = FileStatus.PENDING,
         total_pages: int = 0,
         is_scanned: bool = False,
         tags: str = "[]",
         mtime_ns: int = 0,
     ) -> int:
         path = str(file_path)
+        status_value = self._normalize_status(status)
         with self._conn() as conn:
             conn.execute("""
                 INSERT INTO files (file_path, file_name, file_hash, status, total_pages, is_scanned, tags, mtime_ns)
@@ -263,7 +256,7 @@ class DocStore:
                     mtime_ns    = excluded.mtime_ns,
                     error_msg   = '',
                     updated_at  = datetime('now')
-            """, (path, file_name, file_hash, status, total_pages, int(is_scanned), tags, mtime_ns))
+            """, (path, file_name, file_hash, status_value, total_pages, int(is_scanned), tags, mtime_ns))
             file_id = conn.execute(
                 "SELECT id FROM files WHERE file_path = ?", (path,)
             ).fetchone()["id"]
@@ -275,8 +268,9 @@ class DocStore:
         """
         with self._conn() as conn:
             result = conn.execute(
-                "UPDATE files SET status='error', error_msg='Interrupted (server restart)', "
-                "updated_at=datetime('now') WHERE status='processing'"
+                "UPDATE files SET status=?, error_msg='Interrupted (server restart)', "
+                "updated_at=datetime('now') WHERE status=?",
+                (FileStatus.ERROR.value, FileStatus.PROCESSING.value),
             )
             return result.rowcount
 
@@ -308,13 +302,14 @@ class DocStore:
                     })
         return removed
 
-    def set_status(self, file_path: str | Path, status: str, error_msg: str = ""):
+    def set_status(self, file_path: str | Path, status: FileStatus | str, error_msg: str = ""):
+        status_value = self._normalize_status(status)
         with self._conn() as conn:
             conn.execute("""
                 UPDATE files
                 SET status = ?, error_msg = ?, updated_at = datetime('now')
                 WHERE file_path = ?
-            """, (status, error_msg, str(file_path)))
+            """, (status_value, error_msg, str(file_path)))
 
     def set_chunk_count(self, file_path: str | Path, count: int):
         with self._conn() as conn:
@@ -324,7 +319,7 @@ class DocStore:
                 WHERE file_path = ?
             """, (count, str(file_path)))
 
-    def add_chunks(self, file_id: int, chunk_records: list[dict]):
+    def add_chunks(self, file_id: int, chunk_records: list[ChunkRecord]):
         """
         chunk_records: list of {qdrant_id, chunk_type, page_num, section, char_count,
           parent_id?, raw_text?, embedding_text?, parent_text?, contextual_prefix?, tokenized_text?}
@@ -346,37 +341,34 @@ class DocStore:
             if not chunk_records:
                 return
 
-            # Batch insert chunks
-            conn.executemany(
-                """INSERT INTO chunks (
-                       file_id, qdrant_id, chunk_type, page_num, section, char_count,
-                       parent_id, raw_text, embedding_text, parent_text, contextual_prefix
-                   )
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                [(
-                    file_id,
-                    r["qdrant_id"],
-                    r["chunk_type"],
-                    r["page_num"],
-                    r["section"],
-                    r["char_count"],
-                    r.get("parent_id", 0),
-                    r.get("raw_text", ""),
-                    r.get("embedding_text", r.get("raw_text", "")),
-                    r.get("parent_text", ""),
-                    r.get("contextual_prefix", ""),
+            inserted_ids: list[int] = []
+            for record in chunk_records:
+                cursor = conn.execute(
+                    """INSERT INTO chunks (
+                           file_id, qdrant_id, chunk_type, page_num, section, char_count,
+                           parent_id, raw_text, embedding_text, parent_text, contextual_prefix
+                       )
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        file_id,
+                        record["qdrant_id"],
+                        record["chunk_type"],
+                        record["page_num"],
+                        record["section"],
+                        record["char_count"],
+                        record.get("parent_id", 0),
+                        record.get("raw_text", ""),
+                        record.get("embedding_text", record.get("raw_text", "")),
+                        record.get("parent_text", ""),
+                        record.get("contextual_prefix", ""),
+                    ),
                 )
-                 for r in chunk_records],
-            )
-            # Compute rowid range (AUTOINCREMENT guarantees contiguous IDs within a single executemany)
-            last_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-            first_id = last_id - len(chunk_records) + 1
+                inserted_ids.append(int(cursor.lastrowid))
 
             # Batch insert FTS5 entries
             fts_rows = []
             fts_trigram_rows = []
-            for i, r in enumerate(chunk_records):
-                chunk_id = first_id + i
+            for chunk_id, r in zip(inserted_ids, chunk_records, strict=True):
                 tokenized = r.get("tokenized_text", "")
                 if tokenized:
                     fts_rows.append((chunk_id, tokenized))
@@ -401,7 +393,7 @@ class DocStore:
 
     def list_files(
         self,
-        status: str | None = None,
+        status: FileStatus | str | None = None,
         collection: str | None = None,
         tag: str | None = None,
         favorite: bool | None = None,
@@ -417,7 +409,7 @@ class DocStore:
         clauses = []
         if status:
             clauses.append("f.status = ?")
-            params.append(status)
+            params.append(self._normalize_status(status))
         normalized_collection = self._normalize_collection(collection) if collection else ""
         if normalized_collection:
             clauses.append("f.collection = ?")
@@ -995,14 +987,19 @@ class DocStore:
         collection = str(value or "").strip()
         return collection[:80] if collection else DEFAULT_COLLECTION
 
+    @staticmethod
+    def _normalize_status(status: FileStatus | str) -> str:
+        value = status.value if isinstance(status, FileStatus) else str(status)
+        return FileStatus(value).value
+
     @classmethod
-    def _file_row_to_dict(cls, row: sqlite3.Row) -> dict:
+    def _file_row_to_dict(cls, row: sqlite3.Row) -> FileRecord:
         data = dict(row)
         data["tags"] = cls._parse_json_list(data.get("tags"))
         data["collection"] = cls._normalize_collection(data.get("collection"))
         data["user_tags"] = cls._parse_json_list(data.get("user_tags"))
         data["favorited"] = bool(data.get("favorited", False))
-        return data
+        return data  # type: ignore[return-value]
 
     @staticmethod
     def _facet_rows(counts: dict[str, int]) -> list[dict]:

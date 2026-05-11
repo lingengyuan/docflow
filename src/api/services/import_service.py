@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from src.domain_types import FileStatus
 from src.ingest.imports import write_markdown_import
 from src.ingest.store import DocStore
 from src.knowledge_outputs import KNOWLEDGE_OUTPUT_SOURCE_CHAR_LIMIT
@@ -25,7 +26,7 @@ class ImportService:
 
         for file_id in dict.fromkeys(req.file_ids):
             record = state.store.get_file_by_id(file_id)
-            if not record or record["status"] != "done":
+            if not record or record["status"] != FileStatus.DONE:
                 continue
             qdrant_ids = state.store.get_file_qdrant_ids(file_id)
             chunks = state.query_engine.retriever.fetch_file_chunks(qdrant_ids, max_chunks=12)
@@ -75,7 +76,7 @@ class ImportService:
             path,
             path.name,
             DocStore.compute_hash(path),
-            status="pending",
+            status=FileStatus.PENDING,
             total_pages=1,
             mtime_ns=path.stat().st_mtime_ns,
         )

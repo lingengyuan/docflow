@@ -5,11 +5,12 @@ from __future__ import annotations
 import html
 import re
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
+
+import httpx
 
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 
@@ -86,13 +87,7 @@ class ReadableHTMLParser(HTMLParser):
 
 def fetch_webpage_markdown(url: str, title: str | None = None) -> MarkdownImport:
     normalized_url = _validate_url(url)
-    req = urllib.request.Request(
-        normalized_url,
-        headers={"User-Agent": "DocFlow/1.0 local knowledge import"},
-    )
-    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_S) as response:
-        content_type = response.headers.get("content-type", "")
-        raw = response.read(MAX_WEBPAGE_BYTES + 1)
+    content_type, raw = _fetch_webpage_bytes(normalized_url)
     if len(raw) > MAX_WEBPAGE_BYTES:
         raise ValueError("Webpage is too large to import")
 
@@ -112,6 +107,26 @@ def fetch_webpage_markdown(url: str, title: str | None = None) -> MarkdownImport
         + "\n"
     )
     return MarkdownImport(title=final_title, markdown=markdown)
+
+
+def _fetch_webpage_bytes(url: str) -> tuple[str, bytes]:
+    try:
+        with httpx.Client(
+            follow_redirects=True,
+            timeout=httpx.Timeout(REQUEST_TIMEOUT_S, connect=5.0),
+            headers={"User-Agent": "DocFlow/1.0 local knowledge import"},
+        ) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return response.headers.get("content-type", ""), response.content[: MAX_WEBPAGE_BYTES + 1]
+    except httpx.ConnectTimeout as exc:
+        raise TimeoutError("Timed out while connecting to webpage") from exc
+    except httpx.ReadTimeout as exc:
+        raise TimeoutError("Timed out while reading webpage") from exc
+    except httpx.HTTPStatusError as exc:
+        raise RuntimeError(f"Webpage returned HTTP {exc.response.status_code}") from exc
+    except httpx.RequestError as exc:
+        raise RuntimeError(f"Failed to fetch webpage: {exc}") from exc
 
 
 def html_to_markdown(raw_html: str) -> tuple[str, str]:

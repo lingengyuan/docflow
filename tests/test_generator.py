@@ -2,7 +2,6 @@
 测试 AnswerGenerator 的 context 构建和 API 调用（mock）。
 """
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -71,18 +70,16 @@ class TestContextBuilder:
 
 class TestOllamaGenerate:
     def _mock_ollama_response(self, text: str):
-        body = json.dumps({"message": {"content": text}}).encode()
         mock_resp = MagicMock()
-        mock_resp.read.return_value = body
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_resp.json.return_value = {"message": {"content": text}}
+        mock_resp.raise_for_status.return_value = None
         return mock_resp
 
     def test_returns_answer_with_citations(self):
         gen = AnswerGenerator(backend="local")
         mock_resp = self._mock_ollama_response("Q3总销售额为7,460,000元 [来源: Q3报告.pdf, 第12页]")
 
-        with patch("urllib.request.urlopen", return_value=mock_resp):
+        with patch("httpx.post", return_value=mock_resp):
             answer = gen.generate("Q3销售额是多少", CHUNKS)
 
         assert isinstance(answer, Answer)
@@ -101,21 +98,18 @@ class TestOllamaGenerate:
 
     def test_ollama_payload_format(self):
         gen = AnswerGenerator(backend="local", ollama_model="qwen2.5:7b")
-        body = json.dumps({"message": {"content": "answer"}}).encode()
         mock_resp = MagicMock()
-        mock_resp.read.return_value = body
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_resp.json.return_value = {"message": {"content": "answer"}}
+        mock_resp.raise_for_status.return_value = None
 
-        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
             gen.generate(
                 "test question",
                 CHUNKS,
                 conversation_context=[{"role": "user", "content": "previous question"}],
             )
 
-        req = mock_url.call_args[0][0]
-        payload = json.loads(req.data.decode())
+        payload = mock_post.call_args.kwargs["json"]
         assert payload["model"] == "qwen2.5:7b"
         assert payload["stream"] is False
         assert payload["messages"][0]["role"] == "system"
@@ -125,21 +119,18 @@ class TestOllamaGenerate:
 
     def test_knowledge_output_payload_uses_template_instruction(self):
         gen = AnswerGenerator(backend="local", ollama_model="qwen2.5:7b")
-        body = json.dumps({"message": {"content": "## 当前状态\n\n完成"}}).encode()
         mock_resp = MagicMock()
-        mock_resp.read.return_value = body
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_resp.json.return_value = {"message": {"content": "## 当前状态\n\n完成"}}
+        mock_resp.raise_for_status.return_value = None
 
-        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+        with patch("httpx.post", return_value=mock_resp) as mock_post:
             output = gen.generate_knowledge_output(
                 "project_brief",
                 "Phase Brief",
                 "Phase 17 source text",
             )
 
-        req = mock_url.call_args[0][0]
-        payload = json.loads(req.data.decode())
+        payload = mock_post.call_args.kwargs["json"]
         assert output.startswith("## 当前状态")
         assert "项目简报" in payload["messages"][1]["content"]
         assert "Phase 17 source text" in payload["messages"][1]["content"]

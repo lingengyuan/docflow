@@ -110,6 +110,68 @@ class TestDocStore:
         assert chunks[0]["chunk_type"] == "text"
         assert chunks[1]["section"] == "A"
 
+    def test_add_chunks_maps_fts_to_actual_chunk_ids_when_ids_have_gaps(self, db, pdf):
+        h = DocStore.compute_hash(pdf)
+        file_id = db.upsert_file(pdf, pdf.name, h)
+        with db._conn() as conn:
+            conn.executescript(
+                """
+                CREATE TRIGGER chunk_gap_after_insert
+                AFTER INSERT ON chunks
+                WHEN NEW.qdrant_id > 0
+                BEGIN
+                    INSERT INTO chunks (
+                        file_id, qdrant_id, chunk_type, page_num, section, char_count
+                    )
+                    VALUES (-1, -1, 'gap', 0, '', 0);
+                    DELETE FROM chunks WHERE id = last_insert_rowid();
+                END;
+                """
+            )
+
+        db.add_chunks(
+            file_id,
+            [
+                {
+                    "qdrant_id": 101,
+                    "chunk_type": "text",
+                    "page_num": 1,
+                    "section": "",
+                    "char_count": 24,
+                    "raw_text": "alpha regression phrase",
+                    "tokenized_text": "alpha regression phrase",
+                },
+                {
+                    "qdrant_id": 102,
+                    "chunk_type": "text",
+                    "page_num": 1,
+                    "section": "",
+                    "char_count": 23,
+                    "raw_text": "beta regression phrase",
+                    "tokenized_text": "beta regression phrase",
+                },
+            ],
+        )
+
+        chunks = db.list_file_chunks(file_id)
+        chunk_ids = [row["id"] for row in chunks]
+        assert chunk_ids[1] > chunk_ids[0] + 1
+
+        with db._conn() as conn:
+            fts_ids = [
+                row["rowid"]
+                for row in conn.execute("SELECT rowid FROM chunks_fts ORDER BY rowid").fetchall()
+            ]
+            trigram_ids = [
+                row["rowid"]
+                for row in conn.execute("SELECT rowid FROM chunks_fts_trigram ORDER BY rowid").fetchall()
+            ]
+
+        assert fts_ids == chunk_ids
+        assert trigram_ids == chunk_ids
+        assert db.search_fts('"alpha"', None, 10)[0]["qdrant_id"] == 101
+        assert db.search_fts_trigram("beta", None, 10)[0]["qdrant_id"] == 102
+
     def test_max_qdrant_id_returns_highest_indexed_id(self, db, pdf):
         assert db.max_qdrant_id() == -1
         h = DocStore.compute_hash(pdf)

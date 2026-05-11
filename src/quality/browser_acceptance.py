@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import httpx
 import yaml
 
 
@@ -229,12 +227,9 @@ def _run_view_checks(page: Any, view: ViewAcceptance, checks: list[dict[str, Any
 
 def _check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
     timeout_seconds = max(timeout_ms / 1000, 1)
-    request = urllib.request.Request(base_url, method="GET")
-    with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-        status = getattr(response, "status", 0)
-        if status < 200 or status >= 400:
-            raise AssertionError(f"HTTP {status}")
-        return {"status": status}
+    response = httpx.get(base_url, timeout=httpx.Timeout(timeout_seconds, connect=1.0))
+    response.raise_for_status()
+    return {"status": response.status_code}
 
 
 def _goto_page(page: Any, base_url: str, timeout_ms: int) -> dict[str, str]:
@@ -416,20 +411,16 @@ def _query_temporary_note(page: Any, file_record: dict[str, Any], token: str, qu
 
 
 def _api_json(base_url: str, path: str, timeout_ms: int, *, method: str = "GET", payload: dict | None = None) -> Any:
-    data = None
-    headers = {}
-    if payload is not None:
-        data = json.dumps(payload).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    request = urllib.request.Request(
+    headers = {"Content-Type": "application/json"} if payload is not None else {}
+    response = httpx.request(
+        method,
         f"{base_url.rstrip('/')}{path}",
-        data=data,
+        json=payload,
         headers=headers,
-        method=method,
+        timeout=httpx.Timeout(max(timeout_ms / 1000, 1), connect=1.0),
     )
-    with urllib.request.urlopen(request, timeout=max(timeout_ms / 1000, 1)) as response:
-        body = response.read().decode("utf-8")
-    return json.loads(body) if body else None
+    response.raise_for_status()
+    return response.json() if response.content else None
 
 
 def _wait_for_file_by_title(base_url: str, title: str, timeout_ms: int) -> dict[str, Any]:
@@ -635,7 +626,7 @@ def _run_check(checks: list[dict[str, Any]], check_id: str, fn: Any) -> None:
     try:
         details = fn()
         checks.append({"id": check_id, "passed": True, "details": details or {}})
-    except (AssertionError, urllib.error.URLError, TimeoutError, Exception) as exc:
+    except (AssertionError, httpx.HTTPError, TimeoutError, Exception) as exc:
         checks.append(
             {
                 "id": check_id,
