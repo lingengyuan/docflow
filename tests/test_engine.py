@@ -26,6 +26,7 @@ class FakeRetriever:
         retrieval_mode="hybrid",
         prefer_tables=False,
         cancel_event=None,
+        related_k=0,
     ):
         self.queries.append(query)
         self.retrieval_modes.append(retrieval_mode)
@@ -128,6 +129,50 @@ def test_query_can_force_full_text_retrieval_mode():
 
     assert answer.text == "answer"
     assert retriever.retrieval_modes == ["full_text"]
+
+
+def test_query_returns_related_notes_from_unused_candidates():
+    chunks = [
+        {
+            "text": f"answer chunk {idx}",
+            "file_name": f"answer-{idx}.md",
+            "file_path": f"/tmp/answer-{idx}.md",
+            "page_num": 1,
+            "section": "",
+            "rrf_score": 0.9 - idx * 0.01,
+        }
+        for idx in range(5)
+    ] + [
+        {
+            "text": "related alpha",
+            "file_name": "related-a.md",
+            "file_path": "/tmp/related-a.md",
+            "page_num": 2,
+            "section": "Alpha",
+            "rrf_score": 0.4,
+        },
+        {
+            "text": "related beta",
+            "file_name": "related-b.md",
+            "file_path": "/tmp/related-b.md",
+            "page_num": 3,
+            "section": "Beta",
+            "rrf_score": 0.3,
+        },
+    ]
+
+    class RelatedRetriever(FakeRetriever):
+        def retrieve(self, *args, **kwargs):
+            self.queries.append(kwargs.get("query") or args[0])
+            return chunks
+
+    answer = QueryEngine(RelatedRetriever(), WorkingGenerator()).query("find related")
+
+    assert [item["file_name"] for item in answer.related_notes] == [
+        "related-a.md",
+        "related-b.md",
+    ]
+    assert answer.related_notes[0]["section"] == "Alpha"
 
 
 def test_full_text_results_with_zero_vector_score_are_allowed():

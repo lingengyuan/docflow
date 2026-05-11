@@ -102,8 +102,10 @@ function resetChatMessages() {
   inner.innerHTML = welcomeHtml();
   document.getElementById('messages').scrollTop = 0;
   lastCitations = [];
+  lastRelatedNotes = [];
   chatPreviewCitation = null;
   renderChatContextSources([]);
+  renderRelatedNotes([]);
   renderChatSourcePreview(null);
   updateConversationLabel();
 }
@@ -217,7 +219,9 @@ function renderLatestAnswerPreview(item) {
       </div>
     </div>`;
   lastCitations = citations;
+  lastRelatedNotes = [];
   renderChatContextSources(citations);
+  renderRelatedNotes([]);
   renderLocalIcons(inner);
   msgs.scrollTop = 0;
 }

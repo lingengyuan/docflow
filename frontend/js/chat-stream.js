@@ -52,6 +52,7 @@ function createAIMessageContainer() {
     </div>
     <div id="stream-prose" class="prose text-sm text-on-surface max-w-none"></div>
     <div id="stream-citations" class="flex flex-wrap gap-2"></div>
+    <div id="stream-related-notes"></div>
     <div id="stream-meta" class="text-[11px] text-on-surface-variant/50 font-medium"></div>
     <div class="flex gap-4 mt-1">
       <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
@@ -95,12 +96,48 @@ function citationMarkup(citations) {
   }).join('');
 }
 
+function relatedNotesMarkup(notes) {
+  if (!notes?.length) return '';
+  return notes.map(note => {
+    const icon = (note.file_name || '').toLowerCase().endsWith('.md') ? 'article' : 'description';
+    const label = note.section || (note.page_num ? `p.${note.page_num}` : '相关片段');
+    return `
+    <button class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors"
+      onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(note.file_path || '')}'), ${note.page_num || 1})"
+      title="打开相关笔记" aria-label="打开相关笔记：${escHtml(note.file_name || '未知文件')}">
+      <div class="flex items-center justify-between gap-2">
+        <span class="flex min-w-0 items-center gap-2">
+          <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
+          <span class="font-semibold text-on-surface line-clamp-1">${escHtml(note.file_name || '未知文件')}</span>
+        </span>
+        <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[120px] truncate">${escHtml(label)}</span>
+      </div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(note.snippet || '')}</div>
+    </button>`;
+  }).join('');
+}
+
 function renderCitations(citations) {
   const el = document.getElementById('stream-citations');
   if (!el || !citations.length) return;
   el.innerHTML = citationMarkup(citations);
   lastCitations = citations;
   renderChatContextSources(citations);
+}
+
+function renderRelatedNotes(notes = lastRelatedNotes) {
+  const list = document.getElementById('chat-related-notes');
+  const count = document.getElementById('chat-related-count');
+  if (!list || !count) return;
+  lastRelatedNotes = notes || [];
+  if (!lastRelatedNotes.length) {
+    count.textContent = '暂无相关笔记';
+    list.innerHTML = '<div class="rounded-lg bg-surface-container-low px-3 py-3">这次回答没有额外的相关笔记。</div>';
+    return;
+  }
+  count.textContent = `${lastRelatedNotes.length} 条可探索`;
+  list.innerHTML = relatedNotesMarkup(lastRelatedNotes.slice(0, 4));
+  renderLocalIcons(list);
 }
 
 function appendAssistantMessage(answer, citations = [], meta = {}) {
@@ -119,6 +156,12 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
     </div>
     <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(answer || '')}</div>
     <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
+    ${meta.relatedNotes?.length ? `<div class="rounded-xl bg-surface-container-low px-4 py-3">
+      <div class="mb-2 flex items-center gap-2 text-xs font-bold text-on-surface">
+        <span class="material-symbols-outlined text-primary" style="font-size:15px">hub</span>相关笔记
+      </div>
+      <div class="grid gap-2">${relatedNotesMarkup(meta.relatedNotes)}</div>
+    </div>` : ''}
     ${metaText ? `<div class="text-[11px] text-on-surface-variant/50 font-medium">${escHtml(metaText)}</div>` : ''}
     <div class="flex gap-4 mt-1">
       <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
@@ -133,7 +176,9 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
     </div>`;
   inner.appendChild(div);
   lastCitations = citations || [];
+  lastRelatedNotes = meta.relatedNotes || [];
   renderChatContextSources(lastCitations);
+  renderRelatedNotes(lastRelatedNotes);
   msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -294,6 +339,7 @@ async function sendMessage() {
     let buffer = '';
     let streamCompleted = false;
     let streamErrored = false;
+    let relatedNotes = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -317,6 +363,19 @@ async function sendMessage() {
           currentConversationId = payload.conversation_id;
         } else if (eventType === 'citations') {
           renderCitations(JSON.parse(eventData));
+        } else if (eventType === 'related_notes') {
+          relatedNotes = JSON.parse(eventData);
+          renderRelatedNotes(relatedNotes);
+          const relatedEl = document.getElementById('stream-related-notes');
+          if (relatedEl) {
+            relatedEl.innerHTML = relatedNotes.length ? `<div class="rounded-xl bg-surface-container-low px-4 py-3">
+              <div class="mb-2 flex items-center gap-2 text-xs font-bold text-on-surface">
+                <span class="material-symbols-outlined text-primary" style="font-size:15px">hub</span>相关笔记
+              </div>
+              <div class="grid gap-2">${relatedNotesMarkup(relatedNotes)}</div>
+            </div>` : '';
+            renderLocalIcons(relatedEl);
+          }
         } else if (eventType === 'token') {
           const token = JSON.parse(eventData);
           answerText += token;
@@ -355,6 +414,7 @@ async function sendMessage() {
     }
     prose.removeAttribute('id');
     document.getElementById('stream-citations')?.removeAttribute('id');
+    document.getElementById('stream-related-notes')?.removeAttribute('id');
   } catch (e) {
     document.getElementById('thinking-indicator')?.remove();
     const msgs = document.getElementById('messages');

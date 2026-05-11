@@ -258,6 +258,7 @@ class HybridRetriever:
         retrieval_mode: str = "hybrid",
         prefer_tables: bool = False,
         cancel_event=None,
+        related_k: int = 0,
     ) -> list[RetrievalResult]:
         """
         混合检索 + 精排，返回 top-k 结果。
@@ -269,6 +270,7 @@ class HybridRetriever:
         route = QueryRouter.classify(query)
         search_limit = route["top_k_retrieval"]
         rerank_limit = route["top_k_rerank"]
+        output_limit = rerank_limit + max(0, int(related_k or 0))
         degradations: list[dict] = []
 
         mode = self._normalize_retrieval_mode(retrieval_mode)
@@ -338,7 +340,7 @@ class HybridRetriever:
         result = self._rerank_or_fallback(
             query,
             top_candidates,
-            rerank_limit,
+            output_limit,
             degradations,
             cancel_event=cancel_event,
         )

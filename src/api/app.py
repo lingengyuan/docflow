@@ -581,6 +581,7 @@ async def query(req: QueryRequest):
     return QueryResponse(
         answer=result.text,
         citations=citations_data,
+        related_notes=getattr(result, "related_notes", []),
         conversation_id=conversation_id,
         scope=options.scope,
     )
@@ -612,20 +613,27 @@ async def query_stream(req: QueryRequest, request: Request):
         try:
             if conversation_id is not None:
                 q.put(("conversation", {"conversation_id": conversation_id}))
-            chunks, token_gen = query_engine.query_stream(
+            stream_result = query_engine.query_stream(
                 req.question,
                 file_filter=options.file_filter or None,
                 retrieval_mode=options.retrieval_mode,
                 cancel_event=cancel,
                 conversation_context=conversation_context,
                 retrieval_query=retrieval_query,
+                include_related=True,
             )
+            if len(stream_result) == 3:
+                chunks, token_gen, related_notes = stream_result
+            else:
+                chunks, token_gen = stream_result
+                related_notes = []
             if cancel.is_set():
                 return
             citations_data = query_service.stream_citations(chunks)
             if cancel.is_set():
                 return
             q.put(("citations", citations_data))
+            q.put(("related_notes", related_notes))
             full_answer = []
             for token in token_gen:
                 if cancel.is_set():
@@ -694,7 +702,7 @@ async def query_stream(req: QueryRequest, request: Request):
                 if task.future.done() and q.empty():
                     break
                 continue
-            if event in ("citations", "token", "done", "error"):
+            if event in ("citations", "related_notes", "token", "done", "error"):
                 if first_content_at is None:
                     first_content_at = perf_counter()
                 last_content_at = perf_counter()

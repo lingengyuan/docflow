@@ -33,6 +33,7 @@ class DebugRetrieveRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
+    related_notes: list[dict] = Field(default_factory=list)
     conversation_id: int | None = None
     scope: dict | None = None
 

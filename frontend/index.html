@@ -634,6 +634,18 @@
           </section>
           <section class="soft-panel p-4">
             <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="panel-title">相关笔记</h2>
+                <p id="chat-related-count" class="panel-muted mt-1">等待提问后显示</p>
+              </div>
+              <span class="material-symbols-outlined text-primary/70" style="font-size:17px">hub</span>
+            </div>
+            <div id="chat-related-notes" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-3">回答生成后，这里会显示可继续探索的笔记。</div>
+            </div>
+          </section>
+          <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
               <h2 class="panel-title">来源预览</h2>
               <button id="chat-source-open-btn" onclick="openSourceFromChatPreview()" class="icon-button !w-8 !h-8 hidden" title="打开来源预览" aria-label="打开来源预览">
                 <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>

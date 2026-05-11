@@ -27,6 +27,9 @@ INSUFFICIENT_EVIDENCE_MESSAGE = (
 )
 MIN_RERANK_SCORE = 0.12
 MIN_VECTOR_SCORE = 0.40
+RELATED_NOTES_LIMIT = 4
+DEFAULT_ANSWER_CHUNKS = 5
+MIN_ANSWER_CHUNKS = 3
 
 
 class QueryEngine:
@@ -78,18 +81,24 @@ class QueryEngine:
             file_filter=file_filter,
             retrieval_mode=retrieval_mode,
             prefer_tables=prefer_tables,
+            related_k=RELATED_NOTES_LIMIT,
         )
-        if not self._has_sufficient_evidence(chunks):
+        answer_chunks, related_notes = self._split_answer_and_related(chunks)
+        if not self._has_sufficient_evidence(answer_chunks):
             return Answer(text=INSUFFICIENT_EVIDENCE_MESSAGE, citations=[])
         try:
-            return self.generator.generate(
+            answer = self.generator.generate(
                 question,
-                chunks,
+                answer_chunks,
                 conversation_context=conversation_context,
             )
+            answer.related_notes = related_notes
+            return answer
         except Exception as exc:
             logger.warning("[query] answer generation failed; returning retrieved snippets", exc_info=True)
-            return self._fallback_answer(chunks, exc)
+            answer = self._fallback_answer(answer_chunks, exc)
+            answer.related_notes = related_notes
+            return answer
 
     def query_stream(
         self,
@@ -99,6 +108,7 @@ class QueryEngine:
         cancel_event=None,
         conversation_context: list[dict] | None = None,
         retrieval_query: str | None = None,
+        include_related: bool = False,
     ):
         """返回 (chunks, token_generator)，先做检索再流式生成。"""
         effective_query = retrieval_query or question
@@ -109,16 +119,24 @@ class QueryEngine:
             retrieval_mode=retrieval_mode,
             prefer_tables=prefer_tables,
             cancel_event=cancel_event,
+            related_k=RELATED_NOTES_LIMIT if include_related else 0,
         )
-        if not self._has_sufficient_evidence(chunks):
+        answer_chunks, related_notes = (
+            self._split_answer_and_related(chunks) if include_related else (chunks, [])
+        )
+        if not self._has_sufficient_evidence(answer_chunks):
+            if include_related:
+                return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE]), []
             return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE])
         token_gen = self._safe_generate_stream(
             question,
-            chunks,
+            answer_chunks,
             cancel_event=cancel_event,
             conversation_context=conversation_context,
         )
-        return chunks, token_gen
+        if include_related:
+            return answer_chunks, token_gen, related_notes
+        return answer_chunks, token_gen
 
     def summarize_file(self, file_name: str, qdrant_ids: list[int]) -> str:
         """生成单个文件的摘要（Markdown）。"""
@@ -131,6 +149,49 @@ class QueryEngine:
 
     def close(self) -> None:
         self.retriever.close()
+
+    @classmethod
+    def _split_answer_and_related(cls, chunks: list[dict]) -> tuple[list[dict], list[dict]]:
+        if not chunks:
+            return [], []
+        if len(chunks) > RELATED_NOTES_LIMIT + MIN_ANSWER_CHUNKS:
+            answer_limit = len(chunks) - RELATED_NOTES_LIMIT
+        else:
+            answer_limit = min(len(chunks), DEFAULT_ANSWER_CHUNKS)
+        answer_chunks = chunks[:answer_limit]
+        related_chunks = chunks[answer_limit:]
+        return answer_chunks, cls._related_notes(answer_chunks, related_chunks)
+
+    @staticmethod
+    def _related_notes(answer_chunks: list[dict], related_chunks: list[dict]) -> list[dict]:
+        cited_keys = {
+            chunk.get("file_path") or chunk.get("file_name")
+            for chunk in answer_chunks
+            if chunk.get("file_path") or chunk.get("file_name")
+        }
+        notes: list[dict] = []
+        seen: set[str] = set()
+        for chunk in related_chunks:
+            key = chunk.get("file_path") or chunk.get("file_name")
+            if not key or key in cited_keys or key in seen:
+                continue
+            seen.add(key)
+            score = chunk.get("rerank_score", chunk.get("rrf_score", chunk.get("score", 0.0)))
+            text = chunk.get("text") or chunk.get("raw_text") or chunk.get("parent_text") or ""
+            notes.append(
+                {
+                    "file_name": chunk.get("file_name", ""),
+                    "file_path": chunk.get("file_path", ""),
+                    "page_num": chunk.get("page_num", 0),
+                    "section": chunk.get("section", ""),
+                    "snippet": text[:220],
+                    "score": round(float(score or 0.0), 4),
+                    "chunk_type": chunk.get("chunk_type", "text"),
+                }
+            )
+            if len(notes) >= RELATED_NOTES_LIMIT:
+                break
+        return notes
 
     @staticmethod
     def _is_table_query(question: str) -> bool:

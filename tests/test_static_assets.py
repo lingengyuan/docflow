@@ -125,6 +125,17 @@ def test_phase14_chat_scope_controls_are_visible():
     assert "full_text" in html
 
 
+def test_phase37_related_notes_are_visible():
+    html = frontend_source_text()
+
+    assert "相关笔记" in html
+    assert "chat-related-notes" in html
+    assert "chat-related-count" in html
+    assert "related_notes" in html
+    assert "renderRelatedNotes" in html
+    assert "relatedNotesMarkup" in html
+
+
 def test_phase15_app_shell_has_notes_and_settings():
     html = frontend_source_text()
 

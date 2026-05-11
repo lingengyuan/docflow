@@ -30,7 +30,7 @@ class FakeQueryEngine:
                 "retrieval_query": retrieval_query,
             }
         )
-        return Answer(
+        answer = Answer(
             text=f"answer for {question}",
             citations=[
                 Citation(
@@ -42,6 +42,17 @@ class FakeQueryEngine:
                 )
             ],
         )
+        answer.related_notes = [
+            {
+                "file_name": "NOTES.md",
+                "file_path": "/tmp/NOTES.md",
+                "page_num": 1,
+                "section": "Related",
+                "snippet": "Related note",
+                "score": 0.5,
+            }
+        ]
+        return answer
 
     def query_stream(
         self,
@@ -51,6 +62,7 @@ class FakeQueryEngine:
         cancel_event=None,
         conversation_context=None,
         retrieval_query=None,
+        include_related=False,
     ):
         self.calls.append(
             {
@@ -70,6 +82,8 @@ class FakeQueryEngine:
                 "rerank_score": 0.9,
             }
         ]
+        if include_related:
+            return chunks, iter(["stream answer"]), [{"file_name": "related-stream.md"}]
         return chunks, iter(["stream answer"])
 
 
@@ -114,6 +128,7 @@ class SlowStreamQueryEngine(FakeQueryEngine):
         cancel_event=None,
         conversation_context=None,
         retrieval_query=None,
+        include_related=False,
     ):
         time.sleep(0.2)
         return super().query_stream(
@@ -123,6 +138,7 @@ class SlowStreamQueryEngine(FakeQueryEngine):
             cancel_event=cancel_event,
             conversation_context=conversation_context,
             retrieval_query=retrieval_query,
+            include_related=include_related,
         )
 
 
@@ -138,6 +154,7 @@ def test_query_creates_conversation_and_rewrites_followup(monkeypatch, tmp_path)
     assert first.status_code == 200
     conversation_id = first.json()["conversation_id"]
     assert conversation_id is not None
+    assert first.json()["related_notes"][0]["file_name"] == "NOTES.md"
 
     second = client.post(
         "/api/query",
@@ -245,6 +262,8 @@ def test_stream_query_emits_conversation_and_saves_messages(monkeypatch, tmp_pat
 
     assert response.status_code == 200
     assert "event: conversation" in body
+    assert "event: related_notes" in body
+    assert "related-stream.md" in body
     assert "event: token" in body
     conversation_id = active_store.list_conversations()[0]["id"]
     messages = active_store.list_messages(conversation_id)
