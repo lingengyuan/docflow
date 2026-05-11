@@ -9,6 +9,7 @@ Schema:
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -23,6 +24,12 @@ if TYPE_CHECKING:
 
 
 DEFAULT_COLLECTION = "Inbox"
+
+
+def _fts5_phrase(query: str) -> str:
+    without_quotes = str(query or "").replace('"', " ")
+    cleaned = " ".join(re.sub(r"[^\w\s\u4e00-\u9fff-]", " ", without_quotes).split())
+    return f'"{cleaned}"'
 
 
 # ---------------------------------------------------------------------------
@@ -1042,7 +1049,7 @@ class DocStore:
             JOIN chunks c ON c.id = fts.rowid
             JOIN files fi ON fi.id = c.file_id
         """
-        params: list = [query, subq_limit]
+        params: list = [_fts5_phrase(query), subq_limit]
         if file_filter:
             placeholders = ",".join("?" * len(file_filter))
             sql += f" WHERE fi.file_name IN ({placeholders})"

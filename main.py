@@ -22,8 +22,9 @@ DocFlow 入口。
   # dry-run benchmark 一个或多个文件
   python main.py benchmark /path/to/file1.md /path/to/file2.pdf
 
-  # 运行固定检索评估集（不调用回答 LLM）
-  python main.py eval
+  # 运行固定评估集（不调用回答 LLM）
+  python main.py eval retrieval
+  python main.py eval parsing
 
   # 生成 Phase 11 的 9 分成熟度评分报告
   python main.py maturity-eval
@@ -186,7 +187,14 @@ def benchmark(paths: list[str]):
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
-def eval_retrieval(args: list[str]):
+def eval_command(args: list[str]):
+    if args and args[0] == "parsing":
+        from scripts.run_parsing_eval import main as run_parsing_eval_main
+
+        sys.argv = [sys.argv[0], *args[1:]]
+        return run_parsing_eval_main()
+    if args and args[0] == "retrieval":
+        args = args[1:]
     from scripts.run_eval import main as run_eval_main
 
     sys.argv = [sys.argv[0], *args]
@@ -331,7 +339,7 @@ def cli() -> int:
         benchmark(sys.argv[2:])
         return 0
     elif cmd == "eval":
-        return eval_retrieval(sys.argv[2:])
+        return eval_command(sys.argv[2:])
     elif cmd == "maturity-eval":
         return maturity_eval(sys.argv[2:])
     elif cmd == "sample-suite":

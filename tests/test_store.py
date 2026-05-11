@@ -171,6 +171,7 @@ class TestDocStore:
         assert trigram_ids == chunk_ids
         assert db.search_fts('"alpha"', None, 10)[0]["qdrant_id"] == 101
         assert db.search_fts_trigram("beta", None, 10)[0]["qdrant_id"] == 102
+        assert db.search_fts_trigram("beta?", None, 10)[0]["qdrant_id"] == 102
 
     def test_max_qdrant_id_returns_highest_indexed_id(self, db, pdf):
         assert db.max_qdrant_id() == -1

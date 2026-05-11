@@ -4,10 +4,11 @@ DocFlow currently has several validation paths:
 
 ```bash
 .venv/bin/python -m pytest
-python main.py eval
-python main.py maturity-eval
-python main.py browser-acceptance
-python main.py restore-drill
+docflow eval retrieval --write-results
+docflow eval parsing --write-results
+docflow maturity-eval
+docflow browser-acceptance
+docflow restore-drill
 ```
 
 ## Current Limitation
@@ -22,6 +23,21 @@ The 90-point roadmap replaces subjective maturity scoring with more measurable o
 - Incremental indexing checks.
 - Reproducibility checks.
 - Offline privacy checks.
+
+## Retrieval Metrics
+
+`docflow eval retrieval --write-results` runs `eval/qa_v1.jsonl` and reports:
+
+- Recall@5
+- MRR@5
+- nDCG@5
+- pass rate
+
+Results are written under `eval/results/`, which is local runtime output and is not committed.
+
+## Parsing Regression
+
+`docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
 
 ## Reproducibility
 

@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import subprocess
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -17,7 +20,9 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.query.engine import QueryEngine
 
 
-DEFAULT_EVAL_PATH = Path("eval/phase1_questions.jsonl")
+DEFAULT_EVAL_PATH = Path("eval/qa_v1.jsonl")
+DEFAULT_RESULTS_DIR = Path("eval/results")
+METRIC_K = 5
 
 
 @dataclass
@@ -166,6 +171,8 @@ def evaluate_case(
         "id": case.id,
         "category": case.category,
         "question": case.question,
+        "expected_files": case.expected_files,
+        "expected_terms": case.expected_terms,
         "passed": passed,
         "must_find": case.must_find,
         "file_filter": file_filter or [],
@@ -180,6 +187,7 @@ def evaluate_case(
         "top_sources": [
             {
                 "file_name": item.get("file_name", ""),
+                "file_path": item.get("file_path", ""),
                 "section": item.get("section", ""),
                 "page_num": item.get("page_num"),
             }
@@ -258,6 +266,89 @@ def _combined_stage_text(final_stage: list[dict]) -> str:
     )
 
 
+def retrieval_metrics(results: list[dict], k: int = METRIC_K) -> dict:
+    eligible = [
+        result
+        for result in results
+        if result.get("must_find") and result.get("expected_files")
+    ]
+    if not eligible:
+        return {
+            "eligible_cases": 0,
+            f"recall_at_{k}": 0.0,
+            f"mrr_at_{k}": 0.0,
+            f"ndcg_at_{k}": 0.0,
+            "pass_rate": _ratio(sum(1 for r in results if r.get("passed")), len(results)),
+        }
+
+    recalls: list[float] = []
+    reciprocal_ranks: list[float] = []
+    ndcgs: list[float] = []
+    for result in eligible:
+        expected_files = list(result.get("expected_files", []))
+        seen_expected: set[str] = set()
+        first_rank = 0
+        dcg = 0.0
+        for rank, source in enumerate(result.get("top_sources", [])[:k], 1):
+            matched = _matched_expected_files(source, expected_files) - seen_expected
+            if not matched:
+                continue
+            if first_rank == 0:
+                first_rank = rank
+            seen_expected.update(matched)
+            dcg += 1 / math.log2(rank + 1)
+
+        recalls.append(_ratio(len(seen_expected), len(expected_files)))
+        reciprocal_ranks.append(0.0 if first_rank == 0 else 1 / first_rank)
+        ideal_hits = min(len(expected_files), k)
+        idcg = sum(1 / math.log2(rank + 1) for rank in range(1, ideal_hits + 1))
+        ndcgs.append(0.0 if idcg == 0 else dcg / idcg)
+
+    return {
+        "eligible_cases": len(eligible),
+        f"recall_at_{k}": round(sum(recalls) / len(recalls), 4),
+        f"mrr_at_{k}": round(sum(reciprocal_ranks) / len(reciprocal_ranks), 4),
+        f"ndcg_at_{k}": round(sum(ndcgs) / len(ndcgs), 4),
+        "pass_rate": _ratio(sum(1 for r in results if r.get("passed")), len(results)),
+    }
+
+
+def _matched_expected_files(source: dict, expected_files: list[str]) -> set[str]:
+    file_name = source.get("file_name", "")
+    file_path = source.get("file_path", "")
+    return {
+        expected
+        for expected in expected_files
+        if expected == file_name or bool(file_path and file_path.endswith(expected))
+    }
+
+
+def _ratio(numerator: int, denominator: int) -> float:
+    return 0.0 if denominator == 0 else round(numerator / denominator, 4)
+
+
+def current_git_sha() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=PROJECT_ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def write_results(summary: dict, results_dir: Path = DEFAULT_RESULTS_DIR) -> Path:
+    git_sha = summary.get("git_sha") or current_git_sha()
+    results_dir.mkdir(parents=True, exist_ok=True)
+    output_path = results_dir / f"{git_sha}.json"
+    payload = json.dumps(summary, ensure_ascii=False, indent=2)
+    output_path.write_text(payload, encoding="utf-8")
+    (results_dir / "latest.json").write_text(payload, encoding="utf-8")
+    return output_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run DocFlow retrieval eval cases.")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
@@ -273,6 +364,12 @@ def main() -> int:
         action="store_true",
         help="For must-find cases, restrict retrieval to expected source files",
     )
+    parser.add_argument(
+        "--write-results",
+        action="store_true",
+        help="Write eval output to eval/results/<git-sha>.json and eval/results/latest.json",
+    )
+    parser.add_argument("--results-dir", default=str(DEFAULT_RESULTS_DIR), help="Directory for --write-results")
     parser.add_argument("--json", action="store_true", help="Emit JSON only")
     args = parser.parse_args()
 
@@ -301,20 +398,35 @@ def main() -> int:
 
     passed = sum(1 for result in results if result["passed"])
     summary = {
+        "schema": "docflow.retrieval_eval.v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "git_sha": current_git_sha(),
         "cases": len(results),
         "passed": passed,
         "failed": len(results) - passed,
         "include_rerank": not args.no_rerank,
         "source_filter": args.source_filter,
+        "metrics": retrieval_metrics(results),
         "results": results,
     }
     if source_refresh is not None:
         summary["source_refresh"] = source_refresh
+    if args.write_results:
+        summary["results_path"] = str(write_results(summary, Path(args.results_dir)))
 
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
         print(f"DocFlow retrieval eval: {passed}/{len(results)} passed")
+        metrics = summary["metrics"]
+        print(
+            "Metrics: "
+            f"Recall@5={metrics['recall_at_5']} "
+            f"MRR@5={metrics['mrr_at_5']} "
+            f"nDCG@5={metrics['ndcg_at_5']}"
+        )
+        if summary.get("results_path"):
+            print(f"Results written: {summary['results_path']}")
         for result in results:
             mark = "PASS" if result["passed"] else "FAIL"
             print(f"[{mark}] {result['id']} :: {result['question']}")

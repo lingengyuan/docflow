@@ -1,0 +1,5 @@
+DocFlow parsing regression note.
+
+This note confirms local-first retrieval, offline privacy doctor checks, and plain text ingestion.
+
+The expected phrase is stable plain text evidence.

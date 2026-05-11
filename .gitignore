@@ -22,6 +22,7 @@ backups/
 /tmp/docflow.log
 .playwright-cli/
 output/
+eval/results/
 
 # macOS
 .DS_Store

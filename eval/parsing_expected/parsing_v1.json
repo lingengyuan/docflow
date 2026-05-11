@@ -1,0 +1,35 @@
+{
+  "schema": "docflow.parsing_expected.v1",
+  "documents": [
+    {
+      "id": "markdown_table",
+      "path": "markdown_table.md",
+      "required_phrases": [
+        "Phase47 Revenue Sample",
+        "East",
+        "7460000"
+      ],
+      "chunk_count_min": 3,
+      "chunk_count_max": 8,
+      "required_chunk_types": [
+        "table",
+        "table_summary"
+      ],
+      "table_rows_min": 5
+    },
+    {
+      "id": "plain_text",
+      "path": "plain_notes.txt",
+      "required_phrases": [
+        "local-first retrieval",
+        "offline privacy doctor",
+        "stable plain text evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 4,
+      "required_chunk_types": [
+        "text"
+      ]
+    }
+  ]
+}
