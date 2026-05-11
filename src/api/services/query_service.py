@@ -31,35 +31,52 @@ class QueryService:
         return any(re.search(rf"\b{re.escape(marker)}\b", q) for marker in english_markers)
 
     def response_citations(self, citations) -> list[dict]:
-        seen_files: dict[str, dict] = {}
+        seen_chunks: dict[str, dict] = {}
         for citation in citations:
-            key = citation.file_path or citation.file_name
-            if key not in seen_files or citation.score > seen_files[key]["score"]:
-                seen_files[key] = {
+            key = citation.chunk_id or citation.file_path or citation.file_name
+            if key not in seen_chunks or citation.score > seen_chunks[key]["score"]:
+                seen_chunks[key] = {
                     "file_name": citation.file_name,
                     "file_path": citation.file_path,
                     "page_num": citation.page_num,
                     "section": citation.section,
                     "snippet": citation.snippet,
                     "score": round(citation.score, 4),
+                    "chunk_id": citation.chunk_id,
+                    "document_id": citation.document_id,
+                    "qdrant_id": citation.qdrant_id,
+                    "char_start": citation.char_start,
+                    "char_end": citation.char_end,
                 }
-        return list(seen_files.values())
+        return list(seen_chunks.values())
 
     def stream_citations(self, chunks: list[dict]) -> list[dict]:
-        seen_files: dict[str, dict] = {}
+        seen_chunks: dict[str, dict] = {}
         for chunk in chunks:
-            key = chunk.get("file_path") or chunk["file_name"]
+            qdrant_id = chunk.get("qdrant_id")
+            chunk_id = str(chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else ""))
+            key = chunk_id or chunk.get("file_path") or chunk["file_name"]
             score = chunk.get("rerank_score", chunk.get("rrf_score", 0.0))
-            if key not in seen_files or score > seen_files[key]["score"]:
-                seen_files[key] = {
+            matched_text = chunk.get("matched_text") or chunk.get("child_text") or chunk.get("raw_text") or chunk.get("text", "")
+            parent_text = chunk.get("text") or chunk.get("parent_text") or matched_text
+            char_start = parent_text.find(matched_text) if matched_text else 0
+            if char_start < 0:
+                char_start = 0
+            if key not in seen_chunks or score > seen_chunks[key]["score"]:
+                seen_chunks[key] = {
                     "file_name": chunk["file_name"],
                     "file_path": chunk.get("file_path", ""),
                     "page_num": chunk["page_num"],
                     "section": chunk.get("section", ""),
-                    "snippet": chunk["text"][:200],
+                    "snippet": matched_text[:200],
                     "score": round(score, 4),
+                    "chunk_id": chunk_id,
+                    "document_id": str(chunk.get("document_id") or chunk.get("file_path") or chunk["file_name"]),
+                    "qdrant_id": int(qdrant_id) if qdrant_id is not None else None,
+                    "char_start": char_start,
+                    "char_end": char_start + len(matched_text),
                 }
-        return list(seen_files.values())
+        return list(seen_chunks.values())
 
     def decode_history_items(self, items: list[dict]) -> list[dict]:
         for item in items:

@@ -80,9 +80,11 @@ function citationMarkup(citations) {
   return citations.map(c => {
     const label = c.section ? escHtml(c.section) : `p.${c.page_num || '-'}`;
     const icon = (c.file_name || '').toLowerCase().endsWith('.md') ? 'article' : 'description';
+    const chunkLabel = c.chunk_id ? `片段 ${escHtml(c.chunk_id)}` : '';
     return `
     <div class="group relative flex items-center gap-2 px-3 py-2 bg-surface-container-low hover:bg-surface-container-high rounded-lg transition-all cursor-pointer"
          role="button" tabindex="0" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}"
+         data-chunk-id="${escHtml(c.chunk_id || '')}"
          onclick="openSourceByPath(decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})"
          onkeydown="handleSourceKey(event, decodeURIComponent('${encodeURIComponent(c.file_path || '')}'), ${c.page_num || 1})">
       <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
@@ -90,6 +92,7 @@ function citationMarkup(citations) {
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[150px] truncate">${label}</span>
       <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
         ${c.section ? `<p class="text-[10px] font-bold text-primary mb-1">${escHtml(c.section)}</p>` : ''}
+        ${chunkLabel ? `<p class="text-[10px] text-on-surface-variant/70 mb-1">${chunkLabel}</p>` : ''}
         <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
       </div>
     </div>`;
@@ -205,6 +208,7 @@ function renderChatContextSources(citations = lastCitations) {
         <span class="text-[11px] font-bold text-primary">${citationScoreLabel(c.score)}</span>
       </div>
       <div class="mt-1 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(c.section || c.snippet || '')}</div>
+      ${c.chunk_id ? `<div class="mt-1 text-[10px] text-on-surface-variant/50">片段 ${escHtml(c.chunk_id)}</div>` : ''}
     </button>
   `).join('');
   renderChatSourcePreview(citations[0]);
@@ -228,6 +232,7 @@ function renderChatSourcePreview(citation) {
       <div class="min-w-0">
         <div class="font-semibold text-on-surface line-clamp-1">${escHtml(citation.file_name || '未知文件')}</div>
         <div class="mt-0.5 text-[11px] text-on-surface-variant/60">${citation.page_num ? `第 ${citation.page_num} 页` : escHtml(citation.section || '来源片段')}</div>
+        ${citation.chunk_id ? `<div class="mt-0.5 text-[10px] text-on-surface-variant/50">片段 ${escHtml(citation.chunk_id)} · ${citation.char_start || 0}-${citation.char_end || 0}</div>` : ''}
       </div>
     </div>
     <p class="mt-3 line-clamp-5">${escHtml(citation.snippet || citation.section || '暂无片段预览')}</p>

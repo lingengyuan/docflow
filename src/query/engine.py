@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from src.embedding_backend import embedding_backend_config_from_dict
-from src.query.generator import Answer, AnswerGenerator, Citation
+from src.query.generator import Answer, AnswerGenerator, citation_from_chunk
 from src.query.retriever import HybridRetriever
 from src.ingest.store import DocStore
 
@@ -324,17 +324,7 @@ class QueryEngine:
             "请先查看下方引用片段；稍后可重试完整回答。"
             f"\n\n错误类型：{exc.__class__.__name__}"
         )
-        citations = [
-            Citation(
-                file_name=c["file_name"],
-                file_path=c.get("file_path", ""),
-                page_num=c["page_num"],
-                snippet=c["text"][:200],
-                score=c.get("rerank_score", c.get("rrf_score", 0.0)),
-                section=c.get("section", ""),
-            )
-            for c in chunks
-        ]
+        citations = [citation_from_chunk(chunk) for chunk in chunks]
         return Answer(text=text, citations=citations)
 
     def _safe_generate_stream(

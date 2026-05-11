@@ -19,6 +19,7 @@ CHUNKS = [
         "chunk_type": "text",
         "rerank_score": 0.95,
         "rrf_score": 0.03,
+        "qdrant_id": 101,
     },
     {
         "text": "East China: 2,450,000 RMB",
@@ -29,6 +30,7 @@ CHUNKS = [
         "chunk_type": "text",
         "rerank_score": 0.80,
         "rrf_score": 0.02,
+        "qdrant_id": 102,
     },
 ]
 
@@ -79,7 +81,7 @@ class TestOllamaGenerate:
         gen = AnswerGenerator(backend="local")
         mock_resp = self._mock_ollama_response("Q3总销售额为7,460,000元 [来源: Q3报告.pdf, 第12页]")
 
-        with patch("httpx.post", return_value=mock_resp):
+        with patch("src.net.post", return_value=mock_resp):
             answer = gen.generate("Q3销售额是多少", CHUNKS)
 
         assert isinstance(answer, Answer)
@@ -89,6 +91,9 @@ class TestOllamaGenerate:
         assert answer.citations[0].file_path == "/docs/Q3报告.pdf"
         assert answer.citations[0].page_num == 12
         assert answer.citations[0].section == "第三章 > 销售数据"
+        assert answer.citations[0].chunk_id == "q:101"
+        assert answer.citations[0].qdrant_id == 101
+        assert answer.citations[0].char_end > answer.citations[0].char_start
 
     def test_empty_chunks_returns_no_info(self):
         gen = AnswerGenerator(backend="local")
@@ -102,7 +107,7 @@ class TestOllamaGenerate:
         mock_resp.json.return_value = {"message": {"content": "answer"}}
         mock_resp.raise_for_status.return_value = None
 
-        with patch("httpx.post", return_value=mock_resp) as mock_post:
+        with patch("src.net.post", return_value=mock_resp) as mock_post:
             gen.generate(
                 "test question",
                 CHUNKS,
@@ -123,7 +128,7 @@ class TestOllamaGenerate:
         mock_resp.json.return_value = {"message": {"content": "## 当前状态\n\n完成"}}
         mock_resp.raise_for_status.return_value = None
 
-        with patch("httpx.post", return_value=mock_resp) as mock_post:
+        with patch("src.net.post", return_value=mock_resp) as mock_post:
             output = gen.generate_knowledge_output(
                 "project_brief",
                 "Phase Brief",

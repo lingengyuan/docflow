@@ -49,6 +49,11 @@ class Citation:
     score: float
     file_path: str = ""
     section: str = ""
+    chunk_id: str = ""
+    document_id: str = ""
+    qdrant_id: int | None = None
+    char_start: int = 0
+    char_end: int = 0
 
 
 @dataclass
@@ -142,17 +147,10 @@ class AnswerGenerator:
         else:
             answer_text = self._call_ollama_with_system(SYSTEM_PROMPT, user_msg)
 
-        citations = [
-            Citation(
-                file_name=c["file_name"],
-                file_path=c.get("file_path", ""),
-                page_num=c["page_num"],
-                snippet=c["text"][:200],
-                score=c.get("rerank_score", c.get("rrf_score", 0.0)),
-                section=c.get("section", ""),
-            )
-            for c in chunks
-        ]
+        citations = validate_citations(
+            [citation_from_chunk(chunk) for chunk in chunks],
+            chunks,
+        )
         return Answer(text=answer_text, citations=citations)
 
     # ------------------------------------------------------------------
@@ -339,3 +337,41 @@ class AnswerGenerator:
             messages=[{"role": "user", "content": user_msg}],
         )
         return message.content[0].text.strip()
+
+
+def citation_from_chunk(chunk: dict) -> Citation:
+    qdrant_id = chunk.get("qdrant_id")
+    chunk_id = str(chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else ""))
+    document_id = str(chunk.get("document_id") or chunk.get("file_path") or chunk.get("file_name") or "")
+    matched_text = chunk.get("matched_text") or chunk.get("child_text") or chunk.get("raw_text") or chunk.get("text") or ""
+    parent_text = chunk.get("text") or chunk.get("parent_text") or matched_text
+    char_start = parent_text.find(matched_text) if matched_text else 0
+    if char_start < 0:
+        char_start = 0
+    char_end = char_start + len(matched_text)
+    return Citation(
+        file_name=chunk["file_name"],
+        file_path=chunk.get("file_path", ""),
+        page_num=chunk["page_num"],
+        snippet=matched_text[:200],
+        score=chunk.get("rerank_score", chunk.get("rrf_score", chunk.get("score", 0.0))),
+        section=chunk.get("section", ""),
+        chunk_id=chunk_id,
+        document_id=document_id,
+        qdrant_id=int(qdrant_id) if qdrant_id is not None else None,
+        char_start=char_start,
+        char_end=char_end,
+    )
+
+
+def validate_citations(citations: list[Citation], chunks: list[dict]) -> list[Citation]:
+    valid_chunk_ids = {
+        str(chunk.get("chunk_id") or (f"q:{chunk.get('qdrant_id')}" if chunk.get("qdrant_id") is not None else ""))
+        for chunk in chunks
+    }
+    valid_chunk_ids.discard("")
+    return [
+        citation
+        for citation in citations
+        if not citation.chunk_id or citation.chunk_id in valid_chunk_ids
+    ]

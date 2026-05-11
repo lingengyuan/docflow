@@ -139,7 +139,7 @@ class TestOCRParsing:
         mock_resp.json.return_value = {"response": "# Test OCR"}
         mock_resp.raise_for_status.return_value = None
 
-        with patch("httpx.post", return_value=mock_resp) as mock_post:
+        with patch("src.net.post", return_value=mock_resp) as mock_post:
             result = analyzer._call_glm_ocr("base64imagedata")
 
         assert result == "# Test OCR"

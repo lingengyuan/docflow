@@ -297,6 +297,15 @@ def test_runtime_http_calls_use_central_network_module():
     assert offenders == []
 
 
+def test_chat_citations_render_chunk_identity():
+    text = Path("frontend/js/chat-stream.js").read_text(encoding="utf-8")
+
+    assert "data-chunk-id" in text
+    assert "citation.chunk_id" in text
+    assert "char_start" in text
+    assert "char_end" in text
+
+
 def test_phase28_settings_hides_local_install_and_recovery_commands():
     html = frontend_source_text()
 
