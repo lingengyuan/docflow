@@ -58,6 +58,8 @@ from src.api.schemas import (
     QueryOptions,
     QueryRequest,
     QueryResponse,
+    ResearchRequest,
+    ResearchResponse,
     SummarizeRequest,
     WebImportRequest,
 )
@@ -584,6 +586,62 @@ async def query(req: QueryRequest):
         answer=result.text,
         citations=citations_data,
         related_notes=getattr(result, "related_notes", []),
+        conversation_id=conversation_id,
+        scope=options.scope,
+    )
+
+
+async def research(req: ResearchRequest):
+    if query_engine is None:
+        raise HTTPException(503, "Query engine not ready")
+    options = _resolve_query_options(req)
+    conversation_id = _resolve_conversation_id(req.conversation_id)
+    conversation_context = _conversation_context(conversation_id)
+    file_filter_json = json.dumps(options.file_filter, ensure_ascii=False)
+    if store is not None and conversation_id is not None:
+        store.add_message(
+            conversation_id=conversation_id,
+            role="user",
+            content=req.question,
+            file_filter_json=file_filter_json,
+        )
+    try:
+        result = await model_tasks.run(
+            "research",
+            lambda: query_engine.deep_research(
+                req.question,
+                file_filter=options.file_filter or None,
+                retrieval_mode=options.retrieval_mode,
+                max_steps=req.max_steps,
+                conversation_context=conversation_context,
+            ),
+            timeout_s=max(MODEL_TASK_TIMEOUT_S, 180),
+        )
+    except ModelTaskTimeout as exc:
+        logger.warning("[api/research] timeout id=%s question=%r", exc.task_id, req.question[:80])
+        raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
+    citations_data = query_service.response_citations(result.citations)
+    if store is not None:
+        store.add_history(
+            question=req.question,
+            answer=result.text,
+            citations_json=json.dumps(citations_data, ensure_ascii=False),
+            file_filter_json=file_filter_json,
+            conversation_id=conversation_id or 0,
+        )
+        if conversation_id is not None:
+            store.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=result.text,
+                citations_json=json.dumps(citations_data, ensure_ascii=False),
+                file_filter_json=file_filter_json,
+            )
+    return ResearchResponse(
+        answer=result.text,
+        citations=citations_data,
+        related_notes=getattr(result, "related_notes", []),
+        research_steps=getattr(result, "research_steps", []),
         conversation_id=conversation_id,
         scope=options.scope,
     )
@@ -1790,6 +1848,7 @@ def _aggregate_health_status(checks: dict) -> str:
 def _register_api_routes() -> None:
     app.include_router(query_routes.create_router({
         "query": query,
+        "research": research,
         "query_stream": query_stream,
         "list_conversations": list_conversations,
         "create_conversation": create_conversation,

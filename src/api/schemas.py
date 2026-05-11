@@ -38,6 +38,14 @@ class QueryResponse(BaseModel):
     scope: dict | None = None
 
 
+class ResearchRequest(QueryRequest):
+    max_steps: int = 3
+
+
+class ResearchResponse(QueryResponse):
+    research_steps: list[dict] = Field(default_factory=list)
+
+
 class ConversationCreateRequest(BaseModel):
     title: str = ""
 

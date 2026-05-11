@@ -57,6 +57,7 @@ class Answer:
     text: str
     citations: list[Citation] = field(default_factory=list)
     related_notes: list[dict] = field(default_factory=list)
+    research_steps: list[dict] = field(default_factory=list)
 
 
 class AnswerGenerator:

@@ -30,6 +30,7 @@ MIN_VECTOR_SCORE = 0.40
 RELATED_NOTES_LIMIT = 4
 DEFAULT_ANSWER_CHUNKS = 5
 MIN_ANSWER_CHUNKS = 3
+MAX_RESEARCH_STEPS = 4
 
 
 class QueryEngine:
@@ -150,6 +151,71 @@ class QueryEngine:
     def close(self) -> None:
         self.retriever.close()
 
+    def deep_research(
+        self,
+        question: str,
+        file_filter: list[str] | None = None,
+        retrieval_mode: str = "hybrid",
+        max_steps: int = 3,
+        conversation_context: list[dict] | None = None,
+    ) -> Answer:
+        step_queries = self._research_queries(question, max_steps=max_steps)
+        all_chunks: list[dict] = []
+        steps: list[dict] = []
+        seen_keys: set[str] = set()
+
+        for index, step_query in enumerate(step_queries, 1):
+            prefer_tables = self._is_table_query(step_query)
+            chunks = self.retriever.retrieve(
+                query=step_query,
+                file_filter=file_filter,
+                retrieval_mode=retrieval_mode,
+                prefer_tables=prefer_tables,
+                related_k=0,
+            )
+            added = 0
+            top_files: list[str] = []
+            for chunk in chunks:
+                key = self._chunk_key(chunk)
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                all_chunks.append(chunk)
+                added += 1
+                file_name = chunk.get("file_name", "")
+                if file_name and file_name not in top_files:
+                    top_files.append(file_name)
+            steps.append(
+                {
+                    "step": index,
+                    "query": step_query,
+                    "result_count": len(chunks),
+                    "new_results": added,
+                    "top_files": top_files[:5],
+                }
+            )
+
+        answer_chunks, related_notes = self._split_answer_and_related(all_chunks)
+        if not self._has_sufficient_evidence(answer_chunks):
+            return Answer(
+                text=INSUFFICIENT_EVIDENCE_MESSAGE,
+                citations=[],
+                related_notes=related_notes,
+                research_steps=steps,
+            )
+        try:
+            answer = self.generator.generate(
+                question,
+                answer_chunks,
+                conversation_context=conversation_context,
+            )
+        except Exception as exc:
+            logger.warning("[query] deep research generation failed; returning retrieved snippets", exc_info=True)
+            answer = self._fallback_answer(answer_chunks, exc)
+        answer.related_notes = related_notes
+        answer.research_steps = steps
+        return answer
+
     @classmethod
     def _split_answer_and_related(cls, chunks: list[dict]) -> tuple[list[dict], list[dict]]:
         if not chunks:
@@ -161,6 +227,38 @@ class QueryEngine:
         answer_chunks = chunks[:answer_limit]
         related_chunks = chunks[answer_limit:]
         return answer_chunks, cls._related_notes(answer_chunks, related_chunks)
+
+    @classmethod
+    def _research_queries(cls, question: str, max_steps: int = 3) -> list[str]:
+        clean = " ".join(str(question or "").split())
+        if not clean:
+            return []
+        limit = max(1, min(int(max_steps or 3), MAX_RESEARCH_STEPS))
+        candidates = [
+            clean,
+            f"{clean}\n关键事实 证据 背景",
+            f"{clean}\n对比 差异 风险 结论",
+            f"{clean}\n时间线 原因 影响",
+        ]
+        result: list[str] = []
+        seen: set[str] = set()
+        for item in candidates:
+            if item in seen:
+                continue
+            seen.add(item)
+            result.append(item)
+            if len(result) >= limit:
+                break
+        return result
+
+    @staticmethod
+    def _chunk_key(chunk: dict) -> str:
+        if chunk.get("qdrant_id") is not None:
+            return f"q:{chunk.get('qdrant_id')}"
+        return "|".join(
+            str(chunk.get(key, ""))
+            for key in ("file_path", "file_name", "page_num", "section", "text", "raw_text")
+        )
 
     @staticmethod
     def _related_notes(

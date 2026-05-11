@@ -175,6 +175,36 @@ def test_query_returns_related_notes_from_unused_candidates():
     assert answer.related_notes[0]["section"] == "Alpha"
 
 
+def test_deep_research_runs_multiple_retrieval_steps():
+    class ResearchRetriever(FakeRetriever):
+        def retrieve(self, query, **kwargs):
+            self.queries.append(query)
+            idx = len(self.queries)
+            return [
+                {
+                    "qdrant_id": idx,
+                    "text": f"research chunk {idx}",
+                    "file_name": f"research-{idx}.md",
+                    "file_path": f"/tmp/research-{idx}.md",
+                    "page_num": idx,
+                    "section": "",
+                    "rrf_score": 0.8,
+                }
+            ]
+
+    retriever = ResearchRetriever()
+    generator = WorkingGenerator()
+    engine = QueryEngine(retriever, generator)
+
+    answer = engine.deep_research("compare plans", max_steps=3)
+
+    assert answer.text == "answer"
+    assert len(retriever.queries) == 3
+    assert answer.research_steps[0]["query"] == "compare plans"
+    assert answer.research_steps[1]["new_results"] == 1
+    assert generator.calls[0][0] == "compare plans"
+
+
 def test_full_text_results_with_zero_vector_score_are_allowed():
     class FullTextRetriever(FakeRetriever):
         def retrieve(self, *args, **kwargs):
