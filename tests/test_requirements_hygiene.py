@@ -26,6 +26,22 @@ def test_runtime_requirements_exclude_experiment_only_packages():
         assert package not in runtime
 
 
+def test_runtime_requirements_include_critical_packages():
+    """Guard against regressions where runtime imports in ``src/`` rely on
+    packages that were never declared in ``requirements.txt``.
+
+    The list below is intentionally narrow: it tracks dependencies that have
+    historically been forgotten (e.g. ``jieba`` for the retrieval tokenizer and
+    ``python-multipart`` for FastAPI upload handling) and that the runtime cannot
+    function without on a clean install.
+    """
+
+    runtime = Path("requirements.txt").read_text(encoding="utf-8")
+
+    for package in ("jieba", "python-multipart"):
+        assert package in runtime, f"{package} must be declared in requirements.txt"
+
+
 def test_dev_requirements_include_test_and_browser_tools():
     dev = Path("requirements-dev.txt").read_text(encoding="utf-8")
 

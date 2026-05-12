@@ -423,11 +423,11 @@ def test_phase26_ui_redesign_shell_has_real_context_panels():
 
 
 def test_phase18_release_docs_are_linked_from_readme():
-    readme = Path("README.md").read_text(encoding="utf-8")
-
     for path in [
         "LICENSE",
         "CHANGELOG.md",
+        "README.md",
+        "README.zh-CN.md",
         "docs/features.md",
         "docs/architecture.md",
         "docs/privacy.md",
@@ -442,16 +442,31 @@ def test_phase18_release_docs_are_linked_from_readme():
     ]:
         assert Path(path).exists()
 
-    assert "docs/features.md" in readme
-    assert "docs/architecture.md" in readme
-    assert "docs/privacy.md" in readme
-    assert "docs/cli.md" in readme
-    assert "docs/development.md" in readme
-    assert "docs/evaluation.md" in readme
-    assert "docs/release.md" in readme
-    assert "docs/assets/chat.png" in readme
-    assert "MIT." in readme
-    assert "MIT。" in readme
+    readme_en = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    readme = readme_en + "\n" + readme_zh
+
+    # Both READMEs should cross-link to each other so users can switch languages.
+    assert "README.zh-CN.md" in readme_en
+    assert "README.md" in readme_zh
+
+    # Release documentation links should be reachable from at least one README.
+    for link in [
+        "docs/features.md",
+        "docs/architecture.md",
+        "docs/privacy.md",
+        "docs/cli.md",
+        "docs/development.md",
+        "docs/evaluation.md",
+        "docs/release.md",
+        "docs/assets/chat.png",
+    ]:
+        assert link in readme
+
+    # License wording lives in the English README; the Chinese README keeps the
+    # localized variant so neither language version regresses after the split.
+    assert "MIT." in readme_en
+    assert "MIT。" in readme_zh
 
 
 def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
