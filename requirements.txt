@@ -6,7 +6,7 @@ mlx-lm==0.31.1; sys_platform == "darwin" and platform_machine == "arm64"
 numpy==2.4.3
 onnx==1.20.1
 onnxruntime==1.24.4
-pydantic==2.12.5
+pydantic==2.13.4
 PyMuPDF==1.27.2
 python-docx==1.2.0
 python-multipart==0.0.22
@@ -17,5 +17,5 @@ sentence-transformers==5.3.0
 sentencepiece==0.2.1
 torch==2.10.0
 typer==0.24.1
-uvicorn==0.42.0
+uvicorn==0.46.0
 watchdog==6.0.0
