@@ -44,6 +44,27 @@ def test_phase52_public_entrypoints_are_small_facades():
         assert line_count < limit
 
 
+def test_phase60_god_modules_are_split_into_focused_files():
+    limits = {
+        "src/api/app_impl.py": 1700,
+        "src/api/health_checks.py": 550,
+        "src/ingest/store_impl.py": 80,
+        "src/ingest/store_db.py": 260,
+        "src/ingest/store_files.py": 450,
+        "src/ingest/store_vectors.py": 350,
+        "src/ingest/store_history.py": 220,
+        "src/ingest/store_library.py": 180,
+        "src/query/retriever_impl.py": 750,
+        "src/query/router.py": 140,
+        "src/query/reranker.py": 140,
+    }
+
+    for path, limit in limits.items():
+        assert Path(path).exists()
+        line_count = len(Path(path).read_text(encoding="utf-8").splitlines())
+        assert line_count < limit, f"{path} has {line_count} lines"
+
+
 def test_phase34_app_state_holds_runtime_dependencies():
     assert isinstance(api_app.app_state, AppState)
     assert api_app.app_state.model_tasks is api_app.model_tasks

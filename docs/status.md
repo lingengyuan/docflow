@@ -22,10 +22,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
+- Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 304 passed.
+- Unit/integration tests: 307 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.
@@ -39,7 +40,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
-- Public API, storage, and retrieval entry points are now small facades, but their implementation modules still need deeper internal splitting before the codebase feels fully mature to outside contributors.
+- API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 
 ## Status Update Rule
 
