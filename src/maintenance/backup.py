@@ -335,8 +335,13 @@ def _manifest(
 
 def _sqlite_backup(source: Path, target: Path) -> None:
     source.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(source) as src, sqlite3.connect(target) as dst:
+    src = sqlite3.connect(source)
+    dst = sqlite3.connect(target)
+    try:
         src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
 
 
 def _write_chunks_jsonl(rows: list[dict[str, Any]], target: Path) -> None:
@@ -401,8 +406,11 @@ def _count_jsonl_rows(path: Path) -> int:
 
 
 def _sqlite_quick_check(db_path: Path) -> str:
-    with sqlite3.connect(db_path) as conn:
+    conn = sqlite3.connect(db_path)
+    try:
         row = conn.execute("PRAGMA quick_check").fetchone()
+    finally:
+        conn.close()
     return str(row[0]) if row else "missing result"
 
 

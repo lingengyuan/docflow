@@ -229,7 +229,7 @@ def _source_filter_values(expected_files: list[str]) -> list[str]:
             continue
         direct_path = PROJECT_ROOT / expected
         if direct_path.exists():
-            candidates = [str(direct_path.resolve())]
+            candidates = [direct_path.resolve().as_posix()]
         else:
             candidates = [expected, Path(expected).name]
         for candidate in candidates:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 
+import yaml
 from fastapi.testclient import TestClient
 
 from src.api import app as api_app
@@ -19,17 +20,17 @@ def test_storage_usage_endpoint_reports_real_local_usage(monkeypatch, tmp_path):
     counter_path.write_text("7", encoding="utf-8")
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        f"""
-paths:
-  db_path: "{db_path}"
-  id_counter: "{counter_path}"
-embedding: {{}}
-reranker: {{}}
-llm: {{}}
-ollama: {{}}
-vlm: {{}}
-ingest: {{}}
-""",
+        yaml.safe_dump(
+            {
+                "paths": {"db_path": str(db_path), "id_counter": str(counter_path)},
+                "embedding": {},
+                "reranker": {},
+                "llm": {},
+                "ollama": {},
+                "vlm": {},
+                "ingest": {},
+            }
+        ),
         encoding="utf-8",
     )
     usage = namedtuple("usage", "total used free")

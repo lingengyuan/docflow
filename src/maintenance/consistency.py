@@ -43,7 +43,7 @@ def collect_watch_files(config_path: str | Path = "config.yaml") -> list[Path]:
     from src.api.app import _parse_watch_dirs
     from src.ingest.watcher import _is_excluded
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     pipeline = IngestPipeline.from_config(config_path)
     paths: list[Path] = []
@@ -103,7 +103,7 @@ def check_consistency(
     store: DocStore | None = None,
     qdrant_client: QdrantClient | None = None,
 ) -> ConsistencyReport:
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     active_store = store or DocStore(Path(cfg["paths"]["db_path"]).expanduser())
@@ -211,7 +211,7 @@ def find_duplicate_qdrant_ids(chunk_rows: list[dict]) -> list[dict]:
 
 def repair_index_ids(config_path: str | Path = "config.yaml", dry_run: bool = True) -> dict:
     """Repair stale ID counters and duplicate Qdrant IDs by reingesting affected files."""
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     store = DocStore(Path(cfg["paths"]["db_path"]).expanduser())
     qdrant = QdrantClient(
@@ -287,7 +287,7 @@ def rebuild_index(config_path: str | Path = "config.yaml", dry_run: bool = False
             "paths": [str(path) for path in files],
         }
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     store = DocStore(Path(cfg["paths"]["db_path"]).expanduser())
     pipeline = IngestPipeline.from_config(config_path, store=store)
@@ -308,7 +308,7 @@ def rebuild_index(config_path: str | Path = "config.yaml", dry_run: bool = False
 
 
 def rebuild_qdrant_only(config_path: str | Path = "config.yaml", dry_run: bool = False) -> dict:
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     store = DocStore(Path(cfg["paths"]["db_path"]).expanduser())
     rows = store.list_chunk_index()

@@ -285,7 +285,7 @@ def _set_llm_switch_state(state: str, *, model: str | None = None, message: str 
 def _load_mlx_model_candidate(model_name: str):
     from mlx_lm import load
 
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     allow_model_download = bool(cfg.get("privacy", {}).get("allow_model_download", False))
     assert_model_download_allowed(
@@ -299,7 +299,7 @@ def _load_mlx_model_candidate(model_name: str):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global pipeline, ingest_queue, query_engine, store, watcher, watch_dirs, llm_options
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
     llm_cfg = cfg.get("llm", {})
@@ -966,7 +966,7 @@ async def library_meta():
 async def storage_usage():
     if store is None:
         raise HTTPException(503, "Store not ready")
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return _collect_storage_usage(cfg, store)
 
@@ -1495,7 +1495,7 @@ async def list_sources():
 
 
 async def health():
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return health_service.build_health(
         cfg,

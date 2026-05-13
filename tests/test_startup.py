@@ -3,6 +3,8 @@ from __future__ import annotations
 import socket
 import subprocess
 
+import yaml
+
 from src.maintenance import startup
 
 
@@ -69,16 +71,13 @@ def test_app_port_reports_in_use():
 def test_build_startup_report_marks_qdrant_as_blocker(monkeypatch, tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
-        """
-paths:
-  db_path: "{db_path}"
-qdrant:
-  host: "localhost"
-  port: 6333
-  collection: "docflow"
-ollama:
-  base_url: "http://localhost:11434"
-""".format(db_path=tmp_path / "docflow.db"),
+        yaml.safe_dump(
+            {
+                "paths": {"db_path": str(tmp_path / "docflow.db")},
+                "qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"},
+                "ollama": {"base_url": "http://localhost:11434"},
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setattr(

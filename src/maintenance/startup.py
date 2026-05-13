@@ -54,7 +54,7 @@ def ensure_config_file(config_path: str | Path, example_path: str | Path | None 
 
 def load_config(config_path: str | Path) -> tuple[dict, Path]:
     path = ensure_config_file(config_path)
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     return cfg, path
 

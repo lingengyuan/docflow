@@ -11,7 +11,13 @@ def _render_markdown(sample: str) -> str:
         + "\n"
         + f"process.stdout.write(renderMarkdown({json.dumps(sample, ensure_ascii=False)}));"
     )
-    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    result = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
     return result.stdout
 
 
