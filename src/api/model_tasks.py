@@ -82,7 +82,7 @@ class ModelTaskController:
             executor = self._executor
         try:
             future = executor.submit(_wrapped)
-        except Exception:
+        except RuntimeError:
             self._mark_finished()
             raise
         future.add_done_callback(self._mark_cancelled)

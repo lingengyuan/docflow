@@ -31,6 +31,6 @@ DocFlow is designed as a local personal knowledge workspace.
 
 ## Local Model Options
 
-DocFlow currently supports local embedding, reranking, MLX-backed local LLMs, Ollama-based OCR, and optional image understanding.
+DocFlow currently supports local embedding, reranking, Ollama-compatible local LLMs, optional Apple Silicon MLX-backed local LLMs, Ollama-based OCR, and optional image understanding.
 
 The default product direction is local-first. Cloud model paths, when configured by the user, must remain explicit and visible.

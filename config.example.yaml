@@ -60,7 +60,7 @@ vlm:
   max_tokens: 512
 
 llm:
-  backend: "mlx"
+  backend: "local"
   mlx_model: "mlx-community/Qwen3-4B-4bit"
   mlx_model_enhanced: "mlx-community/Qwen3-8B-4bit"
   ollama_model: "qwen2.5:7b"

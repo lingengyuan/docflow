@@ -360,16 +360,16 @@ class HybridRetriever:
             if fts_query:
                 try:
                     rows = self._store.search_fts(fts_query, file_filter, limit=limit)
-                except Exception:
-                    logger.warning("[retriever] FTS5 exact search failed", exc_info=True)
+                except Exception as exc:
+                    logger.warning("[retriever] FTS5 exact search failed: %s", exc, exc_info=True)
 
         if not rows:
             # Layer 2: trigram 子串匹配（OCR 错字、简繁混用容错）
             logger.debug("[retriever] FTS5 exact empty → trigram fallback")
             try:
                 rows = self._store.search_fts_trigram(query, file_filter, limit=limit)
-            except Exception:
-                logger.warning("[retriever] FTS5 trigram search failed", exc_info=True)
+            except Exception as exc:
+                logger.warning("[retriever] FTS5 trigram search failed: %s", exc, exc_info=True)
 
         if not rows:
             return []
@@ -534,8 +534,8 @@ class HybridRetriever:
         ]
         try:
             stored_contexts = self._store.get_chunk_context_by_qdrant_ids(qdrant_ids)
-        except Exception:
-            logger.debug("[retriever] parent context lookup failed", exc_info=True)
+        except Exception as exc:
+            logger.debug("[retriever] parent context lookup failed: %s", exc, exc_info=True)
             stored_contexts = {}
 
         expanded: list[dict] = []

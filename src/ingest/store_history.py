@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+
 
 class StoreHistoryMixin:
     def add_history(
@@ -47,7 +49,7 @@ class StoreHistoryMixin:
             with self._conn() as conn:
                 rows = conn.execute(sql, [query, limit]).fetchall()
             return [dict(r) for r in rows]
-        except Exception:
+        except sqlite3.DatabaseError:
             return []
     def list_history(self, limit: int = 50) -> list[dict]:
         with self._conn() as conn:

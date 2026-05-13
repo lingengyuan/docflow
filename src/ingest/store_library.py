@@ -70,7 +70,7 @@ class StoreLibraryMixin:
         else:
             try:
                 raw = json.loads(value or "[]")
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 raw = []
         if not isinstance(raw, list):
             return []

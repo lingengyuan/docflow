@@ -51,6 +51,12 @@ def test_dev_requirements_include_test_and_browser_tools():
 
 def test_optional_vision_requirements_are_separate():
     vision = Path("requirements-vision.txt").read_text(encoding="utf-8")
+    mac_mlx = Path("requirements-mac-mlx.txt").read_text(encoding="utf-8")
 
+    assert "mlx==" not in Path("requirements.txt").read_text(encoding="utf-8")
+    assert "mlx-lm" not in Path("requirements.txt").read_text(encoding="utf-8")
+    assert "mlx==" in mac_mlx
+    assert "mlx-lm" in mac_mlx
+    assert "requirements-mac-mlx.txt" in vision
     assert "mlx-vlm" in vision
     assert "pillow-heif" in vision

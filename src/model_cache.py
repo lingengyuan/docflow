@@ -63,14 +63,22 @@ def configured_model_names(cfg: dict[str, Any]) -> dict[str, str]:
     reranker_cfg = cfg.get("reranker", {})
     vlm_cfg = cfg.get("vlm", {})
     ingest_cfg = cfg.get("ingest", {})
+    backend = str(llm_cfg.get("backend", "local")).strip().lower()
+    llm_model = (
+        llm_cfg.get("mlx_model", "")
+        if backend == "mlx"
+        else llm_cfg.get("ollama_model") or ollama_cfg.get("llm_model", "")
+    )
+    llm_enhanced = (
+        llm_cfg.get("mlx_model_enhanced", "")
+        if backend == "mlx"
+        else llm_cfg.get("ollama_model_enhanced") or ollama_cfg.get("llm_model_enhanced", "")
+    )
     return {
         "embedding": embedding_cfg.get("model", ""),
         "reranker": reranker_cfg.get("model", ""),
-        "llm": llm_cfg.get("mlx_model")
-        or llm_cfg.get("ollama_model")
-        or ollama_cfg.get("llm_model", ""),
-        "llm_enhanced": llm_cfg.get("mlx_model_enhanced")
-        or ollama_cfg.get("llm_model_enhanced", ""),
+        "llm": llm_model,
+        "llm_enhanced": llm_enhanced,
         "ocr": ollama_cfg.get("ocr_model", ""),
         "contextual_prefix": ingest_cfg.get("contextual_prefix_model", ""),
         "vlm": vlm_cfg.get("model", "") if vlm_cfg.get("enabled", True) else "",

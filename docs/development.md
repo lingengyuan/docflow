@@ -15,6 +15,12 @@ Install optional image understanding support only when needed:
 pip install -r requirements-vision.txt
 ```
 
+Install optional Apple Silicon MLX support only when you want MLX-backed local answers or reranking:
+
+```bash
+pip install -r requirements-mac-mlx.txt
+```
+
 ## Run Tests
 
 ```bash

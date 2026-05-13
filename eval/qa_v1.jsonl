@@ -4,7 +4,7 @@
 {"id": "readme_demo_entry", "category": "readme", "question": "Where does README mention 导入示例资料 for the first-run demo?", "expected_files": ["README.md"], "expected_terms": ["导入示例资料"], "must_find": true}
 {"id": "readme_sqlite_storage", "category": "readme", "question": "Where does DocFlow keep metadata?", "expected_files": ["README.md"], "expected_terms": ["SQLite"], "must_find": true}
 {"id": "readme_qdrant_vectors", "category": "readme", "question": "Where does DocFlow keep vectors?", "expected_files": ["README.md"], "expected_terms": ["Qdrant"], "must_find": true}
-{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["307"], "must_find": true}
+{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["309"], "must_find": true}
 {"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["73"], "must_find": true}
 {"id": "readme_offline_check", "category": "readme", "question": "What offline check is mentioned in README?", "expected_files": ["README.md"], "expected_terms": ["offline network check"], "must_find": true}
 {"id": "readme_license", "category": "readme", "question": "What license does README list?", "expected_files": ["README.md"], "expected_terms": ["MIT"], "must_find": true}

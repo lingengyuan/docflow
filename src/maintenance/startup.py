@@ -466,7 +466,7 @@ def doctor_command(
 def _load_config_for_offline_guard(config_path: str | Path) -> dict:
     try:
         cfg, _ = load_config(config_path)
-    except Exception:
+    except (OSError, ValueError, yaml.YAMLError):
         return {}
     return cfg
 

@@ -271,8 +271,8 @@ class IngestPipeline:
             response.raise_for_status()
             prefix = response.json().get("response", "").strip()
             return " ".join(prefix.split())[:300]
-        except Exception:
-            logger.warning("[ingest] contextual prefix generation failed", exc_info=True)
+        except (net.HTTPError, ValueError) as exc:
+            logger.warning("[ingest] contextual prefix generation failed: %s", exc, exc_info=True)
             return ""
 
     def close(self) -> None:

@@ -270,7 +270,7 @@ def _onnx_input_names(model) -> set[str]:
             return set(input_names.keys())
         if isinstance(input_names, (list, tuple, set)):
             return set(input_names)
-    except Exception:
+    except (AttributeError, IndexError, TypeError):
         return set()
     return set()
 

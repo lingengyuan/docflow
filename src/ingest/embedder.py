@@ -215,7 +215,8 @@ class Embedder:
                 pass
         try:
             return self.max_point_id() + 1
-        except Exception:
+        except Exception as exc:
+            logger.warning("[embedder] failed to read Qdrant max point ID: %s", exc, exc_info=True)
             return 0
 
     def _next_id(self) -> int:
@@ -267,8 +268,8 @@ class Embedder:
         """Return the highest point ID in Qdrant, or -1 when the collection is empty."""
         try:
             return self._vector_store.max_point_id(COLLECTION_NAME)
-        except Exception:
-            logger.warning("[embedder] failed to inspect Qdrant point IDs", exc_info=True)
+        except Exception as exc:
+            logger.warning("[embedder] failed to inspect Qdrant point IDs: %s", exc, exc_info=True)
             raise
 
     def _write_counter_locked(self, value: int) -> None:

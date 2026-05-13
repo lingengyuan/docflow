@@ -1,8 +1,6 @@
 fastapi==0.135.1
 httpx==0.28.1
 jieba==0.42.1
-mlx==0.31.1; sys_platform == "darwin" and platform_machine == "arm64"
-mlx-lm==0.31.1; sys_platform == "darwin" and platform_machine == "arm64"
 numpy==2.4.3
 onnx==1.20.1
 onnxruntime==1.24.4

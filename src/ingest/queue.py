@@ -459,8 +459,8 @@ class IngestQueue:
             return False
         try:
             return bool(self._should_pause_background())
-        except Exception:
-            logger.exception("[queue] Foreground pause check failed")
+        except Exception as exc:
+            logger.exception("[queue] Foreground pause check failed: %s", exc)
             return False
 
     def _mark_paused(self, reason: str):

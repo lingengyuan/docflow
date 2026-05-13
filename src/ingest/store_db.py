@@ -150,6 +150,7 @@ class StoreDatabaseMixin:
             yield conn
             conn.commit()
         except Exception:
+            # Any error raised by the caller's DB work must roll back before re-raising.
             conn.rollback()
             raise
     def close(self) -> None:
@@ -167,4 +168,3 @@ class StoreDatabaseMixin:
     @staticmethod
     def compute_text_hash(text: str) -> str:
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
-

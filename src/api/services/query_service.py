@@ -100,10 +100,10 @@ class QueryService:
         for item in items:
             try:
                 item["citations"] = json.loads(item["citations"])
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 item["citations"] = []
             try:
                 item["file_filter"] = json.loads(item["file_filter"])
-            except Exception:
+            except (json.JSONDecodeError, TypeError):
                 item["file_filter"] = []
         return items
