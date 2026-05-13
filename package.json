@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "build:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.css -o ./frontend/styles.css --minify"
+    "audit:frontend": "npm audit --audit-level=moderate",
+    "build:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.css -o ./frontend/styles.css --minify",
+    "check:frontend": "node --check frontend/js/state.js && node --check frontend/js/icons.js && node --check frontend/js/shared-ui.js && node --check frontend/js/i18n.js && node --check frontend/js/app-shell.js && node --check frontend/js/settings.js && node --check frontend/js/chat.js && node --check frontend/js/notes.js && node --check frontend/js/chat-stream.js && node --check frontend/js/source-preview.js && node --check frontend/js/library.js && node --check frontend/js/history.js && node --check frontend/js/queue-upload.js && node --check frontend/js/pwa.js"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "0.1.1",

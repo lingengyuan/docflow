@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added answer feedback and saved-answer backlinks to close more of the personal knowledge loop.
+- Raised vulnerable dependency pins and added Python/frontend dependency audit coverage.
+- Added frontend script checks so browser UI changes have a quick syntax gate.
+
 ## 0.58.0 - 2026-05-12
 
 - Added Dependabot and CodeQL coverage for dependency and security maintenance.

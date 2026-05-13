@@ -58,5 +58,6 @@ GitHub release notes should include:
 ## 6. After Release
 
 - Confirm CI, CodeQL, and Dependabot are active.
+- Confirm dependency audit checks pass for Python and frontend dependencies.
 - Confirm issue templates and pull request template still match the project workflow.
 - Start the next changelog entry only after the next user-facing or maintainer-facing change lands.

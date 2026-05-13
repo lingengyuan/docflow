@@ -29,6 +29,14 @@ scripts/run_ci.sh
 
 This runs compile checks, ruff, mypy, and pytest. Use `docs/release.md` before publishing a release.
 
+Frontend and dependency checks:
+
+```bash
+npm run check:frontend
+npm run audit:frontend
+.venv/bin/python -m pip_audit -r requirements.txt -r requirements-dev.txt -r requirements-vision.txt
+```
+
 CI runs the same quality gate on Ubuntu and macOS, plus a Windows smoke matrix and an offline doctor job.
 
 ## Run the App

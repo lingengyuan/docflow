@@ -9,7 +9,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Docker Compose now defines both the DocFlow app and Qdrant service for first-run startup.
 - First-run users can create a small demo library from the CLI or browser empty state.
 - Runtime dependencies are smaller and optional image support is split out.
-- CI, CodeQL, Dependabot, ruff, pre-commit, issue templates, and PR template are present.
+- CI, CodeQL, Dependabot, dependency audit, ruff, pre-commit, issue templates, and PR template are present.
 - CI now runs full ruff, mypy, and pytest on Ubuntu and macOS.
 - Local privacy has an offline doctor check covering startup, local ingest, query fallback, model status, and source preview.
 - Model downloads are blocked by default when the configured cache is missing and `privacy.allow_model_download` is false.
@@ -24,12 +24,13 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
 - Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
+- The latest dependency review raised `python-multipart`, `pillow`, `onnx`, `pytest`, `mlx`, and `mlx-lm` above the current Dependabot fixed versions. Local `pip-audit` and `npm audit` both report no known vulnerabilities.
 - CI now includes Ubuntu Python 3.11/3.12, macOS Python 3.12, Windows Python 3.12, and a dedicated offline doctor job.
 - The browser shell now has a language toggle foundation, keyboard skip link, active navigation state, and PWA shell files.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 314 passed.
+- Unit/integration tests: 316 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 74 checks passed.
