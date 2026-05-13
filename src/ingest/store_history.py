@@ -57,8 +57,10 @@ class StoreHistoryMixin:
                 "SELECT * FROM history ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
+
     def clear_history(self):
         with self._conn() as conn:
+            conn.execute("DELETE FROM answer_feedback")
             conn.execute("DELETE FROM history_fts")
             conn.execute("DELETE FROM history")
     def create_conversation(self, title: str = "") -> int:

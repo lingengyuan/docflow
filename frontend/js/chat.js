@@ -177,6 +177,9 @@ function renderLatestAnswerPreview(item) {
   const citations = item.citations || [];
   const answer = item.answer || '';
   const createdAt = (item.created_at || '').slice(0, 16);
+  const historyId = Number(item.id || item.history_id || 0) || null;
+  const encodedCitations = encodeURIComponent(JSON.stringify(citations));
+  lastHistoryId = historyId;
   inner.dataset.latestPreview = 'loaded';
   inner.innerHTML = `
     <div class="flex flex-col items-end gap-2">
@@ -205,7 +208,7 @@ function renderLatestAnswerPreview(item) {
           <button onclick="copyTextFromButton(this)" data-copy-text="${escHtml(answer)}" class="answer-action" title="复制答案" aria-label="复制答案">
             <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>复制
           </button>
-          <button onclick="saveAnswerFromButton(this)" data-answer-text="${escHtml(answer)}" class="answer-action" title="保存为笔记" aria-label="保存为笔记">
+          <button onclick="saveAnswerFromButton(this)" data-answer-text="${escHtml(answer)}" data-question-text="${escHtml(item.question || '')}" data-citations-json="${escHtml(encodedCitations)}" class="answer-action" title="保存为笔记" aria-label="保存为笔记">
             <span class="material-symbols-outlined" style="font-size:15px">note_add</span>保存为笔记
           </button>
           <button onclick="exportAnswerFromButton(this)" data-answer-text="${escHtml(answer)}" class="answer-action" title="导出 Markdown" aria-label="导出 Markdown">
@@ -214,6 +217,7 @@ function renderLatestAnswerPreview(item) {
           <button onclick="switchView('notes')" class="answer-action" title="生成知识产物" aria-label="生成知识产物">
             <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>生成知识产物
           </button>
+          ${typeof feedbackControlsMarkup === 'function' ? feedbackControlsMarkup(historyId) : ''}
         </div>
         <span class="text-[11px] text-on-surface-variant/60">${citations.length ? `基于 ${citations.length} 个来源` : '暂无引用来源'}</span>
       </div>

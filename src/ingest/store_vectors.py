@@ -60,6 +60,7 @@ class StoreVectorMixin:
             conn.execute("DELETE FROM chunks_fts_trigram")
             conn.execute("DELETE FROM chunks")
             conn.execute("DELETE FROM favorites")
+            conn.execute("DELETE FROM note_source_links")
             conn.execute("DELETE FROM files")
     def list_file_chunks(self, file_id: int) -> list[dict]:
         """返回某文件所有 chunk 元数据，按 SQLite chunk id 排序。"""

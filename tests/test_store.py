@@ -373,6 +373,42 @@ class TestDocStore:
         assert reopened.get_conversation(conversation_id) is None
         assert reopened.list_messages(conversation_id) == []
 
+    def test_answer_feedback_and_note_source_links_roundtrip(self, tmp_path):
+        db = DocStore(tmp_path / "knowledge-loop.db")
+        source_path = tmp_path / "source.md"
+        note_path = tmp_path / "answer-note.md"
+        source_path.write_text("source fact", encoding="utf-8")
+        note_path.write_text("saved answer", encoding="utf-8")
+        source_id = db.upsert_file(
+            source_path,
+            source_path.name,
+            DocStore.compute_hash(source_path),
+            status="done",
+        )
+        note_id = db.upsert_file(
+            note_path,
+            note_path.name,
+            DocStore.compute_hash(note_path),
+            status="done",
+        )
+        history_id = db.add_history(
+            "question",
+            "answer",
+            citations_json='[{"file_name":"source.md"}]',
+        )
+
+        feedback = db.set_answer_feedback(history_id, "useful")
+        linked_ids = db.replace_note_source_links(note_id, [source_id])
+
+        assert feedback["rating"] == "useful"
+        assert db.get_feedback_summary()["useful"] == 1
+        assert linked_ids == [source_id]
+        assert db.list_backlinks(source_id)[0]["file"]["id"] == note_id
+        assert db.list_outbound_links(note_id)[0]["file"]["id"] == source_id
+
+        db.set_answer_feedback(history_id, "not_useful", note="missing detail")
+        assert db.get_feedback_summary()["not_useful"] == 1
+
     def test_migrates_existing_chunks_table_before_parent_index(self, tmp_path):
         db_path = tmp_path / "old.db"
         conn = sqlite3.connect(db_path)

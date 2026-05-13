@@ -52,6 +52,8 @@ class KnowledgeService:
         files = store.list_files(status=FileStatus.DONE)
         profiles = [self._build_file_profile(store, file) for file in files]
         profiles = [profile for profile in profiles if profile["terms"]]
+        backlinks = store.list_backlinks(active_file_id) if active_file_id else []
+        outbound_links = store.list_outbound_links(active_file_id) if active_file_id else []
         return {
             "topics": self._topics(profiles, limit=limit),
             "similar_documents": self._similar_documents(
@@ -60,9 +62,14 @@ class KnowledgeService:
                 limit=limit,
             ),
             "knowledge_cards": self._knowledge_cards(store, profiles, limit=limit),
+            "feedback": store.get_feedback_summary(),
+            "backlinks": backlinks,
+            "outbound_links": outbound_links,
             "stats": {
                 "files": len(files),
                 "profiled_files": len(profiles),
+                "backlinks": len(backlinks),
+                "outbound_links": len(outbound_links),
             },
         }
 

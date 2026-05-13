@@ -34,6 +34,7 @@ class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
     related_notes: list[dict] = Field(default_factory=list)
+    history_id: int | None = None
     conversation_id: int | None = None
     scope: dict | None = None
     reproducible: bool = True
@@ -49,6 +50,12 @@ class ResearchResponse(QueryResponse):
 
 class ConversationCreateRequest(BaseModel):
     title: str = ""
+
+
+class AnswerFeedbackRequest(BaseModel):
+    history_id: int
+    rating: str
+    note: str | None = ""
 
 
 class FileMetadataRequest(BaseModel):

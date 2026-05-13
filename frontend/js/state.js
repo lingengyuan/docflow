@@ -11,6 +11,7 @@ window.DocFlowState = {
     conversationItems: [],
     lastCitations: [],
     lastRelatedNotes: [],
+    lastHistoryId: null,
     chatPreviewCitation: null,
     queryScopeFiles: [],
   },
@@ -51,6 +52,7 @@ Object.defineProperties(window, {
   conversationItems: { get: () => DocFlowState.chat.conversationItems, set: value => { DocFlowState.chat.conversationItems = value; } },
   lastCitations: { get: () => DocFlowState.chat.lastCitations, set: value => { DocFlowState.chat.lastCitations = value; } },
   lastRelatedNotes: { get: () => DocFlowState.chat.lastRelatedNotes, set: value => { DocFlowState.chat.lastRelatedNotes = value; } },
+  lastHistoryId: { get: () => DocFlowState.chat.lastHistoryId, set: value => { DocFlowState.chat.lastHistoryId = value; } },
   chatPreviewCitation: { get: () => DocFlowState.chat.chatPreviewCitation, set: value => { DocFlowState.chat.chatPreviewCitation = value; } },
   queryScopeFiles: { get: () => DocFlowState.chat.queryScopeFiles, set: value => { DocFlowState.chat.queryScopeFiles = value; } },
 

@@ -126,6 +126,13 @@ class StoreFileMixin:
                     # 删除 chunks、favorites、file 记录
                     conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
                     conn.execute("DELETE FROM favorites WHERE file_id = ?", (file_id,))
+                    conn.execute(
+                        """
+                        DELETE FROM note_source_links
+                        WHERE note_file_id = ? OR source_file_id = ?
+                        """,
+                        (file_id, file_id),
+                    )
                     conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
                     removed.append(
                         {

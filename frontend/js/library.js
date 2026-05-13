@@ -539,6 +539,9 @@ function knowledgeOverviewMarkup(data) {
   const topics = data?.topics || [];
   const similar = data?.similar_documents || [];
   const cards = data?.knowledge_cards || [];
+  const feedback = data?.feedback || {};
+  const backlinks = data?.backlinks || [];
+  const outbound = data?.outbound_links || [];
   return `
     <h3 class="panel-title">知识视图</h3>
     <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -554,6 +557,32 @@ function knowledgeOverviewMarkup(data) {
         <div class="panel-muted">知识卡片</div>
         <div class="mt-1 font-bold text-on-surface">${cards.length}</div>
       </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">回答反馈</div>
+        <div class="mt-1 font-bold text-on-surface">${Number(feedback.total || 0)}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">反向关联</div>
+        <div class="mt-1 font-bold text-on-surface">${backlinks.length}</div>
+      </div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="panel-muted">引用来源</div>
+        <div class="mt-1 font-bold text-on-surface">${outbound.length}</div>
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">回答反馈</div>
+      <div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">
+        ${feedbackSummaryMarkup(feedback)}
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">反向关联</div>
+      ${backlinks.length ? backlinks.slice(0, 3).map(link => knowledgeLinkMarkup(link, '引用了当前资料')).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">还没有笔记引用当前资料。</div>'}
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">引用来源</div>
+      ${outbound.length ? outbound.slice(0, 3).map(link => knowledgeLinkMarkup(link, '当前笔记引用')).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">当前资料还没有保存来源关联。</div>'}
     </div>
     <div class="mt-4">
       <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">主题视图</div>
@@ -574,6 +603,27 @@ function knowledgeOverviewMarkup(data) {
       <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">知识卡片</div>
       ${cards.length ? cards.slice(0, 3).map(card => knowledgeCardMarkup(card)).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">完成入库后会生成可复用卡片。</div>'}
     </div>`;
+}
+
+function feedbackSummaryMarkup(feedback) {
+  const total = Number(feedback?.total || 0);
+  if (!total) return '还没有回答反馈。';
+  const useful = Number(feedback.useful || 0);
+  const notUseful = Number(feedback.not_useful || 0);
+  const usefulRate = Math.round(Number(feedback.useful_rate || 0) * 100);
+  return `有用 ${useful} 次 · 需要改进 ${notUseful} 次 · 有用率 ${usefulRate}%`;
+}
+
+function knowledgeLinkMarkup(link, label) {
+  const file = link.file || {};
+  return `
+    <button onclick="openFilePreview(${Number(file.id || 0)})" class="mb-2 w-full text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-colors">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-semibold text-on-surface line-clamp-1">${escHtml(file.file_name || '关联资料')}</span>
+        <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${escHtml(label)}</span>
+      </div>
+      <div class="mt-1 text-[11px] text-on-surface-variant/65">${escHtml(collectionLabel(file.collection))}</div>
+    </button>`;
 }
 
 function similarDocumentMarkup(item) {

@@ -38,11 +38,58 @@ function appendThinking() {
   msgs.scrollTop = msgs.scrollHeight;
 }
 
-function createAIMessageContainer() {
+function feedbackControlsMarkup(historyId) {
+  const id = Number(historyId || 0);
+  if (!id) return '';
+  return `
+    <span class="answer-feedback inline-flex items-center gap-1" data-history-id="${id}">
+      <button onclick="submitAnswerFeedback(this, ${id}, 'useful')" class="answer-action" title="这次回答有帮助" aria-label="这次回答有帮助">
+        <span class="material-symbols-outlined" style="font-size:15px">thumb_up</span>有用
+      </button>
+      <button onclick="submitAnswerFeedback(this, ${id}, 'not_useful')" class="answer-action" title="这次回答需要改进" aria-label="这次回答需要改进">
+        <span class="material-symbols-outlined" style="font-size:15px">thumb_down</span>需要改进
+      </button>
+    </span>`;
+}
+
+async function submitAnswerFeedback(btn, historyId, rating) {
+  const group = btn.closest('.answer-feedback');
+  const buttons = [...(group?.querySelectorAll('button') || [])];
+  buttons.forEach(item => { item.disabled = true; });
+  const icon = btn.querySelector('.material-symbols-outlined');
+  const previousIcon = getIconToken(icon);
+  setIcon(icon, 'sync');
+  icon.classList.add('animate-spin');
+  try {
+    const r = await fetch(`${API}/api/answers/feedback`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ history_id: historyId, rating }),
+    });
+    if (!r.ok) throw new Error(await responseUserMessage(r, '反馈保存失败'));
+    icon.classList.remove('animate-spin');
+    setIcon(icon, 'check');
+    if (group) {
+      group.dataset.rating = rating;
+      buttons.forEach(item => item.classList.remove('bg-primary/10', 'text-primary'));
+      btn.classList.add('bg-primary/10', 'text-primary');
+    }
+  } catch (e) {
+    icon.classList.remove('animate-spin');
+    setIcon(icon, 'error');
+    alert(userFacingErrorMessage(e.message, '反馈保存失败，请稍后再试。'));
+    setTimeout(() => { setIcon(icon, previousIcon); }, 1500);
+  } finally {
+    buttons.forEach(item => { item.disabled = false; });
+  }
+}
+
+function createAIMessageContainer(question = '') {
   const msgs = document.getElementById('messages');
   const inner = msgs.querySelector('.max-w-2xl');
   const div = document.createElement('div');
   div.className = 'flex flex-col gap-4';
+  const questionText = escHtml(question || '');
   div.innerHTML = `
     <div class="flex items-center gap-2">
       <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
@@ -58,12 +105,13 @@ function createAIMessageContainer() {
       <button onclick="copyTextFromButton(this)" data-copy-text="" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
-      <button onclick="saveAnswerFromButton(this)" data-answer-text="" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
+      <button onclick="saveAnswerFromButton(this)" data-answer-text="" data-question-text="${questionText}" data-citations-json="" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
         <span class="material-symbols-outlined" style="font-size:16px">note_add</span>
       </button>
       <button onclick="exportAnswerFromButton(this)" data-answer-text="" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
+      <span class="answer-feedback"></span>
     </div>`;
   inner.appendChild(div);
   return div;
@@ -149,6 +197,7 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
   const div = document.createElement('div');
   const copyText = escHtml(answer || '');
   const metaText = meta.elapsedMs ? `耗时 ${(meta.elapsedMs / 1000).toFixed(1)} 秒` : ((meta.createdAt || '').slice(0,16));
+  const citationsJson = encodeURIComponent(JSON.stringify(citations || []));
   div.className = 'flex flex-col gap-4';
   div.innerHTML = `
     <div class="flex items-center gap-2">
@@ -170,12 +219,13 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
       <button onclick="copyTextFromButton(this)" data-copy-text="${copyText}" class="answer-copy text-on-surface-variant/40 hover:text-primary transition-colors" title="复制答案" aria-label="复制答案">
         <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
       </button>
-      <button onclick="saveAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
+      <button onclick="saveAnswerFromButton(this)" data-answer-text="${copyText}" data-question-text="${escHtml(meta.question || '')}" data-citations-json="${escHtml(citationsJson)}" class="answer-save text-on-surface-variant/40 hover:text-primary transition-colors" title="保存为笔记" aria-label="保存为笔记">
         <span class="material-symbols-outlined" style="font-size:16px">note_add</span>
       </button>
       <button onclick="exportAnswerFromButton(this)" data-answer-text="${copyText}" class="answer-export text-on-surface-variant/40 hover:text-primary transition-colors" title="导出 Markdown" aria-label="导出 Markdown">
         <span class="material-symbols-outlined" style="font-size:16px">download</span>
       </button>
+      ${feedbackControlsMarkup(meta.historyId)}
     </div>`;
   inner.appendChild(div);
   lastCitations = citations || [];
@@ -277,6 +327,12 @@ function exportAnswerFromButton(btn) {
 async function saveAnswerFromButton(btn) {
   const answer = btn.dataset.answerText || '';
   if (!answer.trim()) return;
+  let citations = [];
+  try {
+    citations = JSON.parse(decodeURIComponent(btn.dataset.citationsJson || '[]'));
+  } catch {
+    citations = [];
+  }
   btn.disabled = true;
   const icon = btn.querySelector('.material-symbols-outlined');
   const previousIcon = getIconToken(icon);
@@ -288,7 +344,9 @@ async function saveAnswerFromButton(btn) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         title: `已保存回答 ${new Date().toISOString().slice(0,10)}`,
+        question: btn.dataset.questionText || '',
         answer,
+        citations,
         collection: ['Saved', 'Answers'].join(' '),
         user_tags: ['answer'],
       }),
@@ -339,7 +397,7 @@ async function sendMessage() {
     }
 
     document.getElementById('thinking-indicator')?.remove();
-    const msgContainer = createAIMessageContainer();
+    const msgContainer = createAIMessageContainer(question);
     const msgs = document.getElementById('messages');
     const prose = document.getElementById('stream-prose');
     const meta = document.getElementById('stream-meta');
@@ -351,6 +409,7 @@ async function sendMessage() {
     let streamCompleted = false;
     let streamErrored = false;
     let relatedNotes = [];
+    let historyId = null;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -373,7 +432,10 @@ async function sendMessage() {
           const payload = JSON.parse(eventData);
           currentConversationId = payload.conversation_id;
         } else if (eventType === 'citations') {
-          renderCitations(JSON.parse(eventData));
+          const citations = JSON.parse(eventData);
+          renderCitations(citations);
+          const saveBtn = msgContainer.querySelector('.answer-save');
+          if (saveBtn) saveBtn.dataset.citationsJson = encodeURIComponent(JSON.stringify(citations));
         } else if (eventType === 'related_notes') {
           relatedNotes = JSON.parse(eventData);
           renderRelatedNotes(relatedNotes);
@@ -395,12 +457,17 @@ async function sendMessage() {
           msgs.scrollTop = msgs.scrollHeight;
         } else if (eventType === 'done') {
           streamCompleted = true;
+          const payload = JSON.parse(eventData || '{}');
+          historyId = Number(payload?.history_id || 0) || null;
+          lastHistoryId = historyId;
           prose.classList.remove('streaming-cursor');
           const elapsedMs = performance.now() - startedAt;
           if (meta) meta.textContent = `耗时 ${(elapsedMs / 1000).toFixed(1)} 秒`;
           msgContainer.querySelector('.answer-copy').dataset.copyText = answerText;
           msgContainer.querySelector('.answer-save').dataset.answerText = answerText;
           msgContainer.querySelector('.answer-export').dataset.answerText = answerText;
+          const feedback = msgContainer.querySelector('.answer-feedback');
+          if (feedback) feedback.outerHTML = feedbackControlsMarkup(historyId);
           loadConversations();
         } else if (eventType === 'error') {
           streamErrored = true;

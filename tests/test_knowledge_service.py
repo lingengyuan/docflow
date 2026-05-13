@@ -55,6 +55,8 @@ def test_knowledge_service_derives_topics_similar_documents_and_cards(tmp_path):
             "privacy-check.md",
             "privacy local offline checks source preview",
         )
+        history_id = store.add_history("Is privacy local?", "Yes", citations_json="[]")
+        store.set_answer_feedback(history_id, "useful")
 
         overview = KnowledgeService().overview(store)
 
@@ -62,6 +64,7 @@ def test_knowledge_service_derives_topics_similar_documents_and_cards(tmp_path):
         assert overview["similar_documents"]
         assert overview["knowledge_cards"]
         assert overview["knowledge_cards"][0]["source_file"]["file_name"]
+        assert overview["feedback"]["useful"] == 1
     finally:
         store.close()
 
@@ -85,5 +88,6 @@ def test_knowledge_overview_api_uses_current_store(monkeypatch, tmp_path):
         body = response.json()
         assert body["stats"]["files"] == 1
         assert body["knowledge_cards"][0]["source_file"]["id"] == file_id
+        assert body["backlinks"] == []
     finally:
         store.close()

@@ -43,6 +43,7 @@ from src.api.routes import obsidian as obsidian_routes
 from src.api.routes import query as query_routes
 from src.api.routes import settings as settings_routes
 from src.api.schemas import (
+    AnswerFeedbackRequest,
     AnswerNoteRequest,
     BatchFavoriteRequest,
     BatchMetadataRequest,
@@ -586,8 +587,9 @@ async def query(req: QueryRequest):
         logger.warning("[api/query] timeout id=%s question=%r", exc.task_id, req.question[:80])
         raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
     citations_data = query_service.response_citations(result.citations)
+    history_id = None
     if store is not None:
-        store.add_history(
+        history_id = store.add_history(
             question=req.question,
             answer=result.text,
             citations_json=json.dumps(citations_data, ensure_ascii=False),
@@ -606,6 +608,7 @@ async def query(req: QueryRequest):
         answer=result.text,
         citations=citations_data,
         related_notes=getattr(result, "related_notes", []),
+        history_id=history_id,
         conversation_id=conversation_id,
         scope=options.scope,
         reproducible=getattr(result, "reproducible", True),
@@ -642,8 +645,9 @@ async def research(req: ResearchRequest):
         logger.warning("[api/research] timeout id=%s question=%r", exc.task_id, req.question[:80])
         raise HTTPException(504, MODEL_TIMEOUT_MESSAGE) from exc
     citations_data = query_service.response_citations(result.citations)
+    history_id = None
     if store is not None:
-        store.add_history(
+        history_id = store.add_history(
             question=req.question,
             answer=result.text,
             citations_json=json.dumps(citations_data, ensure_ascii=False),
@@ -663,6 +667,7 @@ async def research(req: ResearchRequest):
         citations=citations_data,
         related_notes=getattr(result, "related_notes", []),
         research_steps=getattr(result, "research_steps", []),
+        history_id=history_id,
         conversation_id=conversation_id,
         scope=options.scope,
         reproducible=getattr(result, "reproducible", True),
@@ -723,8 +728,9 @@ async def query_stream(req: QueryRequest, request: Request):
                 full_answer.append(token)
                 q.put(("token", token))
             answer_text = "".join(full_answer).strip()
+            history_id = None
             if not cancel.is_set() and store is not None:
-                store.add_history(
+                history_id = store.add_history(
                     question=req.question,
                     answer=answer_text,
                     citations_json=json.dumps(citations_data, ensure_ascii=False),
@@ -740,7 +746,15 @@ async def query_stream(req: QueryRequest, request: Request):
                         file_filter_json=file_filter_json,
                     )
             if not cancel.is_set():
-                q.put(("done", ""))
+                q.put(
+                    (
+                        "done",
+                        {
+                            "history_id": history_id,
+                            "conversation_id": conversation_id,
+                        },
+                    )
+                )
         except Exception as e:
             if not cancel.is_set():
                 q.put(("error", str(e)))
@@ -799,6 +813,18 @@ async def query_stream(req: QueryRequest, request: Request):
                 break
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+async def answer_feedback(req: AnswerFeedbackRequest):
+    if store is None:
+        raise HTTPException(503, "Store not ready")
+    try:
+        feedback = store.set_answer_feedback(req.history_id, req.rating, req.note or "")
+    except KeyError as exc:
+        raise HTTPException(404, "Answer history item not found") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "feedback": feedback, "summary": store.get_feedback_summary()}
 
 
 def _resolve_conversation_id(conversation_id: int | None) -> int | None:
@@ -1061,12 +1087,40 @@ async def save_answer_note(req: AnswerNoteRequest):
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    return _write_import_and_enqueue(
+    result = _write_import_and_enqueue(
         "answer",
         item,
         collection=req.collection or "Saved Answers",
         user_tags=req.user_tags or ["answer"],
     )
+    note_file_id = int((result.get("file") or {}).get("id") or 0)
+    source_file_ids = _source_file_ids_from_citations(req.citations or [])
+    result["source_links"] = (
+        store.replace_note_source_links(note_file_id, source_file_ids)
+        if note_file_id and source_file_ids
+        else []
+    )
+    return result
+
+
+def _source_file_ids_from_citations(citations: list[dict]) -> list[int]:
+    if store is None or not citations:
+        return []
+    files = store.list_files()
+    by_path = {str(file.get("file_path") or ""): int(file["id"]) for file in files}
+    by_name: dict[str, int] = {}
+    for file in files:
+        file_name = str(file.get("file_name") or "")
+        if file_name and file_name not in by_name:
+            by_name[file_name] = int(file["id"])
+    source_ids = []
+    for citation in citations:
+        file_path = str(citation.get("file_path") or "")
+        file_name = str(citation.get("file_name") or "")
+        file_id = by_path.get(file_path) or by_name.get(file_name)
+        if file_id:
+            source_ids.append(file_id)
+    return list(dict.fromkeys(source_ids))
 
 
 async def create_knowledge_output(req: KnowledgeOutputRequest):
@@ -1480,6 +1534,7 @@ def _register_api_routes() -> None:
                 "query": query,
                 "research": research,
                 "query_stream": query_stream,
+                "answer_feedback": answer_feedback,
                 "list_conversations": list_conversations,
                 "create_conversation": create_conversation,
                 "list_conversation_messages": list_conversation_messages,

@@ -138,6 +138,15 @@ def test_import_url_endpoint_uses_fetcher_and_queues(monkeypatch, tmp_path):
 
 def test_save_answer_endpoint_writes_note(monkeypatch, tmp_path):
     store = DocStore(tmp_path / "docflow.db")
+    source_path = tmp_path / "source.md"
+    source_path.write_text("Source fact", encoding="utf-8")
+    source_id = store.upsert_file(
+        source_path,
+        source_path.name,
+        DocStore.compute_hash(source_path),
+        status="done",
+        mtime_ns=source_path.stat().st_mtime_ns,
+    )
 
     class FakeQueue:
         def submit(self, path: Path):
@@ -154,14 +163,17 @@ def test_save_answer_endpoint_writes_note(monkeypatch, tmp_path):
             "title": "Answer Note",
             "question": "Question?",
             "answer": "Answer body",
+            "citations": [{"file_name": source_path.name, "file_path": str(source_path)}],
             "collection": "Saved Answers",
             "user_tags": ["answer"],
         },
     )
 
     assert response.status_code == 200
-    path = Path(response.json()["path"])
+    body = response.json()
+    path = Path(body["path"])
     assert "Answer body" in path.read_text(encoding="utf-8")
+    assert body["source_links"] == [source_id]
 
 
 def test_knowledge_output_endpoint_writes_generated_markdown(monkeypatch, tmp_path):

@@ -85,11 +85,35 @@ class StoreDatabaseMixin:
                     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
                 );
 
+                CREATE TABLE IF NOT EXISTS answer_feedback (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    history_id INTEGER NOT NULL UNIQUE REFERENCES history(id),
+                    rating     TEXT    NOT NULL,
+                    note       TEXT    NOT NULL DEFAULT '',
+                    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS note_source_links (
+                    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    note_file_id   INTEGER NOT NULL REFERENCES files(id),
+                    source_file_id INTEGER NOT NULL REFERENCES files(id),
+                    relation       TEXT    NOT NULL DEFAULT 'answer_note',
+                    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+                    UNIQUE(note_file_id, source_file_id, relation)
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
                 CREATE INDEX IF NOT EXISTS idx_files_hash     ON files(file_hash);
                 CREATE INDEX IF NOT EXISTS idx_files_status   ON files(status);
                 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
                 ON messages(conversation_id, id);
+                CREATE INDEX IF NOT EXISTS idx_answer_feedback_history_id
+                ON answer_feedback(history_id);
+                CREATE INDEX IF NOT EXISTS idx_note_source_links_note_file_id
+                ON note_source_links(note_file_id);
+                CREATE INDEX IF NOT EXISTS idx_note_source_links_source_file_id
+                ON note_source_links(source_file_id);
 
                 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
                     tokenized_text,
@@ -138,6 +162,32 @@ class StoreDatabaseMixin:
                 "CREATE INDEX IF NOT EXISTS idx_chunks_parent_id ON chunks(file_id, parent_id)"
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_files_collection ON files(collection)")
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS answer_feedback (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    history_id INTEGER NOT NULL UNIQUE REFERENCES history(id),
+                    rating     TEXT    NOT NULL,
+                    note       TEXT    NOT NULL DEFAULT '',
+                    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS note_source_links (
+                    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    note_file_id   INTEGER NOT NULL REFERENCES files(id),
+                    source_file_id INTEGER NOT NULL REFERENCES files(id),
+                    relation       TEXT    NOT NULL DEFAULT 'answer_note',
+                    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+                    UNIQUE(note_file_id, source_file_id, relation)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_answer_feedback_history_id
+                ON answer_feedback(history_id);
+                CREATE INDEX IF NOT EXISTS idx_note_source_links_note_file_id
+                ON note_source_links(note_file_id);
+                CREATE INDEX IF NOT EXISTS idx_note_source_links_source_file_id
+                ON note_source_links(source_file_id);
+            """)
     @contextmanager
     def _conn(self):
         conn = getattr(self._local, "conn", None)

@@ -535,3 +535,13 @@ def test_clickable_icon_actions_are_labeled_and_keyboard_accessible():
     assert "handleConversationKey" in html
     assert "handleSourceKey" in html
     assert "handleHistoryKey" in html
+
+
+def test_phase64_feedback_and_backlink_ui_are_visible():
+    html = frontend_source_text()
+
+    assert "/api/answers/feedback" in html
+    assert "feedbackControlsMarkup" in html
+    assert "反向关联" in html
+    assert "回答反馈" in html
+    assert "引用来源" in html

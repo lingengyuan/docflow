@@ -155,6 +155,16 @@ def test_query_creates_conversation_and_rewrites_followup(monkeypatch, tmp_path)
     conversation_id = first.json()["conversation_id"]
     assert conversation_id is not None
     assert first.json()["related_notes"][0]["file_name"] == "NOTES.md"
+    history_id = first.json()["history_id"]
+    assert history_id is not None
+
+    feedback = client.post(
+        "/api/answers/feedback",
+        json={"history_id": history_id, "rating": "useful"},
+    )
+
+    assert feedback.status_code == 200
+    assert feedback.json()["summary"]["useful"] == 1
 
     second = client.post(
         "/api/query",
@@ -265,6 +275,7 @@ def test_stream_query_emits_conversation_and_saves_messages(monkeypatch, tmp_pat
     assert "event: related_notes" in body
     assert "related-stream.md" in body
     assert "event: token" in body
+    assert '"history_id":' in body
     conversation_id = active_store.list_conversations()[0]["id"]
     messages = active_store.list_messages(conversation_id)
     assert [message["role"] for message in messages] == ["user", "assistant"]
