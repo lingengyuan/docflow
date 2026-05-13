@@ -6,16 +6,13 @@ DocFlow currently has several validation paths:
 .venv/bin/python -m pytest
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
-docflow maturity-eval --no-rerank --source-filter
 docflow browser-acceptance
 docflow restore-drill
 ```
 
 ## Current Limitation
 
-The maturity score is useful as an internal progress signal, but it is not enough as an external quality claim.
-
-The 90-point roadmap replaces subjective maturity scoring with more measurable outputs:
+DocFlow uses measured checks as external quality evidence:
 
 - Retrieval metrics.
 - Citation alignment.
@@ -48,9 +45,9 @@ Current committed parsing set: 31 documents covering Markdown tables, Obsidian-f
 
 `tests/test_incremental_index.py` covers the add, modify, and delete cycle with deterministic local fakes. It confirms changed files replace old vectors and deleted files are cleaned from SQLite metadata within the five-second regression limit.
 
-## Maturity Report
+## Internal Planning Report
 
-`docflow maturity-eval --no-rerank --source-filter` combines the dimension scorecard with retrieval and parsing signals. The dimension scores remain a planning view; the measured signals are the part to use for external quality claims.
+The old maturity scorecard is an internal planning aid only. It is not a public quality claim and should not be used in README, release notes, or status summaries.
 
 ## Reproducibility
 

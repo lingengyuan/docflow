@@ -4,13 +4,13 @@ English · [简体中文](README.zh-CN.md)
 
 ![DocFlow chat workspace](docs/assets/chat.png)
 
-DocFlow is a fully local RAG assistant. Point it at any folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
+DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
-- **100% offline.** No telemetry, no API keys, no document upload. Verified by `docflow doctor --offline`.
-- **Real evaluation, not vibes.** Retrieval Recall@5 = 1.0 on 84 queries, 31/31 parsing eval, 304 unit tests, 73 browser checks — all in repo.
+- **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
+- **Measured project regression.** Current source-filtered repo checks: 84 retrieval cases, 31 parsing fixtures, 304 tests, and 73 browser checks.
 - **Drop-in local models.** Works with Ollama, LM Studio, or any OpenAI-compatible local endpoint.
 
-One command:
+Quick start:
 
 ```bash
 git clone https://github.com/lingengyuan/docflow.git && cd docflow
@@ -19,11 +19,13 @@ docker compose up --build
 
 Then open <http://localhost:8000> and click **导入示例资料** to try a small local library.
 
+For real answers, run a local model server such as Ollama or LM Studio and select it in Settings. The Docker path starts the app and Qdrant; model weights are still managed by the local model tool you choose.
+
 ## Why DocFlow
 
 - **vs AnythingLLM** — smaller, no account system, no SaaS fallback paths.
 - **vs Khoj** — simpler stack (SQLite + Qdrant), focused on personal documents not chat agents.
-- **vs rolling your own LangChain** — already tested. 304 + 73 + 84 + 31 checks shipped.
+- **vs rolling your own LangChain** — ships with repeatable tests, browser checks, parsing fixtures, and retrieval regression inputs.
 
 ## How it works
 
@@ -42,18 +44,18 @@ flowchart LR
 
 - Ask questions across PDFs, Markdown, DOCX, TXT, code-like files, and optional image content.
 - Review source snippets, save useful answers as notes, and inspect topics, similar files, and knowledge cards.
-- Metadata in SQLite, vectors in Qdrant, model traffic local by default.
+- Metadata in SQLite, vectors in Qdrant, model traffic local by default when a local backend is selected.
 - Verify behavior end-to-end: unit tests, browser acceptance checks, retrieval eval, parsing eval, and an offline network check.
 
 ## Privacy
 
-DocFlow ships with zero telemetry, zero analytics, zero error reporting, and zero document upload. Your documents, SQLite metadata, Qdrant vectors, backups, and indexes all stay on your machine.
+DocFlow ships with zero telemetry, zero analytics, zero automatic error reporting, and zero product-analytics document upload. Your documents, SQLite metadata, Qdrant vectors, backups, and indexes stay on your machine unless you explicitly enable an external feature.
 
 ```bash
 docflow doctor --offline
 ```
 
-…verifies that nothing is reaching out to the network.
+…checks the covered local startup, ingest, query, model-status, and source-preview paths for unexpected outbound connections.
 
 ## Project structure
 

@@ -27,9 +27,6 @@ DocFlow 入口。
   python main.py eval retrieval
   python main.py eval parsing
 
-  # 生成 Phase 11 的 9 分成熟度评分报告
-  python main.py maturity-eval
-
   # 生成并验证真实样本套件
   python main.py sample-suite
 
@@ -47,7 +44,7 @@ DocFlow 入口。
   python main.py backup [--dry-run] [--output backups] [--keep 5]
   python main.py export-chunks [--output backups/chunks.jsonl]
   python main.py restore-plan <backup.tar.gz>
-  python main.py restore-drill [--output-dir /tmp/docflow-phase22-restore-drill] [--json]
+  python main.py restore-drill [--output-dir /tmp/docflow-restore-drill] [--json]
 
   # 扫描所有 watch_dirs（config.yaml）
   python main.py scan

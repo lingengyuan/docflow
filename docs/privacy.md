@@ -2,7 +2,7 @@
 
 DocFlow is built as a local-first personal knowledge assistant.
 
-## Default Promise
+## Default Behavior
 
 - No telemetry.
 - No analytics.
@@ -21,14 +21,14 @@ DocFlow normally talks to local services such as:
 
 ## Network Access
 
-DocFlow keeps a small registry of runtime network cases:
+DocFlow keeps a small registry of runtime network cases. Some are local loopback traffic; others only happen after explicit user configuration:
 
 - Local services: Qdrant, Ollama, and the DocFlow web app on `localhost` or loopback addresses.
 - User-triggered webpage import: only when the user explicitly imports a URL.
 - Model downloads: blocked by default when a configured Hugging Face style model is not already cached.
 - Cloud LLM backends: off by default and only active when explicitly configured.
 
-Run the offline doctor to check for unexpected outbound connections across startup, local ingest, local query fallback, model status checks, and source preview:
+Run the offline doctor to check the covered local paths for unexpected outbound connections across startup, local ingest, local query fallback, model status checks, and source preview:
 
 ```bash
 docflow doctor --offline
@@ -43,7 +43,7 @@ Covered local paths: startup, ingest, query, model status, source preview
 Registered network cases: local_services, user_web_import, model_download, cloud_llm
 ```
 
-User-triggered webpage import is the main intentionally external runtime feature. Optional model downloads require `privacy.allow_model_download: true`. Cloud model backends require an explicit backend and key. When a cloud answer backend is active, the Settings page shows a plain-language notice that questions may be sent to the configured external model service.
+User-triggered webpage import is intentionally external. Optional model downloads require `privacy.allow_model_download: true`. Cloud model backends require an explicit backend and key. When a cloud answer backend is active, the Settings page shows a plain-language notice that questions may be sent to the configured external model service.
 
 If `privacy.allow_model_download: false` and a configured local model is missing from cache, DocFlow fails clearly before loading that model instead of silently downloading it.
 

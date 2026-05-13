@@ -312,6 +312,30 @@ def test_phase58_public_maintenance_surface_is_complete():
     assert "Status Update Rule" in status_doc
 
 
+def test_phase59_public_claims_are_precise():
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    main_source = Path("main.py").read_text(encoding="utf-8")
+
+    combined_public_text = "\n".join([readme, readme_zh, status_doc, evaluation_doc, main_source])
+    for forbidden in [
+        "100% offline",
+        "Recall@5 = 1.0",
+        "Phase55",
+        "Phase 55",
+        "9 分成熟度",
+        "docflow-phase22",
+    ]:
+        assert forbidden not in combined_public_text
+
+    assert "source-filtered" in readme
+    assert "不等同于大规模公开 benchmark" in readme_zh
+    assert "do not present it as an external benchmark" in status_doc
+    assert "internal planning aid only" in evaluation_doc
+
+
 def test_phase18_frontend_uses_local_tailwind_build():
     html = frontend_source_text()
 

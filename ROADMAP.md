@@ -5,6 +5,7 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 ## 1. Public Project Readiness
 
 - Keep README concise, evidence-based, and aligned with real commands.
+- Avoid presenting source-filtered regression metrics as external benchmark results.
 - Maintain public docs for features, architecture, privacy, CLI, development, evaluation, and status.
 - Keep contribution, security, code of conduct, changelog, and issue templates current.
 
@@ -18,6 +19,7 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 
 - Make full lint, type checking, and tests required in CI.
 - Split large API, storage, and retrieval modules into smaller focused pieces.
+- Remove god-module implementation files rather than only shrinking public facades.
 - Keep public command behavior stable while internal modules improve.
 
 ## 4. Trustworthy Answers
@@ -32,6 +34,7 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 - Add incremental indexing checks.
 - Track latency, storage use, and large-library behavior.
 - Publish measured results instead of subjective maturity scores.
+- Keep internal scorecards out of public quality claims.
 
 ## 6. Local Privacy
 

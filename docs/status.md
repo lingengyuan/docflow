@@ -31,14 +31,14 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Browser acceptance: 73 checks passed.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 297.48 ms, P95 793.96 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
-- Offline doctor from Phase55: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
+- Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
 ## Remaining Gaps
 
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
-- Retrieval eval currently uses source filtering for project regression checks; a broader unfiltered public benchmark is still needed before external quality claims.
+- Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public API, storage, and retrieval entry points are now small facades, but their implementation modules still need deeper internal splitting before the codebase feels fully mature to outside contributors.
 
 ## Status Update Rule
