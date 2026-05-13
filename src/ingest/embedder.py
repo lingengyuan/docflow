@@ -9,10 +9,11 @@ BM25 全文索引已迁移至 SQLite FTS5（由 DocStore 管理）。
 from __future__ import annotations
 
 import contextlib
-import fcntl
+import importlib
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -23,6 +24,27 @@ from src.vector_store import QdrantVectorStore, VectorPoint
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "docflow"
+
+
+@contextlib.contextmanager
+def _exclusive_counter_lock(handle):
+    """Lock one byte of the counter file across Unix and Windows."""
+    handle.seek(0)
+    if os.name == "nt":
+        locking: Any = importlib.import_module("msvcrt")
+        locking.locking(handle.fileno(), locking.LK_LOCK, 1)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            locking.locking(handle.fileno(), locking.LK_UNLCK, 1)
+    else:
+        locking = importlib.import_module("fcntl")
+        locking.flock(handle.fileno(), locking.LOCK_EX)
+        try:
+            yield
+        finally:
+            locking.flock(handle.fileno(), locking.LOCK_UN)
 
 
 class Embedder:
@@ -228,23 +250,19 @@ class Embedder:
             return []
         self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
         with self._id_counter_path.open("a+", encoding="utf-8") as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
+            with _exclusive_counter_lock(f):
                 current = self._read_counter_handle(f)
                 start = max(current, self._qdrant_next_id, int(min_next_id or 0))
                 next_id = start + count
                 self._write_counter_handle(f, next_id)
                 self._qdrant_next_id = next_id
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         return list(range(start, next_id))
 
     def sync_id_counter(self, min_next_id: int = 0) -> dict:
         """Advance the local ID counter to at least min_next_id under lock."""
         self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
         with self._id_counter_path.open("a+", encoding="utf-8") as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
+            with _exclusive_counter_lock(f):
                 current = self._read_counter_handle(f)
                 target = max(current, self._qdrant_next_id, int(min_next_id or 0))
                 if target != current:
@@ -257,8 +275,6 @@ class Embedder:
                     "min_next_id": int(min_next_id or 0),
                     "advanced": target != current,
                 }
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     def _reset_id_counter(self):
         self._qdrant_next_id = 0
@@ -275,11 +291,8 @@ class Embedder:
     def _write_counter_locked(self, value: int) -> None:
         self._id_counter_path.parent.mkdir(parents=True, exist_ok=True)
         with self._id_counter_path.open("a+", encoding="utf-8") as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
+            with _exclusive_counter_lock(f):
                 self._write_counter_handle(f, value)
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
     @staticmethod
     def _read_counter_handle(handle) -> int:

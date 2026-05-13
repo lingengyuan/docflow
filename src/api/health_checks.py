@@ -272,9 +272,12 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
         }
 
     def model_cache_item(key: str, label: str, model: str, critical: bool = False) -> dict:
+        model_status = local_models.get(key, {})
+        if model_status.get("model"):
+            model = str(model_status["model"])
         cached = True
         if model and "/" in model:
-            cached = local_models.get(key, {}).get("cached", False)
+            cached = bool(model_status.get("cached", False))
         if not model:
             return {
                 "key": key,
