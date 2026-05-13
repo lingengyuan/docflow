@@ -219,6 +219,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "state.js",
         "icons.js",
         "shared-ui.js",
+        "i18n.js",
         "app-shell.js",
         "settings.js",
         "chat.js",
@@ -228,6 +229,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "library.js",
         "history.js",
         "queue-upload.js",
+        "pwa.js",
     ]
 
     assert "<script>\nconst API" not in index
@@ -242,9 +244,35 @@ def test_phase33_frontend_scripts_are_split_by_domain():
     assert "notes:" in state
     assert "settings:" in state
     assert "Object.defineProperties(window" in state
+    assert "locale:" in state
 
     tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
     assert "./frontend/js/**/*.js" in tailwind_config
+
+
+def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
+    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")
+    app_shell = Path("frontend/js/app-shell.js").read_text(encoding="utf-8")
+    pwa = Path("frontend/js/pwa.js").read_text(encoding="utf-8")
+    sw = Path("frontend/sw.js").read_text(encoding="utf-8")
+    manifest = Path("frontend/manifest.webmanifest").read_text(encoding="utf-8")
+
+    assert 'href="/manifest.webmanifest"' in html
+    assert 'class="skip-link"' in html
+    assert 'data-i18n="nav.chat"' in html
+    assert 'data-i18n-placeholder="search.placeholder"' in html
+    assert 'id="locale-toggle-btn"' in html
+    assert 'aria-current="page"' in html
+    assert 'role="region" aria-labelledby="chat-title"' in html
+    assert "DOCFLOW_I18N" in i18n
+    assert "'zh-CN'" in i18n
+    assert "en:" in i18n
+    assert "function toggleLocale" in i18n
+    assert "setAttribute('aria-current', 'page')" in app_shell
+    assert "serviceWorker" in pwa
+    assert "caches.open(DOCFLOW_CACHE)" in sw
+    assert '"display": "standalone"' in manifest
 
 
 def test_phase17_notes_exposes_knowledge_outputs():

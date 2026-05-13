@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DocFlow</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <style>
     :root {
@@ -38,6 +39,25 @@
     }
     .material-symbols-outlined svg .local-icon-fill { fill: none; }
     .material-symbols-outlined.icon-fill svg .local-icon-fill { fill: currentColor; }
+    .skip-link {
+      position: fixed;
+      left: 16px;
+      top: 12px;
+      z-index: 999;
+      transform: translateY(-140%);
+      border-radius: 8px;
+      background: #0e8f8d;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: transform 160ms ease;
+    }
+    .skip-link:focus {
+      transform: translateY(0);
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #d9e4ea; border-radius: 10px; }
@@ -431,6 +451,7 @@
   </style>
 </head>
 <body class="app-shell bg-surface font-sans text-on-surface overflow-hidden h-screen flex">
+<a href="#view-chat" class="skip-link" data-i18n="skip.main">跳到主内容</a>
 
 <!-- ── Left Sidebar ── -->
 <aside class="app-sidebar flex flex-col h-screen flex-shrink-0">
@@ -445,34 +466,34 @@
     </div>
     <span class="sidebar-brand-name text-lg font-bold text-on-surface">DocFlow</span>
   </div>
-  <nav class="flex flex-col gap-2 flex-1" aria-label="主导航">
-    <button id="nav-chat" class="nav-btn active-nav" onclick="switchView('chat')">
+  <nav class="flex flex-col gap-2 flex-1" aria-label="主导航" data-i18n-aria="nav.main">
+    <button id="nav-chat" class="nav-btn active-nav" onclick="switchView('chat')" aria-current="page">
       <span class="material-symbols-outlined icon-fill" style="font-size:20px">chat_bubble</span>
-      <span class="sidebar-label">对话</span>
+      <span class="sidebar-label" data-i18n="nav.chat">对话</span>
     </button>
     <button id="nav-library" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('library')">
       <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
-      <span class="sidebar-label">资料库</span>
+      <span class="sidebar-label" data-i18n="nav.library">资料库</span>
     </button>
     <button id="nav-source" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('source')">
       <span class="material-symbols-outlined" style="font-size:20px">article</span>
-      <span class="sidebar-label">来源预览</span>
+      <span class="sidebar-label" data-i18n="nav.source">来源预览</span>
     </button>
     <button id="nav-notes" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('notes')">
       <span class="material-symbols-outlined" style="font-size:20px">edit_note</span>
-      <span class="sidebar-label">笔记</span>
+      <span class="sidebar-label" data-i18n="nav.notes">笔记</span>
     </button>
     <button id="nav-settings" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('settings')">
       <span class="material-symbols-outlined" style="font-size:20px">tune</span>
-      <span class="sidebar-label">设置</span>
+      <span class="sidebar-label" data-i18n="nav.settings">设置</span>
     </button>
   </nav>
   <div class="mx-2 flex flex-col gap-2">
     <button onclick="switchView('library')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地资料库" aria-label="查看本地资料库">
       <span class="material-symbols-outlined text-primary" style="font-size:17px">inventory_2</span>
       <span class="sidebar-bottom-text min-w-0">
-        <span id="sidebar-storage-label" class="block text-xs font-bold text-on-surface">本地存储</span>
-        <span id="sidebar-storage-count" class="block text-[11px] text-on-surface-variant/60">正在读取</span>
+        <span id="sidebar-storage-label" class="block text-xs font-bold text-on-surface" data-i18n="sidebar.storage">本地存储</span>
+        <span id="sidebar-storage-count" class="block text-[11px] text-on-surface-variant/60" data-i18n="state.loading">正在读取</span>
         <span class="mt-2 block h-1.5 overflow-hidden rounded-full bg-surface-container-high">
           <span id="sidebar-storage-meter" class="block h-full rounded-full bg-primary transition-all" style="width:0%"></span>
         </span>
@@ -481,8 +502,8 @@
     <button onclick="switchView('settings')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地运行状态" aria-label="查看本地运行状态">
       <span id="status-dot" class="w-2 h-2 rounded-full bg-tertiary flex-shrink-0"></span>
       <span class="sidebar-bottom-text min-w-0">
-        <span id="sidebar-status-label" class="block text-xs font-bold text-on-surface">本地运行</span>
-        <span class="block text-[11px] text-on-surface-variant/60">隐私数据仅在本机处理</span>
+        <span id="sidebar-status-label" class="block text-xs font-bold text-on-surface" data-i18n="sidebar.local">本地运行</span>
+        <span class="block text-[11px] text-on-surface-variant/60" data-i18n="sidebar.privacy">隐私数据仅在本机处理</span>
       </span>
     </button>
   </div>
@@ -493,12 +514,15 @@
   <header class="app-topbar flex-shrink-0">
     <label class="global-search" for="global-search-input">
       <span class="material-symbols-outlined text-on-surface-variant/60" style="font-size:18px">search</span>
-      <input id="global-search-input" type="search" placeholder="搜索资料库、笔记或提问… (⌘K)" onkeydown="handleGlobalSearchKey(event)" aria-label="全局搜索或提问">
+      <input id="global-search-input" type="search" placeholder="搜索资料库、笔记或提问… (⌘K)" data-i18n-placeholder="search.placeholder" onkeydown="handleGlobalSearchKey(event)" aria-label="全局搜索或提问" data-i18n-aria="search.aria">
     </label>
     <div class="flex items-center justify-end gap-2">
       <button id="top-local-status" onclick="switchView('settings')" class="top-action" title="查看本地运行状态" aria-label="查看本地运行状态">
         <span id="top-status-dot" class="w-2 h-2 rounded-full bg-tertiary"></span>
-        <span id="top-status-label">本地运行</span>
+        <span id="top-status-label" data-i18n="sidebar.local">本地运行</span>
+      </button>
+      <button onclick="toggleLocale()" id="locale-toggle-btn" class="icon-button" title="切换语言" aria-label="切换语言" data-i18n-title="locale.toggle" data-i18n-aria="locale.toggle">
+        <span class="material-symbols-outlined" style="font-size:18px">language</span>
       </button>
       <button onclick="document.getElementById('file-input-chat').click()" class="icon-button" title="上传文件" aria-label="上传文件">
         <span class="material-symbols-outlined" style="font-size:18px">upload_file</span>
@@ -513,14 +537,14 @@
   </header>
 
   <!-- ── Chat View ── -->
-  <div id="view-chat" class="view flex flex-col flex-1 min-h-0">
+  <div id="view-chat" class="view flex flex-col flex-1 min-h-0" role="region" aria-labelledby="chat-title" tabindex="-1">
     <div class="workspace-shell">
       <div class="workspace-card workspace-grid">
         <section class="relative flex flex-col min-h-0">
     <!-- Header -->
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div class="flex items-center gap-4">
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
+        <h1 id="chat-title" class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
         <div class="relative">
           <button id="conversation-btn" onclick="toggleConversationMenu(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all text-xs font-medium text-on-surface-variant">
             <span class="material-symbols-outlined text-primary" style="font-size:15px">forum</span>
@@ -529,7 +553,7 @@
           </button>
           <div id="conversation-menu" class="hidden absolute left-0 mt-2 w-80 max-h-[520px] overflow-hidden bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50">
             <div class="p-3 border-b border-outline-variant/10 flex items-center justify-between gap-2">
-              <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">对话</span>
+              <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" data-i18n="nav.chat">对话</span>
               <button onclick="createNewConversation()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-on-primary hover:bg-primary-dim transition-all" title="新建对话">
                 <span class="material-symbols-outlined" style="font-size:17px">add</span>
               </button>
@@ -691,9 +715,9 @@
   </div>
 
   <!-- ── Library View ── -->
-  <div id="view-library" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div id="view-library" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="library-title" tabindex="-1">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
-      <h1 class="text-base font-semibold text-on-surface tracking-tight">文件库</h1>
+      <h1 id="library-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="library.title">文件库</h1>
       <div class="flex items-center gap-3">
         <div id="queue-banner" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-medium">
           <span class="spinner"></span>
@@ -914,10 +938,10 @@
   </div>
 
   <!-- ── Source Preview View ── -->
-  <div id="view-source" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div id="view-source" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="source-title" tabindex="-1">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">来源预览与引用详情</h1>
+        <h1 id="source-title" class="text-base font-semibold text-on-surface tracking-tight">来源预览与引用详情</h1>
         <p id="source-preview-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">从回答引用或资料库文件进入，核查每个片段的出处</p>
       </div>
       <button onclick="switchView('library')" title="返回资料库" aria-label="返回资料库" class="toolbar-btn">
@@ -964,10 +988,10 @@
   </div>
 
   <!-- ── Notes View ── -->
-  <div id="view-notes" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div id="view-notes" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="notes-title" tabindex="-1">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">笔记</h1>
+        <h1 id="notes-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="nav.notes">笔记</h1>
         <p class="text-[11px] text-on-surface-variant/60 mt-0.5">采集网页、临时想法和可复用回答</p>
       </div>
       <button onclick="refreshNotesView()" title="刷新笔记列表" aria-label="刷新笔记列表" class="toolbar-btn">
@@ -1178,11 +1202,11 @@
   </div>
 
   <!-- ── Settings View ── -->
-  <div id="view-settings" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div id="view-settings" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="settings-title" tabindex="-1">
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <div>
-        <h1 class="text-base font-semibold text-on-surface tracking-tight">设置</h1>
-        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">本地状态、模型和资料来源</p>
+        <h1 id="settings-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="nav.settings">设置</h1>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5" data-i18n="settings.subtitle">本地状态、模型和资料来源</p>
       </div>
       <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="toolbar-btn whitespace-nowrap">
         <span class="material-symbols-outlined" style="font-size:16px">sync</span>
@@ -1257,6 +1281,18 @@
               <span class="material-symbols-outlined" style="font-size:15px">folder_open</span>
               文件库
             </button>
+          </div>
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 mb-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="font-semibold text-on-surface" data-i18n="locale.label">界面语言</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70" data-i18n="locale.detail">切换常用导航和状态文案。</div>
+              </div>
+              <button onclick="toggleLocale()" class="toolbar-btn justify-center" aria-label="切换语言" data-i18n-aria="locale.toggle">
+                <span class="material-symbols-outlined" style="font-size:15px">language</span>
+                <span id="locale-current-label">中文</span>
+              </button>
+            </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div class="rounded-lg bg-surface-container-low px-3 py-3">
@@ -1349,6 +1385,7 @@
 <script src="/js/state.js"></script>
 <script src="/js/icons.js"></script>
 <script src="/js/shared-ui.js"></script>
+<script src="/js/i18n.js"></script>
 <script src="/js/app-shell.js"></script>
 <script src="/js/settings.js"></script>
 <script src="/js/chat.js"></script>
@@ -1358,5 +1395,6 @@
 <script src="/js/library.js"></script>
 <script src="/js/history.js"></script>
 <script src="/js/queue-upload.js"></script>
+<script src="/js/pwa.js"></script>
 </body>
 </html>

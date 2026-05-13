@@ -25,10 +25,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
 - CI now includes Ubuntu Python 3.11/3.12, macOS Python 3.12, Windows Python 3.12, and a dedicated offline doctor job.
+- The browser shell now has a language toggle foundation, keyboard skip link, active navigation state, and PWA shell files.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 311 passed.
+- Unit/integration tests: 312 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 73 checks passed.

@@ -44,16 +44,20 @@ function handleGlobalSearchKey(event) {
 // ── View switching ──
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-  document.getElementById(`view-${view}`).classList.remove('hidden');
+  const targetView = document.getElementById(`view-${view}`);
+  targetView.classList.remove('hidden');
+  targetView.focus({ preventScroll: true });
 
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.remove('active-nav');
     b.classList.add('opacity-80');
+    b.removeAttribute('aria-current');
   });
   const btn = document.getElementById(`nav-${view}`) || (view === 'history' ? document.getElementById('nav-settings') : null);
   if (btn) {
     btn.classList.add('active-nav');
     btn.classList.remove('opacity-80');
+    btn.setAttribute('aria-current', 'page');
   }
 
   if (view === 'chat') { loadConversations(); loadQueryScopeOptions(); loadLatestAnswerPreview(); }

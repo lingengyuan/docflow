@@ -1,0 +1,17 @@
+{
+  "name": "DocFlow",
+  "short_name": "DocFlow",
+  "description": "Local-first personal knowledge workspace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfdfc",
+  "theme_color": "#0e8f8d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

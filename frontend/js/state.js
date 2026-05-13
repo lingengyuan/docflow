@@ -4,6 +4,7 @@ window.API = '';
 window.DocFlowState = {
   app: {
     pendingConfirmResolve: null,
+    locale: localStorage.getItem('docflow.locale') || 'zh-CN',
   },
   chat: {
     currentConversationId: null,
@@ -77,4 +78,5 @@ Object.defineProperties(window, {
   lastQueueFilesRefreshKey: { get: () => DocFlowState.queue.filesRefreshKey, set: value => { DocFlowState.queue.filesRefreshKey = value; } },
 
   pendingConfirmResolve: { get: () => DocFlowState.app.pendingConfirmResolve, set: value => { DocFlowState.app.pendingConfirmResolve = value; } },
+  docflowLocale: { get: () => DocFlowState.app.locale, set: value => { DocFlowState.app.locale = value; } },
 });
