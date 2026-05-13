@@ -545,3 +545,19 @@ def test_phase64_feedback_and_backlink_ui_are_visible():
     assert "反向关联" in html
     assert "回答反馈" in html
     assert "引用来源" in html
+
+
+def test_phase66_public_surface_hides_internal_planning_artifacts():
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+
+    assert not Path("plans").exists()
+    assert "no longer ships a public `plans/` directory" in status_doc
+    for forbidden in [
+        "Phase 29 handoff",
+        "phase25-browser-acceptance",
+        "python main.py browser-acceptance",
+        "python main.py repair-ids",
+        "python main.py restore-drill",
+    ]:
+        assert forbidden not in changelog

@@ -35,5 +35,3 @@ docflow restore-drill
 ```bash
 docflow browser-acceptance
 ```
-
-`python main.py ...` remains available for local development.
