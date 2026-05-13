@@ -8,6 +8,7 @@ DocFlow exposes commands through `docflow` after `pip install -e .`.
 docflow serve
 docflow doctor
 docflow doctor --offline
+docflow platform --json
 docflow demo
 docflow demo --create-only
 docflow scan

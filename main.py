@@ -8,6 +8,7 @@ DocFlow 入口。
 
   # 启动前检查，或检查后启动 Web 服务
   python main.py doctor [--json] [--strict] [--port 8000]
+  python main.py platform [--json]
   python main.py start [--host 0.0.0.0] [--port 8000] [--check-only] [--json]
 
   # macOS 后台服务（launchd）
@@ -104,6 +105,12 @@ def start_command(args: list[str]):
         as_json="--json" in args,
         check_only="--check-only" in args,
     )
+
+
+def platform_command(args: list[str]):
+    from src.maintenance.platform import platform_command as run_platform
+
+    return run_platform(args)
 
 
 def service_command(args: list[str]):
@@ -329,6 +336,8 @@ def cli() -> int:
         return doctor_command(sys.argv[2:])
     elif cmd == "start":
         return start_command(sys.argv[2:])
+    elif cmd == "platform":
+        return platform_command(sys.argv[2:])
     elif cmd == "service":
         return service_command(sys.argv[2:])
     elif cmd == "install-local":
