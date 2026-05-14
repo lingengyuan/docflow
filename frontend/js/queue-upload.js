@@ -78,7 +78,7 @@ async function triggerIngest() {
   setScanButtonState('loading');
   try {
     const r = await fetch(`${API}/api/ingest`, { method: 'POST' });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '扫描文件夹失败，请稍后再试。'));
     setScanButtonState('queued');
     startQueuePolling();
     setTimeout(refreshFiles, 500);
@@ -92,7 +92,7 @@ async function createDemoLibrary() {
   setScanButtonState('loading');
   try {
     const r = await fetch(`${API}/api/demo`, { method: 'POST' });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '示例资料导入失败，请稍后再试。'));
     switchView('library');
     setScanButtonState('queued');
     startQueuePolling();

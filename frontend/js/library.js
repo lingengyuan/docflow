@@ -244,7 +244,7 @@ async function runLibraryWorkflow() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(payload),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '导入失败，请稍后再试。'));
     const data = await r.json();
     status.textContent = `已加入队列：${data.file?.file_name || data.path}`;
     document.getElementById('workflow-url-input').value = '';
@@ -256,7 +256,7 @@ async function runLibraryWorkflow() {
     pollQueueOnce();
     await refreshFiles();
   } catch (e) {
-    status.textContent = `失败：${e.message}`;
+    status.textContent = `失败：${userFacingErrorMessage(e.message, '导入失败，请稍后再试。')}`;
     status.classList.add('text-error');
   } finally {
     btn.disabled = false;

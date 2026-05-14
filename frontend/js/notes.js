@@ -73,7 +73,7 @@ async function createNoteFromNotesView() {
         user_tags: userTags.length ? userTags : ['note'],
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '笔记保存失败，请稍后再试。'));
     document.getElementById('notes-title-input').value = '';
     document.getElementById('notes-content-input').value = '';
     document.getElementById('notes-collection-input').value = '';
@@ -84,7 +84,7 @@ async function createNoteFromNotesView() {
     startQueuePolling();
     await refreshNotesView();
   } catch (e) {
-    status.textContent = `保存失败：${e.message}`;
+    status.textContent = `保存失败：${userFacingErrorMessage(e.message, '笔记保存失败，请稍后再试。')}`;
     status.classList.add('text-error');
   } finally {
     btn.disabled = false;
@@ -124,7 +124,7 @@ async function importUrlFromNotesView() {
         user_tags: userTags.length ? userTags : ['web'],
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '网页导入失败，请稍后再试。'));
     document.getElementById('notes-url-input').value = '';
     document.getElementById('notes-url-title-input').value = '';
     document.getElementById('notes-url-collection-input').value = '';
@@ -134,7 +134,7 @@ async function importUrlFromNotesView() {
     startQueuePolling();
     await refreshNotesView();
   } catch (e) {
-    status.textContent = `导入失败：${e.message}`;
+    status.textContent = `导入失败：${userFacingErrorMessage(e.message, '网页导入失败，请稍后再试。')}`;
     status.classList.add('text-error');
   } finally {
     btn.disabled = false;
@@ -202,7 +202,7 @@ async function createKnowledgeOutputFromNotesView() {
         user_tags: userTags.length ? userTags : null,
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '知识产物生成失败，请稍后再试。'));
     const data = await r.json();
     document.getElementById('knowledge-title-input').value = '';
     document.getElementById('knowledge-source-input').value = '';
@@ -215,7 +215,7 @@ async function createKnowledgeOutputFromNotesView() {
     startQueuePolling();
     await refreshNotesView();
   } catch (e) {
-    status.textContent = `生成失败：${e.message}`;
+    status.textContent = `生成失败：${userFacingErrorMessage(e.message, '知识产物生成失败，请稍后再试。')}`;
     status.classList.add('text-error');
   } finally {
     btn.disabled = false;
@@ -286,7 +286,8 @@ async function refreshNotesView() {
     renderNotesRecentTable(recentCaptures);
     renderKnowledgeReview(review);
   } catch (e) {
-    list.innerHTML = `<div class="text-error text-sm">笔记列表加载失败：${escHtml(e.message)}</div>`;
+    const message = userFacingErrorMessage(e.message, '笔记列表暂时无法读取。');
+    list.innerHTML = `<div class="text-error text-sm">笔记列表加载失败：${escHtml(message)}</div>`;
     renderKnowledgeReview(null);
   }
 }

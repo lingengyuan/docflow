@@ -39,7 +39,8 @@ async function loadSettingsSources() {
         </table>
       </div>`;
   } catch (e) {
-    el.innerHTML = `<div class="text-error">监控目录读取失败：${escHtml(e.message)}</div>`;
+    const message = userFacingErrorMessage(e.message, '监控目录暂时无法读取。');
+    el.innerHTML = `<div class="text-error">监控目录读取失败：${escHtml(message)}</div>`;
   }
 }
 
@@ -126,6 +127,7 @@ async function loadSettingsStorage() {
       </div>
       ${categoryRows || '<div class="rounded-lg bg-surface-container-low px-3 py-2">暂无存储数据</div>'}`;
   } catch (e) {
-    el.innerHTML = `<div class="text-error">存储统计读取失败：${escHtml(e.message)}</div>`;
+    const message = userFacingErrorMessage(e.message, '存储统计暂时无法读取。');
+    el.innerHTML = `<div class="text-error">存储统计读取失败：${escHtml(message)}</div>`;
   }
 }

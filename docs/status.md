@@ -40,12 +40,13 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The latest dependency review raised `python-multipart`, `pillow`, `onnx`, `pytest`, `mlx`, and `mlx-lm` above the current Dependabot fixed versions. Local `pip-audit` and `npm audit` both report no known vulnerabilities.
 - CI now includes Ubuntu Python 3.11/3.12, macOS Python 3.12, Windows Python 3.12, and a dedicated offline doctor job.
 - The browser shell now has a language toggle foundation, keyboard skip link, active navigation state, and PWA shell files.
+- Browser actions now pass failures through user-facing messages before rendering them, with a static regression check that blocks raw service errors from leaking into normal pages.
 - Public screenshots are regenerated from the bundled demo library so they do not expose local personal paths or private notes.
 - Internal planning notes now live outside the public project surface; the repository no longer ships a public `plans/` directory.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 445 passed.
+- Unit/integration tests: 446 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

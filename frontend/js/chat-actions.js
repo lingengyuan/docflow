@@ -48,7 +48,7 @@ async function saveAnswerFromButton(btn) {
         user_tags: ['answer'],
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '保存笔记失败，请稍后再试。'));
     icon.classList.remove('animate-spin');
     setIcon(icon, 'check');
     setTimeout(() => { setIcon(icon, previousIcon); }, 1500);
@@ -56,7 +56,7 @@ async function saveAnswerFromButton(btn) {
   } catch (e) {
     icon.classList.remove('animate-spin');
     setIcon(icon, 'error');
-    alert(`保存笔记失败：${e.message}`);
+    alert(userFacingErrorMessage(e.message, '保存笔记失败，请稍后再试。'));
     setTimeout(() => { setIcon(icon, previousIcon); }, 1500);
   } finally {
     btn.disabled = false;

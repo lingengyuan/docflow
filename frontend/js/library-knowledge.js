@@ -10,7 +10,8 @@ async function loadKnowledgeOverview(fileId = null) {
     el.innerHTML = knowledgeOverviewMarkup(data);
     renderLocalIcons(el);
   } catch (e) {
-    el.innerHTML = `<h3 class="panel-title">知识视图</h3><div class="mt-3 text-xs text-error">读取失败：${escHtml(e.message)}</div>`;
+    const message = userFacingErrorMessage(e.message, '知识视图暂时无法读取。');
+    el.innerHTML = `<h3 class="panel-title">知识视图</h3><div class="mt-3 text-xs text-error">读取失败：${escHtml(message)}</div>`;
   }
 }
 
@@ -199,7 +200,7 @@ async function openSourceReview(fileId) {
       fileId,
       chunks: [],
       status: 'error',
-      error: e.message,
+      error: userFacingErrorMessage(e.message, '引用片段暂时无法读取。'),
       requestId,
       file: libraryFiles.find(item => item.id === fileId) || null,
     };
@@ -279,7 +280,7 @@ async function saveSourceChunkAsNote(index) {
         user_tags: ['source', 'citation'],
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '保存片段失败，请稍后再试。'));
     const panel = document.getElementById('library-source-review');
     if (panel) {
       panel.insertAdjacentHTML('afterbegin', '<div class="mb-2 rounded-lg bg-tertiary-container px-3 py-2 text-[11px] font-bold text-on-tertiary-container">已保存为笔记，并加入入库队列。</div>');
@@ -288,6 +289,7 @@ async function saveSourceChunkAsNote(index) {
     startQueuePolling();
   } catch (e) {
     const panel = document.getElementById('library-source-review');
-    if (panel) panel.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(e.message)}</div>`);
+    const message = userFacingErrorMessage(e.message, '保存片段失败，请稍后再试。');
+    if (panel) panel.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(message)}</div>`);
   }
 }

@@ -217,6 +217,31 @@ def test_phase32_chat_errors_are_user_facing():
     assert "JSON.parse(eventData))}</span>" not in html
 
 
+def test_phase95_frontend_errors_do_not_expose_raw_details():
+    html = frontend_source_text()
+    raw_error_patterns = [
+        "throw new Error(await r.text())",
+        "失败：${e.message}",
+        "失败: ${e.message}",
+        "读取失败：${escHtml(e.message)}",
+        "加载失败：${e.message}",
+        "加载失败: ${e.message}",
+        "保存失败：${escHtml(e.message)}",
+        "保存笔记失败：${e.message}",
+        "alert(`批量收藏失败: ${e.message}`)",
+        "alert(`批量更新失败: ${e.message}`)",
+        "alert(`整理失败: ${e.message}`)",
+        "alert(`摘要生成失败: ${e.message}`)",
+        "renderLLMStatus({ state: 'error', message: e.message })",
+        "error: e.message",
+    ]
+
+    for pattern in raw_error_patterns:
+        assert pattern not in html
+    assert html.count("responseUserMessage(") >= 12
+    assert html.count("userFacingErrorMessage(") >= 20
+
+
 def test_phase33_frontend_scripts_are_split_by_domain():
     index = Path("frontend/index.html").read_text(encoding="utf-8")
     bootstrap = Path("frontend/js/bootstrap.js").read_text(encoding="utf-8")

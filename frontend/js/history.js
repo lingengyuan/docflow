@@ -24,7 +24,8 @@ async function refreshHistory() {
         </div>
       </div>`).join('');
   } catch (e) {
-    listEl.innerHTML = `<div class="text-center text-error text-sm py-8">加载失败: ${e.message}</div>`;
+    const message = userFacingErrorMessage(e.message, '历史记录暂时无法读取。');
+    listEl.innerHTML = `<div class="text-center text-error text-sm py-8">加载失败：${escHtml(message)}</div>`;
   }
 }
 

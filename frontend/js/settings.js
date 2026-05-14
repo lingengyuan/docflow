@@ -224,7 +224,10 @@ async function switchLLM(model) {
       loadLLMOptions();
     }
   } catch (e) {
-    renderLLMStatus({ state: 'error', message: e.message });
+    renderLLMStatus({
+      state: 'error',
+      message: userFacingErrorMessage(e.message, '模型切换失败，请稍后再试。'),
+    });
     loadLLMOptions();
   } finally {
     document.getElementById('llm-btn').disabled = false;

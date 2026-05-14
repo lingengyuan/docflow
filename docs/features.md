@@ -29,6 +29,7 @@ DocFlow is designed as a local personal knowledge workspace.
 - Active review: see which saved answers are connected to source material, which concepts are active, which questions cited which sources, and which files need better note coverage.
 - Settings: review local model, dependency, watched folder, and storage status.
 - Source Preview: inspect source material behind citations.
+- User-facing messages: normal browser pages explain failures in plain language instead of showing raw service errors.
 
 ## Local Model Options
 

@@ -4,7 +4,10 @@ async function refreshFiles(options = {}) {
   if (showLoading) setRefreshButtonLoading(true);
   try {
     const [files, meta, allFiles] = await Promise.all([
-      fetch(`${API}/api/files${currentFileQuery()}`).then(r => r.json()),
+      fetch(`${API}/api/files${currentFileQuery()}`).then(r => {
+        if (!r.ok) throw new Error('资料列表读取失败');
+        return r.json();
+      }),
       fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
       fetch(`${API}/api/files`).then(r => r.json()).catch(() => []),
     ]);
@@ -89,9 +92,10 @@ async function refreshFiles(options = {}) {
     renderLibraryContext();
   } catch (e) {
     if (requestId !== refreshFilesRequestId) return;
+    const message = userFacingErrorMessage(e.message, '资料列表暂时无法读取。');
     document.getElementById('file-tbody').innerHTML =
-      `<tr><td colspan="10" class="py-8 text-center text-error text-sm">加载失败：${e.message}</td></tr>`;
-    renderLibraryContext({ error: e.message });
+      `<tr><td colspan="10" class="py-8 text-center text-error text-sm">加载失败：${escHtml(message)}</td></tr>`;
+    renderLibraryContext({ error: message });
   } finally {
     if (showLoading && requestId === refreshFilesRequestId) setRefreshButtonLoading(false);
   }

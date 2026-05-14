@@ -70,7 +70,7 @@ async function openSourcePreview(fileId, pageNum = 1, highlight = null) {
       chunks: [],
       selectedIndex: 0,
       loading: false,
-      error: e.message,
+      error: userFacingErrorMessage(e.message, '来源暂时无法读取。'),
       highlight: null,
     };
   }

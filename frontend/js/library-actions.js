@@ -16,7 +16,8 @@ async function loadLibraryFileActivity(file) {
         <div class="mt-1 text-[11px] text-on-surface-variant/60">${(item.created_at || '').slice(0,16)}</div>
       </button>`).join('');
   } catch (e) {
-    el.innerHTML = `<span class="text-error">最近引用读取失败：${escHtml(e.message)}</span>`;
+    const message = userFacingErrorMessage(e.message, '最近引用暂时无法读取。');
+    el.innerHTML = `<span class="text-error">最近引用读取失败：${escHtml(message)}</span>`;
   }
 }
 
@@ -134,7 +135,7 @@ function updateSummarizeBar() {
 async function toggleFavorite(fileId, btn) {
   try {
     const r = await fetch(`${API}/api/favorites/${fileId}`, { method: 'POST' });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '收藏失败，请稍后再试。'));
     const data = await r.json();
     const icon = btn.querySelector('.material-symbols-outlined');
     if (data.favorited) {
@@ -177,10 +178,10 @@ async function favoriteSelected() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ file_ids: [...selectedFileIds], favorited: true }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '收藏失败，请稍后再试。'));
     await refreshFiles();
   } catch (e) {
-    alert(`批量收藏失败: ${e.message}`);
+    alert(userFacingErrorMessage(e.message, '批量收藏失败，请稍后再试。'));
   } finally {
     btn.disabled = false;
   }
@@ -203,12 +204,12 @@ async function applyBatchMetadata() {
         user_tags: userTags.length ? userTags : null,
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '批量更新失败，请稍后再试。'));
     document.getElementById('batch-collection-input').value = '';
     document.getElementById('batch-tags-input').value = '';
     await refreshFiles();
   } catch (e) {
-    alert(`批量更新失败: ${e.message}`);
+    alert(userFacingErrorMessage(e.message, '批量更新失败，请稍后再试。'));
   } finally {
     btn.disabled = false;
   }
@@ -230,12 +231,12 @@ async function rebuildSelected() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ file_ids: [...selectedFileIds] }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '整理失败，请稍后再试。'));
     setScanButtonState('queued');
     pollQueueOnce();
     await refreshFiles();
   } catch (e) {
-    alert(`整理失败: ${e.message}`);
+    alert(userFacingErrorMessage(e.message, '整理失败，请稍后再试。'));
   } finally {
     btn.disabled = false;
   }
@@ -252,7 +253,7 @@ async function summarizeSelected() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ file_ids: [...selectedFileIds] }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '摘要生成失败，请稍后再试。'));
     const md = await r.text();
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -260,7 +261,7 @@ async function summarizeSelected() {
     a.href = url; a.download = 'docflow-summary.md'; a.click();
     URL.revokeObjectURL(url);
   } catch (e) {
-    alert(`摘要生成失败: ${e.message}`);
+    alert(userFacingErrorMessage(e.message, '摘要生成失败，请稍后再试。'));
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">summarize</span><span class="ml-1">生成摘要</span>';

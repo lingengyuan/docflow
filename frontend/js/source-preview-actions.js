@@ -25,13 +25,14 @@ async function savePreviewChunkAsNote() {
         user_tags: ['source', 'citation'],
       }),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await responseUserMessage(r, '保存片段失败，请稍后再试。'));
     const detail = document.getElementById('source-detail-panel');
     if (detail) detail.insertAdjacentHTML('afterbegin', '<div class="mb-2 rounded-lg bg-tertiary-container px-3 py-2 text-[11px] font-bold text-on-tertiary-container">已保存为笔记。</div>');
     setScanButtonState('queued');
     startQueuePolling();
   } catch (e) {
     const detail = document.getElementById('source-detail-panel');
-    if (detail) detail.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(e.message)}</div>`);
+    const message = userFacingErrorMessage(e.message, '保存片段失败，请稍后再试。');
+    if (detail) detail.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(message)}</div>`);
   }
 }
