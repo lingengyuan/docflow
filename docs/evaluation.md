@@ -24,9 +24,9 @@ DocFlow uses measured checks as external quality evidence:
 - Reproducibility checks.
 - Offline privacy checks.
 
-The public-domain smoke set below is reproducible from committed files and is large enough to catch more routine retrieval regressions. It is still not a BEIR, MTEB, or C-MTEB score and should not be treated as a broad external benchmark.
+The public-domain regression set below is reproducible from committed files and is large enough to catch more routine retrieval regressions across law, NASA, literature, civic history, and the original smoke cases. It is still not a BEIR, MTEB, or C-MTEB score and should not be treated as a broad external benchmark.
 
-## Public Reproducible Smoke Benchmark
+## Public Reproducible Retrieval Benchmark
 
 `docflow eval public --write-results` refreshes the committed public-domain corpus in `eval/public_corpus/`, runs `eval/public_retrieval_v1.jsonl`, and reports:
 
@@ -36,9 +36,9 @@ The public-domain smoke set below is reproducible from committed files and is la
 - pass rate
 - retrieval latency P50/P95/max
 
-The public smoke set currently has 190 cases across public-domain, United States government, and NASA text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
+The public regression set currently has 547 cases across public-domain literature, United States government texts, NASA summaries, and civic-history excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
 
-Latest local run: 190/190 passed, Recall@5 1.0, MRR@5 0.9557, nDCG@5 0.9669, retrieval P50 839.0 ms and P95 935.78 ms after model warmup and public corpus refresh.
+Latest local no-rerank run after public corpus refresh: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, retrieval P50 213.92 ms and P95 271.26 ms.
 
 ## Internal Source-Filtered Regression
 
@@ -60,7 +60,7 @@ This set is useful for project regression only. It uses source filtering for man
 
 `docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
 
-Current committed parsing set: 56 documents covering Markdown tables, long Markdown, Obsidian-flavored Markdown, TXT, mixed-language notes, noisy OCR-like text, code-like files, native PDFs, and DOCX. Latest local run: 56/56 passed, 74 chunks checked, 18,216 text characters checked.
+Current committed parsing set: 120 documents covering Markdown tables, long Markdown, Obsidian-flavored Markdown, TXT, mixed-language notes, noisy OCR-like text, code-like files, native PDFs, and DOCX. Latest local run: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 
 ## Incremental Indexing
 

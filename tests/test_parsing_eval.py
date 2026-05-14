@@ -8,7 +8,7 @@ from src.quality.parsing_eval import load_expectations, run_parsing_eval
 def test_load_parsing_expectations():
     expectations = load_expectations("eval/parsing_expected/parsing_v1.json")
 
-    assert len(expectations) == 56
+    assert len(expectations) == 120
     assert [item.id for item in expectations[:2]] == ["markdown_table", "plain_text"]
     assert {item.id for item in expectations} >= {
         "native_text_pdf",
@@ -29,7 +29,7 @@ def test_run_parsing_eval_passes_committed_corpus():
     )
 
     assert report["schema"] == "docflow.parsing_eval.v1"
-    assert report["passed"] == report["cases"] == 56
+    assert report["passed"] == report["cases"] == 120
     assert report["failed"] == 0
     assert report["performance"]["total_chunks"] >= 31
     assert {item["id"] for item in report["results"]} >= {

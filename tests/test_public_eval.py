@@ -10,8 +10,14 @@ def test_public_retrieval_cases_reference_committed_public_corpus():
     cases_path = Path("eval/public_retrieval_v1.jsonl")
     cases = load_cases(cases_path)
 
-    assert len(cases) >= 150
-    assert {case.category for case in cases} == {"public_domain_smoke"}
+    assert len(cases) >= 500
+    assert {case.category for case in cases} >= {
+        "public_domain_smoke",
+        "public_civic_history",
+        "public_law",
+        "public_literature",
+        "public_nasa",
+    }
     for case in cases:
         assert case.expected_files
         assert case.expected_terms
@@ -22,7 +28,7 @@ def test_public_retrieval_cases_reference_committed_public_corpus():
 def test_public_benchmark_metadata_is_explicitly_not_internal_source_filtered():
     metadata = public_benchmark_metadata(Path("eval/public_retrieval_v1.jsonl"))
 
-    assert metadata["kind"] == "public_reproducible_smoke"
+    assert metadata["kind"] == "public_reproducible_regression"
     assert metadata["source_filter"] is False
     assert metadata["corpus_dir"] == "eval/public_corpus"
     assert "not a BEIR, MTEB, or C-MTEB score" in metadata["scope_note"]

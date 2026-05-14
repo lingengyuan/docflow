@@ -1,0 +1,4 @@
+Phase92 Meeting Log 50
+Timestamp 2026-05-15 09:50
+Phase92 Fixture 50 evidence marker appears in a plain text log.
+Decision: keep local knowledge checks measurable.

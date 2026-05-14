@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run DocFlow's committed public-domain retrieval smoke benchmark."""
+"""Run DocFlow's committed public-domain retrieval regression benchmark."""
 
 from __future__ import annotations
 
@@ -32,12 +32,12 @@ DEFAULT_PUBLIC_RESULTS_DIR = DEFAULT_RESULTS_DIR / "public"
 
 def public_benchmark_metadata(cases_path: Path) -> dict:
     return {
-        "name": "DocFlow public-domain retrieval smoke",
-        "kind": "public_reproducible_smoke",
+        "name": "DocFlow public-domain retrieval regression",
+        "kind": "public_reproducible_regression",
         "cases_file": str(cases_path),
         "corpus_dir": "eval/public_corpus",
         "source_filter": False,
-        "scope_note": "Committed public-domain smoke set; not a BEIR, MTEB, or C-MTEB score.",
+        "scope_note": "Committed public-domain regression set; not a BEIR, MTEB, or C-MTEB score.",
     }
 
 

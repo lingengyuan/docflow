@@ -26,8 +26,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The Notes page now surfaces answer-to-source relationship activity in the active review panel.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
-- Public retrieval smoke evaluation now covers 190 committed public-domain, United States government, and NASA text cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
-- Parsing regression now covers 56 committed files across Markdown, Obsidian-flavored Markdown, TXT, noisy OCR-like text, code-like text, PDF, and DOCX fixtures.
+- Public retrieval regression now covers 547 committed public-domain, United States government, NASA, literature, and civic-history cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
+- Parsing regression now covers 120 committed files across Markdown, Obsidian-flavored Markdown, TXT, noisy OCR-like text, code-like text, PDF, and DOCX fixtures.
 - Performance smoke now covers parser/chunker behavior for a synthetic long note and a synthetic many-note library in the standard local CI script.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
@@ -47,9 +47,9 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
-- Public eval: 190/190 passed, Recall@5 1.0, MRR@5 0.9557, nDCG@5 0.9669, P50 839.0 ms, P95 935.78 ms. This is a committed public-domain smoke check, not a broad public benchmark.
+- Public eval: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, P50 213.92 ms, P95 271.26 ms. This is a committed public-domain regression check, not a broad public benchmark.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
-- Parsing eval: 56/56 passed, 74 chunks checked, 18,216 text characters checked.
+- Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
@@ -60,7 +60,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The answer-level source check verifies citation coverage, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
 - Parser/chunker performance smoke is now in the standard local CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of CI.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
-- Public eval is still a smoke set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
+- Public eval is still a committed regression set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 - DocFlow is not published to PyPI yet. Source checkout and Docker remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 

@@ -367,9 +367,9 @@ def test_phase74_public_eval_is_separate_from_internal_regression():
     assert Path("eval/public_corpus/README.md").exists()
     assert "docflow eval public" in cli_doc
     assert 'args[0] == "public"' in main_source
-    assert "public-domain smoke" in readme
+    assert "public-domain regression" in readme
     assert "公开可复现检索评估" in readme_zh
-    assert "Public Reproducible Smoke Benchmark" in evaluation_doc
+    assert "Public Reproducible Retrieval Benchmark" in evaluation_doc
     assert "Internal Source-Filtered Regression" in evaluation_doc
     assert "not a BEIR, MTEB, or C-MTEB score" in evaluation_doc
     assert "Public eval:" in status_doc

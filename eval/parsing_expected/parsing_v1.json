@@ -757,6 +757,774 @@
       "required_chunk_types": [
         "text"
       ]
+    },
+    {
+      "id": "phase92_markdown_00",
+      "path": "phase92_markdown_00.md",
+      "required_phrases": [
+        "Phase92 Fixture 00 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_01",
+      "path": "phase92_txt_01.txt",
+      "required_phrases": [
+        "Phase92 Fixture 01 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_02",
+      "path": "phase92_python_02.py",
+      "required_phrases": [
+        "Phase92 Fixture 02 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_03",
+      "path": "phase92_typescript_03.ts",
+      "required_phrases": [
+        "Phase92 Fixture 03 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_04",
+      "path": "phase92_css_04.css",
+      "required_phrases": [
+        "Phase92 Fixture 04 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_05",
+      "path": "phase92_shell_05.sh",
+      "required_phrases": [
+        "Phase92 Fixture 05 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_06",
+      "path": "phase92_rust_06.rs",
+      "required_phrases": [
+        "Phase92 Fixture 06 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_07",
+      "path": "phase92_markdown_07.md",
+      "required_phrases": [
+        "Phase92 Fixture 07 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_08",
+      "path": "phase92_txt_08.txt",
+      "required_phrases": [
+        "Phase92 Fixture 08 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_09",
+      "path": "phase92_python_09.py",
+      "required_phrases": [
+        "Phase92 Fixture 09 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_10",
+      "path": "phase92_typescript_10.ts",
+      "required_phrases": [
+        "Phase92 Fixture 10 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_11",
+      "path": "phase92_css_11.css",
+      "required_phrases": [
+        "Phase92 Fixture 11 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_12",
+      "path": "phase92_shell_12.sh",
+      "required_phrases": [
+        "Phase92 Fixture 12 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_13",
+      "path": "phase92_rust_13.rs",
+      "required_phrases": [
+        "Phase92 Fixture 13 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_14",
+      "path": "phase92_markdown_14.md",
+      "required_phrases": [
+        "Phase92 Fixture 14 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_15",
+      "path": "phase92_txt_15.txt",
+      "required_phrases": [
+        "Phase92 Fixture 15 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_16",
+      "path": "phase92_python_16.py",
+      "required_phrases": [
+        "Phase92 Fixture 16 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_17",
+      "path": "phase92_typescript_17.ts",
+      "required_phrases": [
+        "Phase92 Fixture 17 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_18",
+      "path": "phase92_css_18.css",
+      "required_phrases": [
+        "Phase92 Fixture 18 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_19",
+      "path": "phase92_shell_19.sh",
+      "required_phrases": [
+        "Phase92 Fixture 19 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_20",
+      "path": "phase92_rust_20.rs",
+      "required_phrases": [
+        "Phase92 Fixture 20 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_21",
+      "path": "phase92_markdown_21.md",
+      "required_phrases": [
+        "Phase92 Fixture 21 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_22",
+      "path": "phase92_txt_22.txt",
+      "required_phrases": [
+        "Phase92 Fixture 22 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_23",
+      "path": "phase92_python_23.py",
+      "required_phrases": [
+        "Phase92 Fixture 23 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_24",
+      "path": "phase92_typescript_24.ts",
+      "required_phrases": [
+        "Phase92 Fixture 24 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_25",
+      "path": "phase92_css_25.css",
+      "required_phrases": [
+        "Phase92 Fixture 25 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_26",
+      "path": "phase92_shell_26.sh",
+      "required_phrases": [
+        "Phase92 Fixture 26 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_27",
+      "path": "phase92_rust_27.rs",
+      "required_phrases": [
+        "Phase92 Fixture 27 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_28",
+      "path": "phase92_markdown_28.md",
+      "required_phrases": [
+        "Phase92 Fixture 28 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_29",
+      "path": "phase92_txt_29.txt",
+      "required_phrases": [
+        "Phase92 Fixture 29 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_30",
+      "path": "phase92_python_30.py",
+      "required_phrases": [
+        "Phase92 Fixture 30 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_31",
+      "path": "phase92_typescript_31.ts",
+      "required_phrases": [
+        "Phase92 Fixture 31 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_32",
+      "path": "phase92_css_32.css",
+      "required_phrases": [
+        "Phase92 Fixture 32 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_33",
+      "path": "phase92_shell_33.sh",
+      "required_phrases": [
+        "Phase92 Fixture 33 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_34",
+      "path": "phase92_rust_34.rs",
+      "required_phrases": [
+        "Phase92 Fixture 34 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_35",
+      "path": "phase92_markdown_35.md",
+      "required_phrases": [
+        "Phase92 Fixture 35 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_36",
+      "path": "phase92_txt_36.txt",
+      "required_phrases": [
+        "Phase92 Fixture 36 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_37",
+      "path": "phase92_python_37.py",
+      "required_phrases": [
+        "Phase92 Fixture 37 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_38",
+      "path": "phase92_typescript_38.ts",
+      "required_phrases": [
+        "Phase92 Fixture 38 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_39",
+      "path": "phase92_css_39.css",
+      "required_phrases": [
+        "Phase92 Fixture 39 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_40",
+      "path": "phase92_shell_40.sh",
+      "required_phrases": [
+        "Phase92 Fixture 40 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_41",
+      "path": "phase92_rust_41.rs",
+      "required_phrases": [
+        "Phase92 Fixture 41 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_42",
+      "path": "phase92_markdown_42.md",
+      "required_phrases": [
+        "Phase92 Fixture 42 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_43",
+      "path": "phase92_txt_43.txt",
+      "required_phrases": [
+        "Phase92 Fixture 43 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_44",
+      "path": "phase92_python_44.py",
+      "required_phrases": [
+        "Phase92 Fixture 44 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_45",
+      "path": "phase92_typescript_45.ts",
+      "required_phrases": [
+        "Phase92 Fixture 45 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_46",
+      "path": "phase92_css_46.css",
+      "required_phrases": [
+        "Phase92 Fixture 46 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_47",
+      "path": "phase92_shell_47.sh",
+      "required_phrases": [
+        "Phase92 Fixture 47 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_48",
+      "path": "phase92_rust_48.rs",
+      "required_phrases": [
+        "Phase92 Fixture 48 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_49",
+      "path": "phase92_markdown_49.md",
+      "required_phrases": [
+        "Phase92 Fixture 49 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_50",
+      "path": "phase92_txt_50.txt",
+      "required_phrases": [
+        "Phase92 Fixture 50 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_51",
+      "path": "phase92_python_51.py",
+      "required_phrases": [
+        "Phase92 Fixture 51 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_52",
+      "path": "phase92_typescript_52.ts",
+      "required_phrases": [
+        "Phase92 Fixture 52 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_53",
+      "path": "phase92_css_53.css",
+      "required_phrases": [
+        "Phase92 Fixture 53 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_54",
+      "path": "phase92_shell_54.sh",
+      "required_phrases": [
+        "Phase92 Fixture 54 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_55",
+      "path": "phase92_rust_55.rs",
+      "required_phrases": [
+        "Phase92 Fixture 55 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_56",
+      "path": "phase92_markdown_56.md",
+      "required_phrases": [
+        "Phase92 Fixture 56 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_txt_57",
+      "path": "phase92_txt_57.txt",
+      "required_phrases": [
+        "Phase92 Fixture 57 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_python_58",
+      "path": "phase92_python_58.py",
+      "required_phrases": [
+        "Phase92 Fixture 58 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_typescript_59",
+      "path": "phase92_typescript_59.ts",
+      "required_phrases": [
+        "Phase92 Fixture 59 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_css_60",
+      "path": "phase92_css_60.css",
+      "required_phrases": [
+        "Phase92 Fixture 60 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_shell_61",
+      "path": "phase92_shell_61.sh",
+      "required_phrases": [
+        "Phase92 Fixture 61 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_rust_62",
+      "path": "phase92_rust_62.rs",
+      "required_phrases": [
+        "Phase92 Fixture 62 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "phase92_markdown_63",
+      "path": "phase92_markdown_63.md",
+      "required_phrases": [
+        "Phase92 Fixture 63 evidence marker"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
     }
   ]
 }
