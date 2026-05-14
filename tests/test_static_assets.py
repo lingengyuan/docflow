@@ -428,6 +428,64 @@ def test_phase78_package_artifacts_include_runtime_resources():
     assert '"--target"' in package_smoke
 
 
+def test_phase80_desktop_ui_has_labels_focus_and_status_contract():
+    html = frontend_source_text()
+    app_html = Path("frontend/partials/app.html").read_text(encoding="utf-8")
+    app_css = Path("frontend/app.css").read_text(encoding="utf-8")
+    browser_acceptance = Path("src/quality/browser_acceptance.py").read_text(encoding="utf-8")
+
+    labeled_controls = [
+        "query-scope-mode",
+        "input",
+        "workflow-title-input",
+        "workflow-url-input",
+        "workflow-collection-input",
+        "workflow-tags-input",
+        "workflow-content-input",
+        "library-status-filter",
+        "library-collection-filter",
+        "library-tag-filter",
+        "batch-collection-input",
+        "batch-tags-input",
+        "notes-title-input",
+        "notes-collection-input",
+        "notes-tags-input",
+        "notes-content-input",
+        "notes-url-input",
+        "notes-url-title-input",
+        "notes-url-collection-input",
+        "notes-url-tags-input",
+        "knowledge-title-input",
+        "knowledge-collection-input",
+        "knowledge-tags-input",
+        "knowledge-source-input",
+        "knowledge-model-select",
+    ]
+    for control_id in labeled_controls:
+        assert f'for="{control_id}"' in app_html
+
+    for status_id in [
+        "query-scope-status",
+        "queue-banner",
+        "workflow-status",
+        "notes-status",
+        "notes-url-status",
+        "knowledge-status",
+        "settings-insights-list",
+        "settings-storage-list",
+        "chat-context-queue",
+    ]:
+        assert f'id="{status_id}"' in html
+
+    assert "desktop_status_messages_are_announced" in browser_acceptance
+    assert "hasAssociatedLabel" in browser_acceptance
+    assert "document.querySelector(`label[for=\"" in browser_acceptance
+    assert "notes-url-status" in browser_acceptance
+    assert "knowledge-status" in browser_acceptance
+    assert "button:focus-visible" in app_css
+    assert "outline: 2px solid rgb(var(--color-primary))" in app_css
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

@@ -154,24 +154,28 @@
     <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pt-12 pb-8 px-6">
       <div class="max-w-2xl mx-auto">
         <div id="query-scope-controls" class="mb-2 flex items-center gap-2 text-xs">
+          <label class="sr-only" for="query-scope-mode">提问范围</label>
           <select id="query-scope-mode" onchange="updateQueryScopeControls()" aria-label="提问范围" class="h-8 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20">
             <option value="all">全部知识库</option>
             <option value="collection">指定集合</option>
             <option value="file">指定文件</option>
             <option value="full_text">全文模式</option>
           </select>
+          <label class="sr-only" for="query-scope-collection">选择集合</label>
           <select id="query-scope-collection" onchange="updateQueryScopeControls()" aria-label="选择集合" class="hidden h-8 max-w-[190px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
+          <label class="sr-only" for="query-scope-file">选择文件</label>
           <select id="query-scope-file" onchange="updateQueryScopeControls()" aria-label="选择文件" class="hidden h-8 max-w-[240px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
           <button id="query-scope-refresh" onclick="loadQueryScopeOptions(true)" title="刷新范围选项" aria-label="刷新范围选项" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant/60 hover:text-primary hover:bg-surface-container active:scale-95 transition-all">
             <span class="material-symbols-outlined" style="font-size:15px">sync</span>
           </button>
-          <span id="query-scope-status" class="text-[10px] text-on-surface-variant/45 whitespace-nowrap"></span>
+          <span id="query-scope-status" role="status" aria-live="polite" class="text-[10px] text-on-surface-variant/45 whitespace-nowrap"></span>
         </div>
         <div class="relative flex items-end bg-surface-container-lowest border border-outline-variant/15 rounded-2xl shadow-sm focus-within:shadow-md focus-within:border-primary/40 transition-all p-1.5 gap-1">
           <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()" title="添加文件" aria-label="添加文件">
             <span class="material-symbols-outlined">add_circle</span>
           </button>
           <input type="file" id="file-input-chat" accept=".pdf,.md,.markdown,.txt,.docx,.py,.rs,.ts,.css,.sh,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
+          <label class="sr-only" for="input">提问内容</label>
           <textarea id="input" rows="1"
             placeholder="向你的文档提问…"
             class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-2 placeholder:text-on-surface-variant/40 resize-none overflow-hidden leading-relaxed outline-none"
@@ -331,11 +335,16 @@
         </button>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <label class="sr-only" for="workflow-title-input">标题</label>
         <input id="workflow-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <label class="sr-only" for="workflow-url-input">网页地址</label>
         <input id="workflow-url-input" placeholder="https://example.com/article" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <label class="sr-only" for="workflow-collection-input">集合</label>
         <input id="workflow-collection-input" list="collection-options" placeholder="集合" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <label class="sr-only" for="workflow-tags-input">标签</label>
         <input id="workflow-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
       </div>
+      <label class="sr-only" for="workflow-content-input">笔记内容</label>
       <textarea id="workflow-content-input" rows="5" placeholder="笔记内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
       <div class="mt-3 flex items-center justify-between gap-3">
         <span id="workflow-status" role="status" aria-live="polite" class="text-[11px] text-on-surface-variant/60"></span>
@@ -389,6 +398,7 @@
         </div>
         <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">筛选</div>
         <div class="flex flex-col gap-2 text-xs">
+          <label class="sr-only" for="library-status-filter">文件状态</label>
           <select id="library-status-filter" onchange="applyLibraryFilters()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
             <option value="">全部状态</option>
             <option value="done">已完成</option>
@@ -396,9 +406,11 @@
             <option value="pending">等待中</option>
             <option value="error">出错</option>
           </select>
+          <label class="sr-only" for="library-collection-filter">集合筛选</label>
           <select id="library-collection-filter" onchange="applyLibraryFilters()" class="h-9 min-w-0 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
             <option value="">全部集合</option>
           </select>
+          <label class="sr-only" for="library-tag-filter">标签筛选</label>
           <select id="library-tag-filter" onchange="applyLibraryFilters()" class="h-9 min-w-0 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
             <option value="">全部标签</option>
           </select>
@@ -431,7 +443,9 @@
             <span class="material-symbols-outlined" style="font-size:15px">star</span>
             加入收藏
           </button>
+          <label class="sr-only" for="batch-collection-input">批量设置集合</label>
           <input id="batch-collection-input" list="collection-options" placeholder="集合" class="h-8 w-36 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
+          <label class="sr-only" for="batch-tags-input">批量设置标签</label>
           <input id="batch-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-8 w-44 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
           <button onclick="applyBatchMetadata()" id="apply-metadata-btn" class="toolbar-btn">
             <span class="material-symbols-outlined" style="font-size:15px">sell</span>
@@ -450,7 +464,7 @@
           <table class="w-full min-w-[980px] text-sm">
             <thead>
               <tr class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
-                <th class="text-left py-3 pr-4 w-8"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded"></th>
+                <th class="text-left py-3 pr-4 w-8"><label class="sr-only" for="select-all">选择全部文件</label><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded" aria-label="选择全部文件"></th>
                 <th class="text-left py-3 pr-4">文件名</th>
                 <th class="text-left py-3 pr-4">集合</th>
                 <th class="text-left py-3 pr-4">标签</th>
@@ -556,8 +570,11 @@
             <h2 class="text-sm font-semibold text-on-surface">新建 Markdown 笔记</h2>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="sr-only" for="notes-title-input">笔记标题</label>
             <input id="notes-title-input" placeholder="标题" maxlength="200" oninput="updateNotesEditorStats()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="notes-collection-input">笔记集合</label>
             <input id="notes-collection-input" list="collection-options" placeholder="集合，默认笔记" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="notes-tags-input">笔记标签</label>
             <input id="notes-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
           <div id="notes-editor-toolbar" class="mt-3 flex flex-wrap gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
@@ -585,6 +602,7 @@
               <span class="material-symbols-outlined" style="font-size:14px">table</span>
             </button>
           </div>
+          <label class="sr-only" for="notes-content-input">笔记内容</label>
           <textarea id="notes-content-input" rows="10" placeholder="写下要入库的内容，支持 Markdown…" oninput="updateNotesEditorStats()" class="mt-2 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 text-[11px] text-on-surface-variant/60">
@@ -606,10 +624,14 @@
             <span class="material-symbols-outlined text-primary" style="font-size:18px">language</span>
             <h2 class="text-sm font-semibold text-on-surface">导入网页</h2>
           </div>
+          <label class="sr-only" for="notes-url-input">网页地址</label>
           <input id="notes-url-input" placeholder="https://example.com/article" class="h-9 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="sr-only" for="notes-url-title-input">网页标题</label>
             <input id="notes-url-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="notes-url-collection-input">网页集合</label>
             <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认网页采集" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="notes-url-tags-input">网页标签</label>
             <input id="notes-url-tags-input" list="tag-options" placeholder="标签，默认 web" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
           <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-on-surface-variant">
@@ -630,7 +652,7 @@
             导入会把网页正文保存成 Markdown 文件，再进入本地入库队列。适合公开文章、文档页和短网页。
           </div>
           <div class="mt-3 flex items-center justify-between gap-3">
-            <span id="notes-url-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <span id="notes-url-status" role="status" aria-live="polite" class="text-[11px] text-on-surface-variant/60"></span>
             <button id="notes-url-submit-btn" onclick="importUrlFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest active:scale-95 transition-all">
               <span class="material-symbols-outlined" style="font-size:15px">add_link</span>
               导入网页
@@ -677,18 +699,22 @@
               <option value="action_items">行动项</option>
               <option value="project_brief">项目简报</option>
             </select>
+            <label class="sr-only" for="knowledge-title-input">知识产物标题</label>
             <input id="knowledge-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="knowledge-collection-input">知识产物集合</label>
             <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <label class="sr-only" for="knowledge-tags-input">知识产物标签</label>
             <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
           </div>
+          <label class="sr-only" for="knowledge-source-input">知识产物来源内容</label>
           <textarea id="knowledge-source-input" rows="2" placeholder="粘贴会议记录、文章片段、项目说明，或先在资料库选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
           <div class="mt-3 flex items-center justify-between gap-3">
             <div class="flex items-center gap-2 text-[11px] text-on-surface-variant/60">
-              <span>模型</span>
+              <label for="knowledge-model-select">模型</label>
               <select id="knowledge-model-select" onchange="handleKnowledgeModelSelect()" class="h-8 min-w-[160px] rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
                 <option>读取中</option>
               </select>
-              <span id="knowledge-status"></span>
+              <span id="knowledge-status" role="status" aria-live="polite"></span>
             </div>
             <button id="knowledge-submit-btn" onclick="createKnowledgeOutputFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
               <span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span>

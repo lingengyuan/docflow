@@ -202,6 +202,11 @@ def run_browser_acceptance(
         )
         _run_check(
             checks,
+            "desktop_status_messages_are_announced",
+            lambda: _check_status_messages_are_announced(page),
+        )
+        _run_check(
+            checks,
             "keyboard_focus_reaches_controls",
             lambda: _check_keyboard_focus(page, timeout_ms),
         )
@@ -364,6 +369,11 @@ def _check_basic_accessibility_contract(page: Any) -> dict[str, int]:
     violations = page.evaluate(
         """
         () => {
+          const hasAssociatedLabel = el => {
+            if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) return true;
+            if (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) return true;
+            return Boolean(el.closest('label'));
+          };
           const unlabeledButtons = Array.from(document.querySelectorAll('button,[role="button"]'))
             .filter(el => {
               const text = (el.innerText || '').trim();
@@ -375,12 +385,22 @@ def _check_basic_accessibility_contract(page: Any) -> dict[str, int]:
           ))
             .filter(el => {
               const type = (el.getAttribute('type') || '').toLowerCase();
-              if (['checkbox', 'radio', 'button', 'submit', 'file'].includes(type)) return false;
+              if (['button', 'submit', 'file'].includes(type)) return false;
               if (el.offsetParent === null) return false;
-              return !el.getAttribute('aria-label') && !el.getAttribute('placeholder') && !el.id;
+              return !hasAssociatedLabel(el);
             })
             .map(el => el.id || el.tagName);
-          const missingLiveRegions = ['queue-banner', 'workflow-status', 'notes-status']
+          const missingLiveRegions = [
+            'query-scope-status',
+            'queue-banner',
+            'workflow-status',
+            'notes-status',
+            'notes-url-status',
+            'knowledge-status',
+            'settings-insights-list',
+            'settings-storage-list',
+            'chat-context-queue',
+          ]
             .filter(id => !document.getElementById(id)?.getAttribute('aria-live'));
           return { unlabeledButtons, unlabeledFields, missingLiveRegions };
         }
@@ -394,6 +414,47 @@ def _check_basic_accessibility_contract(page: Any) -> dict[str, int]:
     if any(violations.values()):
         raise AssertionError("; ".join(problems))
     return {"checked": 3}
+
+
+def _check_status_messages_are_announced(page: Any) -> dict[str, int]:
+    result = page.evaluate(
+        """
+        () => {
+          const ids = [
+            'query-scope-status',
+            'queue-banner',
+            'workflow-status',
+            'notes-status',
+            'notes-url-status',
+            'knowledge-status',
+            'settings-insights-list',
+            'settings-storage-list',
+            'chat-context-queue',
+          ];
+          const missing = ids.filter(id => {
+            const el = document.getElementById(id);
+            return !el || el.getAttribute('role') !== 'status' ||
+              el.getAttribute('aria-live') !== 'polite';
+          });
+          const developerTerms = [
+            'python main.py',
+            'restore-drill',
+            'repair-ids',
+            'browser-acceptance',
+            'doctor',
+            'dry-run',
+          ];
+          const visibleText = document.body.innerText || '';
+          const leaked = developerTerms.filter(term => visibleText.includes(term));
+          return { missing, leaked, checked: ids.length };
+        }
+        """
+    )
+    if result["missing"] or result["leaked"]:
+        raise AssertionError(
+            f"status regions missing={result['missing']} leaked={result['leaked']}"
+        )
+    return {"checked": result["checked"]}
 
 
 def _check_keyboard_focus(page: Any, timeout_ms: int) -> dict[str, str]:
