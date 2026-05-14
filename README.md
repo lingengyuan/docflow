@@ -9,7 +9,7 @@ The screenshots in this README are captured from the bundled demo library, not a
 DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
 - **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
-- **Measured checks.** Current local checks include a 547-case public-domain regression eval, 84 source-filtered internal retrieval cases, 120 parsing fixtures, 443 tests, and 81 browser checks.
+- **Measured checks.** Current local checks include a 547-case public-domain regression eval, 84 source-filtered internal retrieval cases, 120 parsing fixtures, 445 tests, and 81 browser checks.
 - **Drop-in local models.** Works with Ollama, LM Studio, or any OpenAI-compatible local endpoint.
 
 Quick start:
@@ -49,7 +49,7 @@ flowchart LR
 ## Features
 
 - Ask questions across PDFs, Markdown, DOCX, TXT, code-like files, and optional image content.
-- Review source snippets, save useful answers as notes, and inspect topics, similar files, and knowledge cards.
+- Review source snippets, save useful answers as notes, and inspect topics, similar files, knowledge cards, active concepts, and source-to-answer trails.
 - Metadata in SQLite, vectors in Qdrant, model traffic local by default when a local backend is selected.
 - Verify behavior end-to-end: unit tests, browser acceptance checks, retrieval eval, parsing eval, and an offline network check.
 

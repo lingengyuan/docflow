@@ -25,6 +25,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Browser UI now presents model choices, collections, watched folders, queue stages, and source labels in user-facing language.
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
 - The Notes page now surfaces answer-to-source relationship activity in the active review panel.
+- The active review panel now includes data-backed knowledge-depth signals: active concepts, question-to-source trails, coverage gaps, and next actions.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Public retrieval regression now covers 547 committed public-domain, United States government, NASA, literature, and civic-history cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
@@ -44,7 +45,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 443 passed.
+- Unit/integration tests: 445 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

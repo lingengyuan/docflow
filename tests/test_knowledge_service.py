@@ -109,6 +109,39 @@ def test_knowledge_service_builds_active_review_from_usage_signals(tmp_path):
         assert review["relationship_timeline"][0]["note"]["id"] == note_id
         assert review["relationship_timeline"][0]["source"]["id"] == source_id
         assert review["relationship_timeline"][0]["label"] == "保存回答引用了来源"
+        depth = review["knowledge_depth"]
+        assert depth["concepts"]
+        assert depth["source_trails"][0]["question"] == "How should I review privacy notes?"
+        assert depth["source_trails"][0]["files"][0]["id"] == source_id
+        assert depth["source_trails"][0]["feedback"]["rating"] == "useful"
+        assert depth["next_actions"]
+    finally:
+        store.close()
+
+
+def test_knowledge_depth_flags_cited_sources_without_saved_notes(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    try:
+        source_id = _add_file(
+            store,
+            tmp_path,
+            "citation-gap.md",
+            "privacy citation source review needs durable note coverage",
+        )
+        store.add_history(
+            "Which privacy source should become a note?",
+            "Use the cited source.",
+            citations_json=json.dumps([{"file_name": "citation-gap.md"}]),
+        )
+
+        review = KnowledgeService().review(store)
+        depth = review["knowledge_depth"]
+
+        assert depth["coverage_gaps"]
+        assert depth["coverage_gaps"][0]["type"] == "cited_without_note"
+        assert depth["coverage_gaps"][0]["file"]["id"] == source_id
+        assert depth["source_trails"][0]["citation_count"] == 1
+        assert depth["next_actions"][0]["type"] == "coverage_gap"
     finally:
         store.close()
 

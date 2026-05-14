@@ -728,6 +728,21 @@ def test_notes_review_surfaces_answer_source_relationships():
     assert "来源：" in text
 
 
+def test_phase94_knowledge_depth_surfaces_usage_loops():
+    service = Path("src/api/services/knowledge_depth.py").read_text(encoding="utf-8")
+    review_service = Path("src/api/services/knowledge_review.py").read_text(encoding="utf-8")
+    ui = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+
+    assert "KnowledgeDepthService" in service
+    assert "source_trails" in service
+    assert "coverage_gaps" in service
+    assert "concepts" in service
+    assert "knowledge_depth" in review_service
+    assert "knowledgeSourceTrailMarkup" in ui
+    assert "knowledgeCoverageGapMarkup" in ui
+    assert "knowledgeConceptMarkup" in ui
+
+
 def test_source_preview_highlights_exact_citation_range():
     text = Path("frontend/js/source-preview.js").read_text(encoding="utf-8")
 

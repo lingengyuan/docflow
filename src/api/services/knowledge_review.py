@@ -7,13 +7,17 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
+from src.api.services.knowledge_depth import KnowledgeDepthService
 from src.domain_types import FileStatus
 from src.ingest.store import DocStore
 
 
 class KnowledgeReviewService:
+    def __init__(self) -> None:
+        self._depth_service = KnowledgeDepthService()
+
     def review(self, store: DocStore, *, base: Any, limit: int = 6) -> dict[str, Any]:
-        files = store.list_files(status=FileStatus.DONE)
+        files = [dict(file) for file in store.list_files(status=FileStatus.DONE)]
         profiles = [base._build_file_profile(store, file) for file in files]
         history = store.list_history(limit=40)
         feedback = store.get_feedback_summary()
@@ -29,6 +33,14 @@ class KnowledgeReviewService:
             limit=limit,
         )
         relationship_timeline = self._relationship_timeline(store, files, limit=limit)
+        knowledge_depth = self._depth_service.summarize(
+            store,
+            profiles=profiles,
+            history=history,
+            citation_counts=citation_counts,
+            base=base,
+            limit=limit,
+        )
         return {
             "signals": self._review_signals(files, history, feedback, store),
             "recent_activity": {
@@ -45,6 +57,7 @@ class KnowledgeReviewService:
             "topic_activity": self._topic_activity(topics, history, base=base, limit=limit),
             "review_queue": review_queue,
             "relationship_timeline": relationship_timeline,
+            "knowledge_depth": knowledge_depth,
             "recommendations": self._recommendations(
                 files,
                 history,
@@ -187,7 +200,7 @@ class KnowledgeReviewService:
         base: Any,
         limit: int,
     ) -> list[dict[str, Any]]:
-        question_terms = Counter()
+        question_terms: Counter[str] = Counter()
         for item in history:
             question_terms.update(base._tokens(str(item.get("question") or "")))
         activity = []
