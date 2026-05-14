@@ -8,6 +8,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
+from src.api.services.knowledge_review import KnowledgeReviewService
 from src.domain_types import FileStatus
 from src.ingest.store import DocStore
 
@@ -42,6 +43,9 @@ STOPWORDS = {
 
 
 class KnowledgeService:
+    def __init__(self) -> None:
+        self._review_service = KnowledgeReviewService()
+
     def overview(
         self,
         store: DocStore,
@@ -83,6 +87,9 @@ class KnowledgeService:
                 "outbound_links": len(outbound_links),
             },
         }
+
+    def review(self, store: DocStore, *, limit: int = 6) -> dict[str, Any]:
+        return self._review_service.review(store, base=self, limit=limit)
 
     def _build_file_profile(self, store: DocStore, file: dict) -> dict[str, Any]:
         chunks = store.list_file_chunks(int(file["id"]))[:8]

@@ -228,11 +228,12 @@ async function refreshNotesView() {
   const count = document.getElementById('notes-count');
   if (!list) return;
   try {
-    const [files, meta, history, queue] = await Promise.all([
+    const [files, meta, history, queue, review] = await Promise.all([
       fetch(`${API}/api/files?status=done`).then(r => r.json()),
       fetch(`${API}/api/library/meta`).then(r => r.json()).catch(() => libraryMeta),
       fetch(`${API}/api/history?limit=10`).then(r => r.json()).catch(() => []),
       fetch(`${API}/api/queue`).then(r => r.json()).catch(() => null),
+      fetch(`${API}/api/knowledge/review`).then(r => r.json()).catch(() => null),
     ]);
     historyItems = Array.isArray(history) ? history : historyItems;
     libraryMeta = meta || libraryMeta;
@@ -283,8 +284,10 @@ async function refreshNotesView() {
 
     renderNotesTimeline(queue, recentCaptures);
     renderNotesRecentTable(recentCaptures);
+    renderKnowledgeReview(review);
   } catch (e) {
     list.innerHTML = `<div class="text-error text-sm">笔记列表加载失败：${escHtml(e.message)}</div>`;
+    renderKnowledgeReview(null);
   }
 }
 

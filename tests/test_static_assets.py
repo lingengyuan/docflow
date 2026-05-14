@@ -232,6 +232,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "settings-data.js",
         "chat.js",
         "notes.js",
+        "notes-review.js",
         "chat-stream.js",
         "chat-actions.js",
         "source-preview.js",
@@ -318,6 +319,21 @@ def test_phase71_knowledge_graph_is_visible_and_data_backed():
     assert "knowledge_graph" in service
     assert "topic_file" in service
     assert "backlink" in service
+
+
+def test_phase72_active_review_is_visible_and_data_backed():
+    html = frontend_source_text()
+    service = Path("src/api/services/knowledge_review.py").read_text(encoding="utf-8")
+    routes = Path("src/api/routes/knowledge.py").read_text(encoding="utf-8")
+
+    assert "主动回顾" in html
+    assert 'id="knowledge-review-panel"' in html
+    assert "renderKnowledgeReview" in html
+    assert "/api/knowledge/review" in html
+    assert "review_queue" in service
+    assert "topic_activity" in service
+    assert "citation_counts" in service
+    assert "/api/knowledge/review" in routes
 
 
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():

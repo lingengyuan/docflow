@@ -94,6 +94,12 @@ async def knowledge_overview(file_id: int | None = None):
     return _api().knowledge_service.overview(_api().store, active_file_id=file_id)
 
 
+async def knowledge_review(limit: int = 6):
+    if _api().store is None:
+        raise HTTPException(503, "Store not ready")
+    return _api().knowledge_service.review(_api().store, limit=limit)
+
+
 async def update_file_metadata(file_id: int, req: FileMetadataRequest):
     if _api().store is None:
         raise HTTPException(503, "Store not ready")

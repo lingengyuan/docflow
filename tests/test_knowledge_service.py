@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -71,6 +72,44 @@ def test_knowledge_service_derives_topics_similar_documents_and_cards(tmp_path):
         store.close()
 
 
+def test_knowledge_service_builds_active_review_from_usage_signals(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    try:
+        source_id = _add_file(
+            store,
+            tmp_path,
+            "research-notes.md",
+            "privacy review citations backlinks useful answers",
+        )
+        note_id = _add_file(
+            store,
+            tmp_path,
+            "saved-answer.md",
+            "saved answer connected to research notes",
+            collection="Saved Answers",
+        )
+        store.replace_note_source_links(note_id, [source_id])
+        history_id = store.add_history(
+            "How should I review privacy notes?",
+            "Review source notes.",
+            citations_json=json.dumps([{"file_name": "research-notes.md"}]),
+        )
+        store.set_answer_feedback(history_id, "useful")
+
+        review = KnowledgeService().review(store)
+
+        assert review["signals"]["files"] == 2
+        assert review["signals"]["questions"] == 1
+        assert review["signals"]["saved_answers"] == 1
+        assert review["signals"]["backlinks"] >= 1
+        assert review["topic_activity"]
+        assert review["recommendations"]
+        assert review["review_queue"][0]["file"]["id"] == source_id
+        assert review["review_queue"][0]["signals"]["citations"] == 1
+    finally:
+        store.close()
+
+
 def test_knowledge_overview_api_uses_current_store(monkeypatch, tmp_path):
     store = DocStore(tmp_path / "docflow.db")
     try:
@@ -92,5 +131,28 @@ def test_knowledge_overview_api_uses_current_store(monkeypatch, tmp_path):
         assert body["knowledge_cards"][0]["source_file"]["id"] == file_id
         assert body["backlinks"] == []
         assert body["knowledge_graph"]["stats"]["nodes"] >= 1
+    finally:
+        store.close()
+
+
+def test_knowledge_review_api_uses_current_store(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    try:
+        _add_file(
+            store,
+            tmp_path,
+            "active-review.md",
+            "active review should be based on local usage signals",
+        )
+        monkeypatch.setattr(api_app, "store", store)
+
+        client = TestClient(api_app.app)
+        response = client.get("/api/knowledge/review")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["signals"]["files"] == 1
+        assert body["review_queue"]
+        assert body["recommendations"]
     finally:
         store.close()

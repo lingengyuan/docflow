@@ -90,8 +90,15 @@ def build_browser_acceptance_plan() -> list[ViewAcceptance]:
                 "#knowledge-output-panel",
                 "#knowledge-submit-btn",
                 "#notes-list",
+                "#knowledge-review-panel",
             ),
-            expected_text=("新建 Markdown 笔记", "导入网页", "生成知识产物", "最近采集"),
+            expected_text=(
+                "新建 Markdown 笔记",
+                "导入网页",
+                "生成知识产物",
+                "主动回顾",
+                "最近采集",
+            ),
         ),
         ViewAcceptance(
             id="settings",
@@ -764,7 +771,12 @@ def _wait_for_view_ready(page: Any, view: ViewAcceptance, timeout_ms: int) -> di
             () => {
                 const list = document.querySelector('#notes-list');
                 const outputs = document.querySelector('#knowledge-output-panel');
-                return Boolean(list && outputs && (list.innerText || '').trim());
+                const review = document.querySelector('#knowledge-review-panel');
+                return Boolean(
+                  list && outputs && review &&
+                  (list.innerText || '').trim() &&
+                  (review.innerText || '').trim()
+                );
             }
             """,
             timeout=timeout_ms,

@@ -29,6 +29,7 @@ from src.api.handlers.library_handlers import (
     batch_update_file_metadata,
     clear_history,
     knowledge_overview,
+    knowledge_review,
     library_meta,
     list_favorites,
     list_file_chunks,
@@ -245,6 +246,7 @@ def _register_api_routes() -> None:
         knowledge_routes.create_router(
             {
                 "knowledge_overview": knowledge_overview,
+                "knowledge_review": knowledge_review,
             }
         )
     )
