@@ -19,7 +19,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Streaming answers now finalize the displayed answer and saved history against the same
   chunk-level citation validation used by non-streamed answers.
 - Answers now include a deterministic sentence-level source check that flags conclusions
-  without verified source markers in both normal and streaming responses.
+  without verified source markers or with cited snippets that do not share meaningful
+  content terms in both normal and streaming responses.
 - Source preview can highlight the cited source range when citation span metadata is available.
 - Browser UI now presents model choices, collections, watched folders, queue stages, and source labels in user-facing language.
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
@@ -43,7 +44,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 390 passed.
+- Unit/integration tests: 443 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
@@ -57,7 +58,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
-- The answer-level source check verifies citation coverage, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
+- The answer-level source check verifies citation coverage and source-content overlap, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
 - Parser/chunker performance smoke is now in the standard local CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of CI.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is still a committed regression set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.

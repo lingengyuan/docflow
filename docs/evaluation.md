@@ -74,9 +74,9 @@ Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; man
 
 ## Citation Alignment
 
-`tests/test_citation_alignment.py`, `tests/test_claim_support.py`, `tests/test_query_service.py`, and stream conversation tests cover source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, legacy citation compatibility, streamed-answer finalization before history is saved, and sentence-level checks that flag answer claims without verified source markers.
+`tests/test_citation_alignment.py`, `tests/test_claim_support.py`, `tests/test_query_service.py`, and stream conversation tests cover source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, legacy citation compatibility, streamed-answer finalization before history is saved, sentence-level checks that flag answer claims without verified source markers, and deterministic source-content overlap checks that flag cited claims whose cited snippets do not share meaningful content terms.
 
-The claim-support check is deterministic citation coverage. It proves whether each displayed claim carries a verified source marker; it does not replace human review or a broad factuality benchmark.
+The claim-support check is deterministic citation and source-content coverage. It proves whether each displayed claim carries a verified source marker and whether the cited snippets share meaningful surface terms with the claim. It does not replace human review, semantic entailment, or a broad factuality benchmark.
 
 ## Internal Planning Report
 

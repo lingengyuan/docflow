@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import pytest
+
 from src.api.services.evidence_service import EvidenceService
 from src.api.services.query_service import QueryService
 from src.query.answer_quality import grounded_quality, quality_with_claim_support
-from src.query.claim_support import audit_answer_claim_support, split_answer_claims
+from src.query.claim_support import (
+    audit_answer_claim_support,
+    meaningful_terms,
+    source_support_score,
+    split_answer_claims,
+)
 from src.query.generator import Citation
 
 
 def test_claim_support_marks_fully_cited_answer_supported():
-    citations = [Citation(file_name="alpha.md", page_num=1, snippet="alpha", score=0.9)]
+    citations = [Citation(file_name="alpha.md", page_num=1, snippet="Alpha 结论成立", score=0.9)]
 
     audit = audit_answer_claim_support("Alpha 结论成立 [来源: alpha.md, 第1页]。", citations)
 
@@ -19,7 +26,7 @@ def test_claim_support_marks_fully_cited_answer_supported():
 
 
 def test_claim_support_flags_uncited_claims():
-    citations = [Citation(file_name="alpha.md", page_num=1, snippet="alpha", score=0.9)]
+    citations = [Citation(file_name="alpha.md", page_num=1, snippet="Alpha 结论成立", score=0.9)]
 
     audit = audit_answer_claim_support(
         "Alpha 结论成立 [来源: alpha.md, 第1页]。Beta 结论缺少来源。",
@@ -39,6 +46,53 @@ def test_claim_support_flags_unverified_source_markers():
     assert audit["level"] == "unsupported"
     assert audit["unverified_claims"] == 1
     assert audit["unverified_examples"] == ["编造结论 [未验证来源]。"]
+
+
+def test_claim_support_flags_verified_marker_with_wrong_source_text():
+    citations = [
+        Citation(
+            file_name="alpha.md",
+            page_num=1,
+            snippet="Alpha roadmap approved local indexing",
+            score=0.9,
+        )
+    ]
+
+    audit = audit_answer_claim_support(
+        "Beta retention policy blocks cloud sync [来源: alpha.md, 第1页]。",
+        citations,
+    )
+
+    assert audit["level"] == "unsupported"
+    assert audit["weak_source_claims"] == 1
+    assert audit["claims"][0]["status"] == "weak_source"
+
+
+def test_source_support_score_uses_shared_content_terms():
+    score = source_support_score(
+        "Local indexing keeps private notes searchable [来源: alpha.md, 第1页]。",
+        [
+            Citation(
+                file_name="alpha.md",
+                page_num=1,
+                snippet="Private notes stay searchable through local indexing.",
+                score=0.9,
+            )
+        ],
+    )
+
+    assert score["supported"] is True
+    assert {"local", "indexing", "private", "searchable"} & set(score["shared_terms"])
+
+
+def test_meaningful_terms_ignores_generic_words():
+    terms = meaningful_terms("This source claim says fact 42 about local indexing.")
+
+    assert "source" not in terms
+    assert "claim" not in terms
+    assert "fact" not in terms
+    assert "local" in terms
+    assert "indexing" in terms
 
 
 def test_claim_support_ignores_no_answer_message():
@@ -99,3 +153,24 @@ def test_stream_finalize_returns_claim_support_quality():
     assert [citation["chunk_id"] for citation in citations] == ["q:1"]
     assert quality["status"] == "citation_needs_review"
     assert quality["claim_support"]["unsupported_claims"] == 1
+
+
+@pytest.mark.parametrize("index", range(50))
+def test_claim_support_rejects_wrong_source_content_matrix(index):
+    citations = [
+        Citation(
+            file_name=f"source_{index}.md",
+            page_num=1,
+            snippet=f"Alpha roadmap approval keeps local index stable for team {index}.",
+            score=0.9,
+        )
+    ]
+
+    audit = audit_answer_claim_support(
+        f"Beta retention policy blocks cloud sync path [来源: source_{index}.md, 第1页]。",
+        citations,
+    )
+
+    assert audit["weak_source_claims"] == 1
+    assert audit["supported_claims"] == 0
+    assert audit["coverage"] == 0.0
