@@ -11,6 +11,7 @@ Use this checklist before tagging a public DocFlow release.
 - Confirm known limitations are listed in `docs/status.md`.
 - Confirm install cost, model size boundaries, and upgrade notes are current in `README.md`, `docs/development.md`, and `docs/architecture.md`.
 - Confirm Docker image release notes name the exact image tag, for example `ghcr.io/lingengyuan/docflow:v0.58.0`.
+- Confirm `scripts/run_release_surface_check.py` passes so the public docs, Docker files, workflows, package data, and ignored internal history are aligned.
 - Confirm `scripts/package_smoke.py` passes before treating wheel artifacts as releasable.
 
 ## 2. Validate
@@ -19,6 +20,7 @@ Run the release checks from a clean working tree:
 
 ```bash
 scripts/run_ci.sh
+python scripts/run_release_surface_check.py
 docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
@@ -52,6 +54,7 @@ Tagged releases build:
 
 - Python wheel and source archive artifacts through `.github/workflows/python-package.yml`.
 - GHCR Docker images through `.github/workflows/docker-image.yml`.
+- The release surface check is part of the local CI script so public docs, install paths, package data, and internal-file exclusions are checked before release work.
 
 DocFlow is not published to PyPI yet. Wheel artifacts now include browser assets, config templates, and runtime docs, and the installed-wheel smoke test must pass before a release. Before enabling PyPI publishing, review optional heavy dependencies and publish policy separately.
 

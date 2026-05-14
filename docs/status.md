@@ -43,6 +43,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Browser actions now pass failures through user-facing messages before rendering them, with a static regression check that blocks raw service errors from leaking into normal pages.
 - Public screenshots are regenerated from the bundled demo library so they do not expose local personal paths or private notes.
 - Internal planning notes now live outside the public project surface; the repository no longer ships a public `plans/` directory.
+- Release surface checks now verify public docs, README/status validation counts, Docker Compose files, workflows, package data, and ignored internal handoff/output paths before package smoke testing.
 
 ## Latest Local Validation
 
@@ -54,6 +55,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
+- Release surface check: passed.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
 ## Remaining Gaps
