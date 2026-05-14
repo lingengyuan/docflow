@@ -21,6 +21,7 @@ class ParseExpectation:
     id: str
     path: str
     required_phrases: list[str]
+    metadata_terms: list[str]
     chunk_count_min: int
     chunk_count_max: int
     required_chunk_types: list[str]
@@ -34,6 +35,7 @@ def load_expectations(path: str | Path = DEFAULT_EXPECTED_PATH) -> list[ParseExp
             id=item["id"],
             path=item["path"],
             required_phrases=list(item.get("required_phrases", [])),
+            metadata_terms=list(item.get("metadata_terms", [])),
             chunk_count_min=int(item.get("chunk_count_min", 1)),
             chunk_count_max=int(item.get("chunk_count_max", 999)),
             required_chunk_types=list(item.get("required_chunk_types", [])),
@@ -100,6 +102,7 @@ def evaluate_document(
 
     chunks = _chunk_document(doc, chunker)
     text = _document_text(doc)
+    metadata_text = json.dumps(doc.metadata, ensure_ascii=False, sort_keys=True, default=str)
     chunk_types = _chunk_type_counts(chunks)
 
     missing_phrases = [
@@ -107,6 +110,14 @@ def evaluate_document(
     ]
     if missing_phrases:
         failures.append("missing_phrases=" + ",".join(missing_phrases))
+
+    missing_metadata_terms = [
+        term
+        for term in expectation.metadata_terms
+        if term.lower() not in metadata_text.lower()
+    ]
+    if missing_metadata_terms:
+        failures.append("missing_metadata_terms=" + ",".join(missing_metadata_terms))
 
     if len(chunks) < expectation.chunk_count_min:
         failures.append(f"too_few_chunks={len(chunks)}")
@@ -127,6 +138,7 @@ def evaluate_document(
         "chunk_types": chunk_types,
         "table_rows": table_rows,
         "text_chars": len(text),
+        "metadata_keys": sorted(str(key) for key in doc.metadata),
     }
     return _result(expectation, path, not failures, failures, details, chunks)
 

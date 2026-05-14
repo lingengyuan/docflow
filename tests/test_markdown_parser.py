@@ -7,6 +7,7 @@ def test_obsidian_cleanup_preserves_markdown_headings(tmp_path):
         """---
 tags:
   - project/docflow
+review: weekly
 ---
 # Top
 
@@ -29,3 +30,4 @@ tags:
     assert "^block-id" not in text
     assert "project/docflow" in doc.metadata["tags"]
     assert "inline-tag" in doc.metadata["tags"]
+    assert doc.metadata["review"] == "weekly"

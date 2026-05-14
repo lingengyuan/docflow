@@ -1,0 +1,8 @@
+From: alex@example.test
+To: docflow@example.test
+Subject: Source review
+
+Email thread parser evidence says the cited answer should link back to the source paragraph.
+
+From: docflow@example.test
+The follow-up confirms the source paragraph was preserved.

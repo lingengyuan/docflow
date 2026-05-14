@@ -1,0 +1,5 @@
+Receipt-like fixture
+Vendor: Local Library
+Total: 42.80
+Tax: 3.20
+Receipt parser evidence should keep numeric rows searchable.

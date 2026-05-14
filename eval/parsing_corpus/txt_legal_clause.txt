@@ -1,0 +1,4 @@
+Section 1. Local Evidence.
+The system shall preserve legal clause parser evidence and maintain source span references.
+Section 2. Review.
+Unsupported claims shall be marked clearly.

@@ -1,0 +1,5 @@
+name,kind,status
+source-a,markdown,ready
+source-b,pdf,review
+source-c,docx,ready
+CSV-like parser evidence should preserve comma separated rows.

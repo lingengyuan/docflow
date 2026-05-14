@@ -1,0 +1,3 @@
+0CR n0ise fixture
+The line contains OCR noise evidence with rnixed characters and broken spacing.
+The parser should still keep the recognizable phrase noisy source review.

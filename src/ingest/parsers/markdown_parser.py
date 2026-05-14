@@ -2,7 +2,7 @@
 MarkdownParser — 解析 .md 文件，清洗 Obsidian 语法后作为单页文档返回。
 
 清洗规则（按 obsidian-markdown 语法规范）：
-  - YAML frontmatter: strip from text, 提取 tags/aliases 存入 metadata
+  - YAML frontmatter: strip from text, 提取 metadata
   - [[wikilink]]: → 保留文字
   - ![[embed]]: strip
   - %%隐藏注释%%: strip
@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -57,6 +58,16 @@ def _extract_inline_tags(text: str) -> list[str]:
     return tags
 
 
+def _json_safe_metadata(value: Any) -> Any:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, list):
+        return [_json_safe_metadata(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_safe_metadata(item) for key, item in value.items()}
+    return str(value)
+
+
 class MarkdownParser:
     def parse(self, file_path: Path) -> ParsedDocument:
         raw = file_path.read_text(encoding="utf-8", errors="replace")
@@ -77,6 +88,10 @@ class MarkdownParser:
                 tags.append(fm_tags)
             if fm.get("aliases"):
                 metadata["aliases"] = fm["aliases"]
+            for key, value in fm.items():
+                if key in {"tags", "aliases"}:
+                    continue
+                metadata[str(key)] = _json_safe_metadata(value)
             raw = raw[fm_match.end() :]
 
         # 2. 提取行内 #tags（在清洗前）

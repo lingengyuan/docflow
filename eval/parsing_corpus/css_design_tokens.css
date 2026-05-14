@@ -1,0 +1,8 @@
+:root {
+  --docflow-accent: #0e8f8d;
+  --docflow-surface: #f7fbfa;
+}
+
+.knowledge-card {
+  border-color: var(--docflow-accent); /* css design token parser evidence */
+}

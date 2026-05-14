@@ -409,6 +409,354 @@
       "required_chunk_types": [
         "text"
       ]
+    },
+    {
+      "id": "markdown_dense_table",
+      "path": "markdown_dense_table.md",
+      "required_phrases": [
+        "Dense Table Fixture",
+        "Dense table parser evidence",
+        "follow up"
+      ],
+      "chunk_count_min": 3,
+      "chunk_count_max": 10,
+      "required_chunk_types": [
+        "table",
+        "table_summary"
+      ],
+      "table_rows_min": 8
+    },
+    {
+      "id": "markdown_nested_lists",
+      "path": "markdown_nested_lists.md",
+      "required_phrases": [
+        "Nested List Fixture",
+        "Backlink target",
+        "Knowledge card"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_footnotes",
+      "path": "markdown_footnotes.md",
+      "required_phrases": [
+        "Footnote Fixture",
+        "Footnote parser evidence",
+        "external calls explicit"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_blockquote",
+      "path": "markdown_blockquote.md",
+      "required_phrases": [
+        "Blockquote Fixture",
+        "Blockquote parser evidence",
+        "follow-up summary evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_yaml_tags",
+      "path": "markdown_yaml_tags.md",
+      "required_phrases": [
+        "YAML Tags Fixture",
+        "YAML tag parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ],
+      "metadata_terms": [
+        "privacy",
+        "retrieval",
+        "review"
+      ]
+    },
+    {
+      "id": "markdown_unicode_symbols",
+      "path": "markdown_unicode_symbols.md",
+      "required_phrases": [
+        "Unicode Symbol Fixture",
+        "α, β, γ",
+        "résumé text"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_long_table",
+      "path": "markdown_long_table.md",
+      "required_phrases": [
+        "Long Table Fixture",
+        "Benchmark",
+        "Long table parser evidence"
+      ],
+      "chunk_count_min": 3,
+      "chunk_count_max": 12,
+      "required_chunk_types": [
+        "table",
+        "table_summary"
+      ],
+      "table_rows_min": 14
+    },
+    {
+      "id": "markdown_heading_depth",
+      "path": "markdown_heading_depth.md",
+      "required_phrases": [
+        "Depth Fixture",
+        "Level Four",
+        "Heading depth parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "markdown_frontmatter_dates",
+      "path": "markdown_frontmatter_dates.md",
+      "required_phrases": [
+        "Frontmatter Dates Fixture",
+        "Date metadata parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ],
+      "metadata_terms": []
+    },
+    {
+      "id": "obsidian_embeds",
+      "path": "obsidian_embeds.md",
+      "required_phrases": [
+        "Obsidian Embed Fixture",
+        "Obsidian embed parser evidence",
+        "source review"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "obsidian_properties",
+      "path": "obsidian_properties.md",
+      "required_phrases": [
+        "Obsidian Properties Fixture",
+        "Obsidian properties parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 6,
+      "required_chunk_types": [
+        "text"
+      ],
+      "metadata_terms": [
+        "Local Knowledge Hub",
+        "weekly"
+      ]
+    },
+    {
+      "id": "txt_receipt_like",
+      "path": "txt_receipt_like.txt",
+      "required_phrases": [
+        "Receipt-like fixture",
+        "Total: 42.80",
+        "Receipt parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_timestamp_log",
+      "path": "txt_timestamp_log.txt",
+      "required_phrases": [
+        "timestamp log evidence",
+        "parser completed"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_email_thread",
+      "path": "txt_email_thread.txt",
+      "required_phrases": [
+        "Email thread parser evidence",
+        "source paragraph was preserved"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_multilingual_mixed",
+      "path": "txt_multilingual_mixed.txt",
+      "required_phrases": [
+        "中文说明",
+        "multilingual mixed evidence",
+        "引用の位置"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_csv_like",
+      "path": "txt_csv_like.txt",
+      "required_phrases": [
+        "CSV-like parser evidence",
+        "source-b,pdf,review"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_ocr_noise",
+      "path": "txt_ocr_noise.txt",
+      "required_phrases": [
+        "OCR noise evidence",
+        "noisy source review"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_legal_clause",
+      "path": "txt_legal_clause.txt",
+      "required_phrases": [
+        "legal clause parser evidence",
+        "Unsupported claims"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "txt_research_notes_long",
+      "path": "txt_research_notes_long.txt",
+      "required_phrases": [
+        "Research Notes Long Fixture",
+        "long research parser evidence 30"
+      ],
+      "chunk_count_min": 2,
+      "chunk_count_max": 12,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "python_dataclass_sample",
+      "path": "python_dataclass_sample.py",
+      "required_phrases": [
+        "KnowledgeRecord",
+        "dataclass_parser_evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "python_async_sample",
+      "path": "python_async_sample.py",
+      "required_phrases": [
+        "fetch_local_status",
+        "async parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "typescript_component_sample",
+      "path": "typescript_component_sample.ts",
+      "required_phrases": [
+        "KnowledgeCardProps",
+        "typescript component parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "rust_enum_sample",
+      "path": "rust_enum_sample.rs",
+      "required_phrases": [
+        "SourceState",
+        "rust_enum_parser_evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "shell_backup_sample",
+      "path": "shell_backup_sample.sh",
+      "required_phrases": [
+        "shell backup parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
+    },
+    {
+      "id": "css_design_tokens",
+      "path": "css_design_tokens.css",
+      "required_phrases": [
+        "docflow-accent",
+        "css design token parser evidence"
+      ],
+      "chunk_count_min": 1,
+      "chunk_count_max": 5,
+      "required_chunk_types": [
+        "text"
+      ]
     }
   ]
 }

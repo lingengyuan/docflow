@@ -25,7 +25,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Public retrieval smoke evaluation now covers 190 committed public-domain, United States government, and NASA text cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
-- Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
+- Parsing regression now covers 56 committed files across Markdown, Obsidian-flavored Markdown, TXT, noisy OCR-like text, code-like text, PDF, and DOCX fixtures.
 - Performance smoke now covers parser/chunker behavior for a synthetic long note and a synthetic many-note library in the standard local CI script.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
@@ -47,7 +47,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Browser acceptance: 81 checks passed.
 - Public eval: 190/190 passed, Recall@5 1.0, MRR@5 0.9557, nDCG@5 0.9669, P50 839.0 ms, P95 935.78 ms. This is a committed public-domain smoke check, not a broad public benchmark.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
-- Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
+- Parsing eval: 56/56 passed, 74 chunks checked, 18,216 text characters checked.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 

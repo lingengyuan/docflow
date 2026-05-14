@@ -1,0 +1,4 @@
+Multilingual fixture
+中文说明：本地知识库需要保留来源。
+English note: multilingual mixed evidence should remain searchable.
+日本語メモ: 引用の位置を確認します。
