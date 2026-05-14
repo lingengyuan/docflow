@@ -16,6 +16,7 @@ Run the release checks from a clean working tree:
 
 ```bash
 scripts/run_ci.sh
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 docflow eval public --write-results
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
 docflow browser-acceptance

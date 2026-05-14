@@ -210,6 +210,11 @@ def eval_command(args: list[str]):
 
         sys.argv = [sys.argv[0], *args[1:]]
         return run_parsing_eval_main()
+    if args and args[0] == "public":
+        from scripts.run_public_eval import main as run_public_eval_main
+
+        sys.argv = [sys.argv[0], *args[1:]]
+        return run_public_eval_main()
     if args and args[0] == "retrieval":
         args = args[1:]
     from scripts.run_eval import main as run_eval_main

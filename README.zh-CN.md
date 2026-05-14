@@ -29,7 +29,7 @@ docker compose up --build
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`317` 个测试通过，`74` 个浏览器检查通过，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`360` 个测试通过，`79` 个浏览器检查通过，公开可复现小样本检索评估 `6/6`，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
 
 这些数字适合用来守住项目回归，不等同于大规模公开 benchmark。
 
@@ -65,6 +65,7 @@ pip install -e .
 docker compose up -d qdrant
 docflow demo --create-only
 .venv/bin/python -m pytest -q
+docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
 docflow browser-acceptance

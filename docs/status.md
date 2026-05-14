@@ -19,6 +19,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
+- Public retrieval smoke evaluation now covers 6 committed public-domain cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
@@ -31,10 +32,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 317 passed.
+- Unit/integration tests: 360 passed.
 - Ruff: passed.
 - Mypy: passed.
-- Browser acceptance: 74 checks passed.
+- Browser acceptance: 79 checks passed.
+- Public eval: 6/6 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 865.42 ms, P95 3603.8 ms. This is a small public-domain smoke check, not a broad public benchmark.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 297.48 ms, P95 793.96 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
@@ -45,6 +47,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - Large-file and large-library benchmarks are not yet part of the standard CI path.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
+- Public eval is currently a small smoke set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 
 ## Status Update Rule

@@ -354,6 +354,27 @@ def test_phase73_trusted_answer_evidence_is_visible_and_data_backed():
     assert 'q.put(("evidence"' in query_handlers
 
 
+def test_phase74_public_eval_is_separate_from_internal_regression():
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+    cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
+    main_source = Path("main.py").read_text(encoding="utf-8")
+
+    assert Path("scripts/run_public_eval.py").exists()
+    assert Path("eval/public_retrieval_v1.jsonl").exists()
+    assert Path("eval/public_corpus/README.md").exists()
+    assert "docflow eval public" in cli_doc
+    assert 'args[0] == "public"' in main_source
+    assert "public-domain smoke" in readme
+    assert "公开可复现小样本" in readme_zh
+    assert "Public Reproducible Smoke Benchmark" in evaluation_doc
+    assert "Internal Source-Filtered Regression" in evaluation_doc
+    assert "not a BEIR, MTEB, or C-MTEB score" in evaluation_doc
+    assert "Public eval:" in status_doc
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

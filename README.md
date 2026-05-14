@@ -7,7 +7,7 @@ English · [简体中文](README.zh-CN.md)
 DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
 - **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
-- **Measured project regression.** Current source-filtered repo checks: 84 retrieval cases, 31 parsing fixtures, 317 tests, and 74 browser checks.
+- **Measured checks.** Current local checks include a 6-case public-domain smoke eval, 84 source-filtered internal retrieval cases, 31 parsing fixtures, 360 tests, and 79 browser checks.
 - **Drop-in local models.** Works with Ollama, LM Studio, or any OpenAI-compatible local endpoint.
 
 Quick start:
@@ -79,6 +79,7 @@ pip install -e .
 docker compose up -d qdrant
 docflow demo --create-only
 .venv/bin/python -m pytest -q
+docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
 docflow browser-acceptance
