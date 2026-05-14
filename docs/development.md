@@ -8,7 +8,7 @@ For daily use, prefer one of these supported paths:
 - Docker from source: run `docker compose up --build` to build the app container and start Qdrant together.
 - Docker image release: after a tagged image is published, run `docker compose -f docker-compose.image.yml up` to use `ghcr.io/lingengyuan/docflow` without rebuilding locally.
 
-DocFlow is not on PyPI yet. The project first needs a package-data review for browser assets, configuration templates, and optional heavy model dependencies. Until that is complete, use source checkout or Docker.
+DocFlow is not on PyPI yet. The wheel now packages browser assets, configuration templates, and public docs, and `scripts/package_smoke.py` verifies an installed wheel can find them. Until PyPI publishing is enabled, use source checkout or Docker for daily use.
 
 ```bash
 python -m venv .venv
@@ -42,7 +42,7 @@ First-run storage expectations:
 scripts/run_ci.sh
 ```
 
-This runs compile checks, ruff, mypy, pytest, frontend syntax checks, frontend unit tests, the frontend build, and dependency audit. Use `docs/release.md` before publishing a release.
+This runs compile checks, ruff, mypy, pytest, frontend syntax checks, frontend unit tests, the frontend build, dependency audit, and the installed-wheel smoke test. Use `docs/release.md` before publishing a release.
 
 Frontend and dependency checks:
 

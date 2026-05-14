@@ -21,6 +21,72 @@ py-modules = ["main"]
 [tool.setuptools.packages.find]
 include = ["src*", "scripts*"]
 
+[tool.setuptools.data-files]
+"share/docflow" = [
+  "config.example.yaml",
+  "README.md",
+  "README.zh-CN.md",
+  "LICENSE",
+]
+"share/docflow/frontend" = [
+  "frontend/app.css",
+  "frontend/favicon.svg",
+  "frontend/index.html",
+  "frontend/manifest.webmanifest",
+  "frontend/styles.css",
+  "frontend/sw.js",
+]
+"share/docflow/frontend/js" = [
+  "frontend/js/app-shell.js",
+  "frontend/js/bootstrap.js",
+  "frontend/js/chat-actions.js",
+  "frontend/js/chat-evidence.js",
+  "frontend/js/chat-stream.js",
+  "frontend/js/chat.js",
+  "frontend/js/history.js",
+  "frontend/js/i18n.js",
+  "frontend/js/icons.js",
+  "frontend/js/library-actions.js",
+  "frontend/js/library-knowledge.js",
+  "frontend/js/library-render.js",
+  "frontend/js/library.js",
+  "frontend/js/notes-review.js",
+  "frontend/js/notes.js",
+  "frontend/js/pwa.js",
+  "frontend/js/queue-upload.js",
+  "frontend/js/settings-bootstrap.js",
+  "frontend/js/settings-data.js",
+  "frontend/js/settings-models.js",
+  "frontend/js/settings.js",
+  "frontend/js/shared-ui.js",
+  "frontend/js/source-preview-actions.js",
+  "frontend/js/source-preview.js",
+  "frontend/js/state.js",
+  "frontend/js/theme.js",
+]
+"share/docflow/frontend/js/generated" = [
+  "frontend/js/generated/stream-parser.js",
+]
+"share/docflow/frontend/partials" = [
+  "frontend/partials/app.html",
+]
+"share/docflow/docs" = [
+  "docs/architecture.md",
+  "docs/cli.md",
+  "docs/development.md",
+  "docs/evaluation.md",
+  "docs/features.md",
+  "docs/privacy.md",
+  "docs/release.md",
+  "docs/status.md",
+]
+"share/docflow/docs/assets" = [
+  "docs/assets/chat.png",
+  "docs/assets/library.png",
+  "docs/assets/notes.png",
+  "docs/assets/settings.png",
+]
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 

@@ -401,6 +401,30 @@ def test_phase75_release_install_surface_is_documented():
     assert "not published to PyPI yet" in status_doc
 
 
+def test_phase78_package_artifacts_include_runtime_resources():
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+    run_ci = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
+    package_smoke = Path("scripts/package_smoke.py").read_text(encoding="utf-8")
+    app_impl = Path("src/api/app_impl.py").read_text(encoding="utf-8")
+    startup = Path("src/maintenance/startup.py").read_text(encoding="utf-8")
+    development_doc = Path("docs/development.md").read_text(encoding="utf-8")
+    release_doc = Path("docs/release.md").read_text(encoding="utf-8")
+
+    assert Path("src/resources.py").exists()
+    assert '"share/docflow/frontend"' in pyproject
+    assert '"frontend/partials/app.html"' in pyproject
+    assert '"config.example.yaml"' in pyproject
+    assert '"docs/status.md"' in pyproject
+    assert "scripts/package_smoke.py" in run_ci
+    assert "resource_path(\"frontend\")" in app_impl
+    assert 'os.getenv("DOCFLOW_CONFIG", "config.yaml")' in app_impl
+    assert 'resource_path("config.example.yaml")' in startup
+    assert "installed-wheel smoke test" in development_doc
+    assert "scripts/package_smoke.py" in release_doc
+    assert '"install"' in package_smoke
+    assert '"--target"' in package_smoke
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

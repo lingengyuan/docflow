@@ -14,3 +14,4 @@ npm run check:frontend
 npm run test:frontend
 npm run build:frontend
 npm run audit:frontend
+"$PYTHON_BIN" scripts/package_smoke.py

@@ -20,6 +20,7 @@ import yaml
 
 from src import net
 from src.model_cache import configured_hf_model_status
+from src.resources import resource_path
 
 STATUS_ORDER = {"ok": 0, "degraded": 1, "unavailable": 2}
 STARTUP_BLOCKERS = {"python", "config", "qdrant", "port"}
@@ -63,7 +64,7 @@ def _default_example_path(config_path: Path) -> Path:
     sibling = config_path.with_name("config.example.yaml")
     if sibling.exists():
         return sibling
-    return Path(__file__).resolve().parents[2] / "config.example.yaml"
+    return resource_path("config.example.yaml")
 
 
 def _ensure_config_directories(cfg: dict, base_dir: Path) -> None:

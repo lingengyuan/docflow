@@ -50,7 +50,7 @@ Latest local run: 6/6 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50
 
 Results are written under `eval/results/`, which is local runtime output and is not committed.
 
-Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 304.92 ms and P95 784.77 ms after model warmup.
+Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 312.8 ms and P95 796.47 ms after model warmup.
 
 This set is useful for project regression only. It uses source filtering for many checks, so it must not be presented as an external benchmark.
 

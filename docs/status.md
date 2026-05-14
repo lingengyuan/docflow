@@ -24,6 +24,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
 - Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for tagged releases.
+- Python package artifacts now include browser assets, config templates, and public docs, with an installed-wheel smoke test in the local CI script.
 - Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
 - The latest dependency review raised `python-multipart`, `pillow`, `onnx`, `pytest`, `mlx`, and `mlx-lm` above the current Dependabot fixed versions. Local `pip-audit` and `npm audit` both report no known vulnerabilities.
@@ -33,12 +34,12 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 364 passed.
+- Unit/integration tests: 365 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 79 checks passed.
 - Public eval: 6/6 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 799.0 ms, P95 4809.43 ms. This is a small public-domain smoke check, not a broad public benchmark.
-- Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 304.92 ms, P95 784.77 ms.
+- Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 312.8 ms, P95 796.47 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
@@ -50,7 +51,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is currently a small smoke set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
-- DocFlow is not published to PyPI yet. The supported public install paths are source checkout and Docker; tagged Docker images are prepared through GHCR release automation.
+- DocFlow is not published to PyPI yet. Source checkout and Docker remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 
 ## Status Update Rule
 

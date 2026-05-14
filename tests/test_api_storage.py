@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from pathlib import Path
 
 import yaml
 from fastapi.testclient import TestClient
@@ -56,7 +57,7 @@ def test_storage_usage_endpoint_reports_real_local_usage(monkeypatch, tmp_path):
     body = response.json()
     categories = {item["id"]: item for item in body["categories"]}
     assert body["disk"] == {
-        "path": str(api_app.Path.home()),
+        "path": str(Path.home()),
         "total_bytes": 1000,
         "used_bytes": 400,
         "free_bytes": 600,

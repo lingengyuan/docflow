@@ -9,7 +9,6 @@ import os
 import shutil
 import sys
 import types
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, Response
@@ -108,6 +107,7 @@ from src.ingest.imports import (
 )
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 from src.maintenance.startup import ensure_config_file
+from src.resources import resource_path
 
 __all__ = [
     "app",
@@ -149,7 +149,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 logging.getLogger("FlagEmbedding").setLevel(logging.WARNING)
 
-CONFIG_PATH = ensure_config_file(Path(__file__).parent.parent.parent / "config.yaml")
+CONFIG_PATH = ensure_config_file(os.getenv("DOCFLOW_CONFIG", "config.yaml"))
 COLLECTION_NAME = "docflow"
 MODEL_TASK_TIMEOUT_S = float(os.getenv("DOCFLOW_MODEL_TASK_TIMEOUT_S", "90"))
 STREAM_FIRST_CONTENT_TIMEOUT_S = float(os.getenv("DOCFLOW_STREAM_FIRST_CONTENT_TIMEOUT_S", "60"))
@@ -283,7 +283,7 @@ _register_api_routes()
 # Static files (frontend)
 # ---------------------------------------------------------------------------
 
-STATIC_DIR = Path(__file__).parent.parent.parent / "frontend"
+STATIC_DIR = resource_path("frontend")
 if STATIC_DIR.exists():
 
     @app.get("/favicon.ico", include_in_schema=False)
