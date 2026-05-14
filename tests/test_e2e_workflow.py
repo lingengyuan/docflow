@@ -117,6 +117,8 @@ def test_create_note_ingest_query_citation_and_save_answer_flow(monkeypatch, tmp
     query_body = query_response.json()
     assert "Apollo budget is approved" in query_body["answer"]
     assert query_body["citations"][0]["file_name"] == note_path.name
+    assert query_body["citations"][0]["evidence_level"] == "strong"
+    assert query_body["evidence"]["level"] == "strong"
     assert store.list_history()[0]["question"] == "What is approved?"
 
     save_response = client.post(

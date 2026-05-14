@@ -181,6 +181,7 @@ async def query(req: QueryRequest):
     return QueryResponse(
         answer=result.text,
         citations=citations_data,
+        evidence=_api().query_service.evidence_summary(citations_data),
         related_notes=getattr(result, "related_notes", []),
         history_id=history_id,
         conversation_id=conversation_id,
@@ -243,6 +244,7 @@ async def research(req: ResearchRequest):
     return ResearchResponse(
         answer=result.text,
         citations=citations_data,
+        evidence=_api().query_service.evidence_summary(citations_data),
         related_notes=getattr(result, "related_notes", []),
         research_steps=getattr(result, "research_steps", []),
         history_id=history_id,
@@ -298,6 +300,7 @@ async def query_stream(req: QueryRequest, request: Request):
             if cancel.is_set():
                 return
             q.put(("citations", citations_data))
+            q.put(("evidence", _api().query_service.evidence_summary(citations_data)))
             q.put(("related_notes", related_notes))
             full_answer = []
             for token in token_gen:
@@ -389,7 +392,7 @@ async def query_stream(req: QueryRequest, request: Request):
                 if task.future.done() and q.empty():
                     break
                 continue
-            if event in ("citations", "related_notes", "token", "done", "error"):
+            if event in ("citations", "evidence", "related_notes", "token", "done", "error"):
                 if first_content_at is None:
                     first_content_at = perf_counter()
                 last_content_at = perf_counter()

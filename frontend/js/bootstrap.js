@@ -11,6 +11,7 @@ const DOCFLOW_SCRIPT_ORDER = [
   '/js/chat.js',
   '/js/notes.js',
   '/js/notes-review.js',
+  '/js/chat-evidence.js',
   '/js/chat-stream.js',
   '/js/generated/stream-parser.js',
   '/js/chat-actions.js',

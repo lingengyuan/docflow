@@ -272,6 +272,8 @@ def test_stream_query_emits_conversation_and_saves_messages(monkeypatch, tmp_pat
 
     assert response.status_code == 200
     assert "event: conversation" in body
+    assert "event: evidence" in body
+    assert "来源较强" in body
     assert "event: related_notes" in body
     assert "related-stream.md" in body
     assert "event: token" in body

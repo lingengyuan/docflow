@@ -5,8 +5,13 @@ from __future__ import annotations
 import json
 import re
 
+from src.api.services.evidence_service import EvidenceService
+
 
 class QueryService:
+    def __init__(self) -> None:
+        self.evidence = EvidenceService()
+
     def build_retrieval_query(self, question: str, conversation_context: list[dict]) -> str:
         if not self.looks_like_followup(question):
             return question
@@ -57,7 +62,7 @@ class QueryService:
                     "char_start": citation.char_start,
                     "char_end": citation.char_end,
                 }
-        return list(seen_chunks.values())
+        return self.evidence.enrich_citations(list(seen_chunks.values()))
 
     def stream_citations(self, chunks: list[dict]) -> list[dict]:
         seen_chunks: dict[str, dict] = {}
@@ -94,7 +99,10 @@ class QueryService:
                     "char_start": char_start,
                     "char_end": char_start + len(matched_text),
                 }
-        return list(seen_chunks.values())
+        return self.evidence.enrich_citations(list(seen_chunks.values()))
+
+    def evidence_summary(self, citations: list[dict]) -> dict:
+        return self.evidence.summarize(citations)
 
     def decode_history_items(self, items: list[dict]) -> list[dict]:
         for item in items:

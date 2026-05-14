@@ -65,6 +65,7 @@ def test_research_endpoint_returns_steps_and_saves_history(monkeypatch, tmp_path
     assert response.status_code == 200
     body = response.json()
     assert body["answer"] == "research answer"
+    assert body["evidence"]["level"] == "strong"
     assert body["research_steps"][0]["new_results"] == 2
     assert body["related_notes"][0]["file_name"] == "Related.md"
     assert engine.calls[0]["max_steps"] == 2

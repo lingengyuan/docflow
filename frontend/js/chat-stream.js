@@ -99,6 +99,7 @@ function createAIMessageContainer(question = '') {
     </div>
     <div id="stream-prose" class="prose text-sm text-on-surface max-w-none"></div>
     <div id="stream-citations" class="flex flex-wrap gap-2"></div>
+    <div id="stream-evidence"></div>
     <div id="stream-related-notes"></div>
     <div id="stream-meta" class="text-[11px] text-on-surface-variant/50 font-medium"></div>
     <div class="flex gap-4 mt-1">
@@ -138,8 +139,10 @@ function citationMarkup(citations) {
       <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
       <span class="text-xs font-medium text-on-surface-variant max-w-[160px] truncate">${escHtml(c.file_name)}</span>
       <span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold whitespace-nowrap max-w-[150px] truncate">${label}</span>
+      ${citationEvidencePill(c)}
       <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface-container-lowest shadow-xl rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-outline-variant/10 z-50">
         ${c.section ? `<p class="text-[10px] font-bold text-primary mb-1">${escHtml(c.section)}</p>` : ''}
+        ${c.evidence_reason ? `<p class="text-[10px] text-primary mb-1">${escHtml(citationEvidenceReason(c))}</p>` : ''}
         ${chunkLabel ? `<p class="text-[10px] text-on-surface-variant/70 mb-1">${chunkLabel}</p>` : ''}
         <p class="text-[11px] leading-relaxed text-on-surface-variant italic">${escHtml(c.snippet?.slice(0,200))}</p>
       </div>
@@ -208,6 +211,7 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
     </div>
     <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(answer || '')}</div>
     <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
+    ${evidenceSummaryMarkup(meta.evidence)}
     ${meta.relatedNotes?.length ? `<div class="rounded-xl bg-surface-container-low px-4 py-3">
       <div class="mb-2 flex items-center gap-2 text-xs font-bold text-on-surface">
         <span class="material-symbols-outlined text-primary" style="font-size:15px">hub</span>相关笔记
@@ -255,7 +259,7 @@ function renderChatContextSources(citations = lastCitations) {
       title="打开来源" aria-label="打开来源：${escHtml(c.file_name || '未知文件')}">
       <div class="flex items-center justify-between gap-2">
         <span class="font-semibold text-on-surface line-clamp-1">${escHtml(c.file_name || '未知文件')}</span>
-        <span class="text-[11px] font-bold text-primary">${citationScoreLabel(c.score)}</span>
+        <span class="flex items-center gap-1">${citationEvidencePill(c)}<span class="text-[11px] font-bold text-primary">${citationScoreLabel(c.score)}</span></span>
       </div>
       <div class="mt-1 text-[11px] text-on-surface-variant/60 line-clamp-2">${escHtml(c.section || c.snippet || '')}</div>
       ${c.chunk_id ? `<div class="mt-1 text-[10px] text-on-surface-variant/50">片段 ${escHtml(c.chunk_id)}</div>` : ''}
@@ -286,6 +290,7 @@ function renderChatSourcePreview(citation) {
       </div>
     </div>
     <p class="mt-3 line-clamp-5">${escHtml(citation.snippet || citation.section || '暂无片段预览')}</p>
+    ${citation.evidence_reason ? `<div class="mt-3 rounded-lg bg-surface-container px-3 py-2 text-[11px] font-medium text-on-surface-variant">${escHtml(citationEvidenceReason(citation))}</div>` : ''}
     ${citationScoreLabel(citation.score) ? `<div class="mt-3 inline-flex items-center rounded-lg bg-primary-container px-2 py-1 text-[11px] font-bold text-primary">相关度 ${citationScoreLabel(citation.score)}</div>` : ''}`;
   renderLocalIcons(panel);
 }
