@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from src.model_cache import assert_model_download_allowed
+from src.model_cache import resolve_model_load_reference
 from src.query.constants import QUERY_INSTRUCTION
 
 logger = logging.getLogger(__name__)
@@ -34,13 +34,13 @@ class MLXReranker:
         self.instruction = instruction or QUERY_INSTRUCTION
         self.max_length = max_length
 
-        assert_model_download_allowed(
+        model_ref = resolve_model_load_reference(
             model_name,
             allow_model_download,
             purpose="reranker",
         )
         logger.info(f"[reranker] Loading MLX reranker: {model_name}")
-        loaded = load(model_name)
+        loaded = load(model_ref)
         self._model: Any = loaded[0]
         self._tokenizer: Any = loaded[1]
 
@@ -92,4 +92,3 @@ class MLXReranker:
         mx.eval(*all_last_logits)
 
         return [float(mx.softmax(last, axis=0)[0]) for last in all_last_logits]
-

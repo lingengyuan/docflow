@@ -15,7 +15,7 @@ from typing import Any
 
 from src import net
 from src.knowledge_outputs import get_knowledge_output_type
-from src.model_cache import assert_model_download_allowed
+from src.model_cache import resolve_model_load_reference
 
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
 
@@ -327,12 +327,12 @@ class AnswerGenerator:
 
         target = model_name or self.mlx_model_name
         if self._mlx_model is None or target != self.mlx_model_name:
-            assert_model_download_allowed(
+            model_ref = resolve_model_load_reference(
                 target,
                 self.allow_model_download,
                 purpose="answer",
             )
-            loaded = load(target)
+            loaded = load(model_ref)
             self._mlx_model = loaded[0]
             self._mlx_tokenizer = loaded[1]
             self.mlx_model_name = target

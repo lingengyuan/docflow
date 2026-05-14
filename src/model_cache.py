@@ -38,6 +38,38 @@ def is_hf_model_cached(model_name: str | Path | None) -> bool:
     return any(snap.is_dir() for snap in snapshots_dir.iterdir())
 
 
+def latest_hf_snapshot_path(model_name: str | Path | None) -> Path | None:
+    if not is_remote_model_reference(model_name):
+        return None
+    snapshots_dir = hf_model_cache_path(str(model_name)) / "snapshots"
+    if not snapshots_dir.exists():
+        return None
+    snapshots = [snap for snap in snapshots_dir.iterdir() if snap.is_dir()]
+    if not snapshots:
+        return None
+    return max(snapshots, key=lambda snap: snap.stat().st_mtime)
+
+
+def resolve_model_load_reference(
+    model_name: str | Path,
+    allow_model_download: bool,
+    *,
+    purpose: str,
+) -> str:
+    if not is_remote_model_reference(model_name):
+        return str(model_name)
+    assert_model_download_allowed(model_name, allow_model_download, purpose=purpose)
+    if allow_model_download:
+        return str(model_name)
+    snapshot = latest_hf_snapshot_path(model_name)
+    if snapshot is None:
+        raise RuntimeError(
+            f"{purpose} model cache is missing: {model_name}. "
+            "Model downloads are disabled by privacy.allow_model_download."
+        )
+    return str(snapshot)
+
+
 def assert_model_download_allowed(
     model_name: str | Path | None,
     allow_model_download: bool,

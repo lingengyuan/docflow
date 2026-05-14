@@ -7,7 +7,7 @@ import types
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.model_cache import assert_model_download_allowed
+from src.model_cache import resolve_model_load_reference
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def _load_torch_model(config: EmbeddingBackendConfig):
     import torch
     from sentence_transformers import SentenceTransformer
 
-    assert_model_download_allowed(
+    model_ref = resolve_model_load_reference(
         config.model_name,
         config.allow_model_download,
         purpose="embedding",
@@ -109,9 +109,10 @@ def _load_torch_model(config: EmbeddingBackendConfig):
 
     logger.info(f"[embedding] Loading torch model: {config.model_name}")
     return SentenceTransformer(
-        config.model_name,
+        model_ref,
         device=config.device,
         trust_remote_code=True,
+        local_files_only=not config.allow_model_download,
     )
 
 
@@ -124,7 +125,7 @@ def _load_onnx_model(config: EmbeddingBackendConfig):
         file_name = _preferred_onnx_file(model_dir, config)
 
     if file_name is None:
-        assert_model_download_allowed(
+        model_ref = resolve_model_load_reference(
             config.model_name,
             config.allow_model_download,
             purpose="embedding",
@@ -132,9 +133,10 @@ def _load_onnx_model(config: EmbeddingBackendConfig):
         logger.info(f"[embedding] Exporting ONNX model: {config.model_name}")
         try:
             model = SentenceTransformer(
-                config.model_name,
+                model_ref,
                 backend="onnx",
                 trust_remote_code=True,
+                local_files_only=not config.allow_model_download,
                 model_kwargs={"provider": config.onnx_provider},
             )
         except Exception as exc:
@@ -156,6 +158,7 @@ def _load_onnx_model(config: EmbeddingBackendConfig):
         str(model_dir),
         backend="onnx",
         trust_remote_code=True,
+        local_files_only=True,
         model_kwargs={
             "provider": config.onnx_provider,
             "file_name": file_name,

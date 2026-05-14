@@ -91,6 +91,45 @@ def test_load_embedding_model_reloads_local_onnx_export(monkeypatch, tmp_path):
     assert calls[1][1]["model_kwargs"]["file_name"] == "onnx/model_O3.onnx"
 
 
+def test_load_torch_embedding_uses_cached_snapshot_when_downloads_blocked(
+    monkeypatch, tmp_path
+):
+    cache = tmp_path / "hub"
+    monkeypatch.setenv("HUGGINGFACE_HUB_CACHE", str(cache))
+    snapshot = cache / "models--Qwen--Qwen3-Embedding-0.6B" / "snapshots" / "abc123"
+    snapshot.mkdir(parents=True)
+    calls = []
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name_or_path, **kwargs):
+            calls.append((model_name_or_path, kwargs))
+
+    import sentence_transformers
+
+    monkeypatch.setattr(torch, "set_num_threads", lambda _threads: None)
+    monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeSentenceTransformer)
+
+    config = EmbeddingBackendConfig(
+        model_name="Qwen/Qwen3-Embedding-0.6B",
+        backend="torch",
+        device="cpu",
+        allow_model_download=False,
+    )
+
+    load_embedding_model(config)
+
+    assert calls == [
+        (
+            str(snapshot),
+            {
+                "device": "cpu",
+                "trust_remote_code": True,
+                "local_files_only": True,
+            },
+        )
+    ]
+
+
 def test_embedding_cache_key_distinguishes_onnx_and_torch():
     torch_config = EmbeddingBackendConfig(model_name="Qwen/Qwen3-Embedding-0.6B", backend="torch")
     onnx_config = EmbeddingBackendConfig(
