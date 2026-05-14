@@ -41,6 +41,11 @@ class FakeQueryEngine:
                     score=0.9,
                 )
             ],
+            quality={
+                "status": "grounded",
+                "label": "已基于本地资料回答",
+                "answer_mode": "generated",
+            },
         )
         answer.related_notes = [
             {
@@ -83,7 +88,16 @@ class FakeQueryEngine:
             }
         ]
         if include_related:
-            return chunks, iter(["stream answer"]), [{"file_name": "related-stream.md"}]
+            return (
+                chunks,
+                iter(["stream answer"]),
+                [{"file_name": "related-stream.md"}],
+                {
+                    "status": "grounded",
+                    "label": "已基于本地资料回答",
+                    "answer_mode": "generated",
+                },
+            )
         return chunks, iter(["stream answer"])
 
 
@@ -154,6 +168,7 @@ def test_query_creates_conversation_and_rewrites_followup(monkeypatch, tmp_path)
     assert first.status_code == 200
     conversation_id = first.json()["conversation_id"]
     assert conversation_id is not None
+    assert first.json()["quality"]["status"] == "grounded"
     assert first.json()["related_notes"][0]["file_name"] == "NOTES.md"
     history_id = first.json()["history_id"]
     assert history_id is not None
@@ -273,6 +288,8 @@ def test_stream_query_emits_conversation_and_saves_messages(monkeypatch, tmp_pat
     assert response.status_code == 200
     assert "event: conversation" in body
     assert "event: evidence" in body
+    assert "event: quality" in body
+    assert "已基于本地资料回答" in body
     assert "来源较强" in body
     assert "event: related_notes" in body
     assert "related-stream.md" in body

@@ -97,6 +97,7 @@ function createAIMessageContainer(question = '') {
       </div>
       <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
     </div>
+    <div id="stream-quality" role="status" aria-live="polite"></div>
     <div id="stream-prose" class="prose text-sm text-on-surface max-w-none"></div>
     <div id="stream-citations" class="flex flex-wrap gap-2"></div>
     <div id="stream-evidence"></div>
@@ -211,6 +212,7 @@ function appendAssistantMessage(answer, citations = [], meta = {}) {
     </div>
     <div class="prose text-sm text-on-surface max-w-none">${renderMarkdown(answer || '')}</div>
     <div class="flex flex-wrap gap-2">${citationMarkup(citations)}</div>
+    ${answerQualityMarkup(meta.quality)}
     ${evidenceSummaryMarkup(meta.evidence)}
     ${meta.relatedNotes?.length ? `<div class="rounded-xl bg-surface-container-low px-4 py-3">
       <div class="mb-2 flex items-center gap-2 text-xs font-bold text-on-surface">

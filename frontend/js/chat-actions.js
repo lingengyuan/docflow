@@ -127,6 +127,8 @@ async function sendMessage() {
           if (saveBtn) saveBtn.dataset.citationsJson = encodeURIComponent(JSON.stringify(citations));
         } else if (eventType === 'evidence') {
           renderEvidenceSummary(JSON.parse(eventData || '{}'));
+        } else if (eventType === 'quality') {
+          renderAnswerQuality(JSON.parse(eventData || '{}'));
         } else if (eventType === 'related_notes') {
           relatedNotes = JSON.parse(eventData);
           renderRelatedNotes(relatedNotes);
@@ -184,6 +186,7 @@ async function sendMessage() {
     prose.removeAttribute('id');
     document.getElementById('stream-citations')?.removeAttribute('id');
     document.getElementById('stream-evidence')?.removeAttribute('id');
+    document.getElementById('stream-quality')?.removeAttribute('id');
     document.getElementById('stream-related-notes')?.removeAttribute('id');
   } catch (e) {
     document.getElementById('thinking-indicator')?.remove();

@@ -13,6 +13,12 @@ import yaml
 
 from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.store import DocStore
+from src.query.answer_quality import (
+    grounded_quality,
+    insufficient_evidence_quality,
+    local_model_unavailable_quality,
+    retrieval_quality_from_chunks,
+)
 from src.query.generator import Answer, AnswerGenerator, citation_from_chunk
 from src.query.retriever import HybridRetriever
 
@@ -144,7 +150,12 @@ class QueryEngine:
         )
         answer_chunks, related_notes = self._split_answer_and_related(chunks)
         if not self._has_sufficient_evidence(answer_chunks, self.settings):
-            return Answer(text=INSUFFICIENT_EVIDENCE_MESSAGE, citations=[])
+            return Answer(
+                text=INSUFFICIENT_EVIDENCE_MESSAGE,
+                citations=[],
+                related_notes=related_notes,
+                quality=insufficient_evidence_quality(),
+            )
         try:
             answer = self.generator.generate(
                 question,
@@ -152,6 +163,7 @@ class QueryEngine:
                 conversation_context=conversation_context,
             )
             answer.related_notes = related_notes
+            answer.quality = retrieval_quality_from_chunks(answer_chunks)
             return answer
         except Exception as exc:
             logger.warning(
@@ -187,16 +199,23 @@ class QueryEngine:
         )
         if not self._has_sufficient_evidence(answer_chunks, self.settings):
             if include_related:
-                return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE]), []
+                return (
+                    [],
+                    iter([INSUFFICIENT_EVIDENCE_MESSAGE]),
+                    [],
+                    insufficient_evidence_quality(),
+                )
             return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE])
+        quality = retrieval_quality_from_chunks(answer_chunks)
         token_gen = self._safe_generate_stream(
             question,
             answer_chunks,
             cancel_event=cancel_event,
             conversation_context=conversation_context,
+            quality=quality,
         )
         if include_related:
-            return answer_chunks, token_gen, related_notes
+            return answer_chunks, token_gen, related_notes, quality
         return answer_chunks, token_gen
 
     def summarize_file(self, file_name: str, qdrant_ids: list[int]) -> str:
@@ -262,6 +281,7 @@ class QueryEngine:
                 citations=[],
                 related_notes=related_notes,
                 research_steps=steps,
+                quality=insufficient_evidence_quality(),
             )
         try:
             answer = self.generator.generate(
@@ -277,6 +297,8 @@ class QueryEngine:
             answer = self._fallback_answer(answer_chunks, exc)
         answer.related_notes = related_notes
         answer.research_steps = steps
+        if not answer.quality:
+            answer.quality = retrieval_quality_from_chunks(answer_chunks)
         return answer
 
     def _split_answer_and_related(self, chunks: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -388,15 +410,18 @@ class QueryEngine:
     @staticmethod
     def _fallback_answer(chunks: list[dict], exc: Exception) -> Answer:
         if not chunks:
-            return Answer(text=INSUFFICIENT_EVIDENCE_MESSAGE, citations=[])
+            return Answer(
+                text=INSUFFICIENT_EVIDENCE_MESSAGE,
+                citations=[],
+                quality=insufficient_evidence_quality(),
+            )
 
         text = (
-            "已找到相关文档片段，但回答模型暂时不可用。"
+            "已找到相关文档片段，但本地回答模型暂时不可用。"
             "请先查看下方引用片段；稍后可重试完整回答。"
-            f"\n\n错误类型：{exc.__class__.__name__}"
         )
         citations = [citation_from_chunk(chunk) for chunk in chunks]
-        return Answer(text=text, citations=citations)
+        return Answer(text=text, citations=citations, quality=local_model_unavailable_quality(exc))
 
     def _safe_generate_stream(
         self,
@@ -404,6 +429,7 @@ class QueryEngine:
         chunks: list[dict],
         cancel_event=None,
         conversation_context: list[dict] | None = None,
+        quality: dict | None = None,
     ):
         try:
             yield from self.generator.generate_stream(
@@ -418,4 +444,11 @@ class QueryEngine:
             logger.warning(
                 "[query] stream generation failed; returning fallback message", exc_info=True
             )
+            if quality is not None:
+                quality.clear()
+                quality.update(local_model_unavailable_quality(exc))
             yield self._fallback_answer(chunks, exc).text
+
+    @staticmethod
+    def default_quality() -> dict:
+        return grounded_quality()

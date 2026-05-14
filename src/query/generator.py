@@ -66,6 +66,7 @@ class Answer:
     citations: list[Citation] = field(default_factory=list)
     related_notes: list[dict] = field(default_factory=list)
     research_steps: list[dict] = field(default_factory=list)
+    quality: dict[str, Any] = field(default_factory=dict)
     reproducible: bool = True
 
 

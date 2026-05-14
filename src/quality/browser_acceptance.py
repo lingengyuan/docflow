@@ -207,6 +207,11 @@ def run_browser_acceptance(
         )
         _run_check(
             checks,
+            "answer_quality_states_render",
+            lambda: _check_answer_quality_states_render(page),
+        )
+        _run_check(
+            checks,
             "keyboard_focus_reaches_controls",
             lambda: _check_keyboard_focus(page, timeout_ms),
         )
@@ -455,6 +460,58 @@ def _check_status_messages_are_announced(page: Any) -> dict[str, int]:
             f"status regions missing={result['missing']} leaked={result['leaked']}"
         )
     return {"checked": result["checked"]}
+
+
+def _check_answer_quality_states_render(page: Any) -> dict[str, int]:
+    text = page.evaluate(
+        """
+        () => {
+          const cases = [
+            {
+              status: 'grounded',
+              label: '已基于本地资料回答',
+              reason: '回答由检索到的本地资料支持。',
+              answer_mode: 'generated',
+            },
+            {
+              status: 'insufficient_evidence',
+              label: '资料不足，未生成完整回答',
+              reason: '当前范围内没有找到足够可靠的片段。',
+              answer_mode: 'no_answer',
+            },
+            {
+              status: 'local_model_unavailable',
+              label: '本地回答模型暂不可用',
+              reason: '已找到相关资料，但这次只能显示引用片段。',
+              answer_mode: 'snippet_fallback',
+            },
+            {
+              status: 'vector_store_unavailable',
+              label: '向量检索暂不可用',
+              reason: '已改用关键词检索生成回答。',
+              answer_mode: 'generated',
+            },
+          ];
+          const host = document.createElement('div');
+          host.innerHTML = cases.map(item => answerQualityMarkup(item)).join('');
+          document.body.appendChild(host);
+          const rendered = host.innerText || '';
+          host.remove();
+          return rendered;
+        }
+        """
+    )
+    required = (
+        "已基于本地资料回答",
+        "资料不足，未生成完整回答",
+        "本地回答模型暂不可用",
+        "当前只显示引用片段",
+        "向量检索暂不可用",
+    )
+    missing = [item for item in required if item not in text]
+    if missing:
+        raise AssertionError(f"answer quality states missing: {missing}")
+    return {"checked": len(required)}
 
 
 def _check_keyboard_focus(page: Any, timeout_ms: int) -> dict[str, str]:

@@ -486,6 +486,37 @@ def test_phase80_desktop_ui_has_labels_focus_and_status_contract():
     assert "outline: 2px solid rgb(var(--color-primary))" in app_css
 
 
+def test_phase81_degraded_answer_quality_is_visible():
+    html = frontend_source_text()
+    engine = Path("src/query/engine.py").read_text(encoding="utf-8")
+    quality = Path("src/query/answer_quality.py").read_text(encoding="utf-8")
+    schemas = Path("src/api/schemas.py").read_text(encoding="utf-8")
+    query_handlers = Path("src/api/handlers/query_handlers.py").read_text(encoding="utf-8")
+
+    assert "answerQualityMarkup" in html
+    assert "renderAnswerQuality" in html
+    assert 'id="stream-quality"' in html
+    assert "data-answer-quality" in html
+    for status in [
+        "grounded",
+        "insufficient_evidence",
+        "local_model_unavailable",
+        "vector_store_unavailable",
+        "snippet_fallback",
+    ]:
+        assert status in quality + html
+
+    assert "quality: dict" in schemas
+    assert 'q.put(("quality"' in query_handlers
+    assert '"quality"' in query_handlers
+    assert "answer_quality_states_render" in Path("src/quality/browser_acceptance.py").read_text(
+        encoding="utf-8"
+    )
+    assert "insufficient_evidence_quality" in engine
+    assert "local_model_unavailable_quality" in engine
+    assert "retrieval_quality_from_chunks" in engine
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

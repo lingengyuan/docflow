@@ -34,6 +34,7 @@ class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
     evidence: dict = Field(default_factory=dict)
+    quality: dict = Field(default_factory=dict)
     related_notes: list[dict] = Field(default_factory=list)
     history_id: int | None = None
     conversation_id: int | None = None

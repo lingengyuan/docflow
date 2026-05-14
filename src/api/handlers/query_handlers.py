@@ -182,6 +182,7 @@ async def query(req: QueryRequest):
         answer=result.text,
         citations=citations_data,
         evidence=_api().query_service.evidence_summary(citations_data),
+        quality=getattr(result, "quality", {}) or {},
         related_notes=getattr(result, "related_notes", []),
         history_id=history_id,
         conversation_id=conversation_id,
@@ -245,6 +246,7 @@ async def research(req: ResearchRequest):
         answer=result.text,
         citations=citations_data,
         evidence=_api().query_service.evidence_summary(citations_data),
+        quality=getattr(result, "quality", {}) or {},
         related_notes=getattr(result, "related_notes", []),
         research_steps=getattr(result, "research_steps", []),
         history_id=history_id,
@@ -289,11 +291,15 @@ async def query_stream(req: QueryRequest, request: Request):
                 retrieval_query=retrieval_query,
                 include_related=True,
             )
-            if len(stream_result) == 3:
+            if len(stream_result) == 4:
+                chunks, token_gen, related_notes, quality = stream_result
+            elif len(stream_result) == 3:
                 chunks, token_gen, related_notes = stream_result
+                quality = {}
             else:
                 chunks, token_gen = stream_result
                 related_notes = []
+                quality = {}
             if cancel.is_set():
                 return
             citations_data = _api().query_service.stream_citations(chunks)
@@ -301,11 +307,17 @@ async def query_stream(req: QueryRequest, request: Request):
                 return
             q.put(("citations", citations_data))
             q.put(("evidence", _api().query_service.evidence_summary(citations_data)))
+            q.put(("quality", quality))
             q.put(("related_notes", related_notes))
             full_answer = []
+            last_quality = json.dumps(quality, ensure_ascii=False, sort_keys=True)
             for token in token_gen:
                 if cancel.is_set():
                     return
+                current_quality = json.dumps(quality, ensure_ascii=False, sort_keys=True)
+                if current_quality != last_quality:
+                    q.put(("quality", quality))
+                    last_quality = current_quality
                 full_answer.append(token)
                 q.put(("token", token))
             answer_text = "".join(full_answer).strip()
@@ -392,7 +404,15 @@ async def query_stream(req: QueryRequest, request: Request):
                 if task.future.done() and q.empty():
                     break
                 continue
-            if event in ("citations", "evidence", "related_notes", "token", "done", "error"):
+            if event in (
+                "citations",
+                "evidence",
+                "quality",
+                "related_notes",
+                "token",
+                "done",
+                "error",
+            ):
                 if first_content_at is None:
                     first_content_at = perf_counter()
                 last_content_at = perf_counter()

@@ -44,6 +44,44 @@ function renderEvidenceSummary(evidence) {
   renderLocalIcons(el);
 }
 
+function answerQualityMarkup(quality) {
+  if (!quality?.status) return '';
+  const tone = {
+    grounded: 'bg-tertiary-container text-on-tertiary-container',
+    insufficient_evidence: 'bg-error/10 text-error',
+    local_model_unavailable: 'bg-error/10 text-error',
+    vector_store_unavailable: 'bg-primary-container text-primary',
+    degraded_retrieval: 'bg-primary-container text-primary',
+  }[quality.status] || 'bg-primary-container text-primary';
+  const icon = {
+    grounded: 'verified',
+    insufficient_evidence: 'search_off',
+    local_model_unavailable: 'warning',
+    vector_store_unavailable: 'travel_explore',
+    degraded_retrieval: 'low_priority',
+  }[quality.status] || 'info';
+  const mode = quality.answer_mode === 'snippet_fallback'
+    ? '当前只显示引用片段'
+    : (quality.answer_mode === 'no_answer' ? '未生成完整回答' : '');
+  return `
+    <div role="status" aria-live="polite" data-answer-quality="${escHtml(quality.status)}"
+      class="rounded-xl bg-surface-container-low px-4 py-3 text-xs text-on-surface-variant">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="material-symbols-outlined text-primary" style="font-size:15px">${icon}</span>
+        <span class="rounded-lg px-2 py-1 font-bold ${tone}">${escHtml(quality.label || '回答状态')}</span>
+        <span class="font-medium text-on-surface">${escHtml(quality.reason || '')}</span>
+      </div>
+      ${mode ? `<div class="mt-2 rounded-lg bg-surface-container px-3 py-2">${escHtml(mode)}</div>` : ''}
+    </div>`;
+}
+
+function renderAnswerQuality(quality) {
+  const el = document.getElementById('stream-quality');
+  if (!el) return;
+  el.innerHTML = answerQualityMarkup(quality);
+  renderLocalIcons(el);
+}
+
 function citationEvidenceReason(citation) {
   const reason = citation?.evidence_reason || '';
   const age = citation?.source_age_days;

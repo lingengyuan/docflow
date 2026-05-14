@@ -61,20 +61,26 @@ def test_query_returns_retrieved_snippets_when_llm_fails():
 
     answer = engine.query("health status")
 
-    assert "回答模型暂时不可用" in answer.text
-    assert "RuntimeError" in answer.text
+    assert "本地回答模型暂时不可用" in answer.text
     assert len(answer.citations) == 1
     assert answer.citations[0].file_name == "README.md"
     assert answer.citations[0].section == "Health"
+    assert answer.quality["status"] == "local_model_unavailable"
+    assert answer.quality["answer_mode"] == "snippet_fallback"
 
 
 def test_query_stream_returns_fallback_message_when_llm_fails():
     engine = QueryEngine(FakeRetriever(), FailingGenerator())
 
-    chunks, token_gen = engine.query_stream("health status")
+    chunks, token_gen, _related, quality = engine.query_stream(
+        "health status",
+        include_related=True,
+    )
 
     assert chunks == CHUNKS
-    assert "回答模型暂时不可用" in "".join(token_gen)
+    assert "本地回答模型暂时不可用" in "".join(token_gen)
+    assert quality["status"] == "local_model_unavailable"
+    assert quality["answer_mode"] == "snippet_fallback"
 
 
 def test_query_still_uses_generator_when_available():
@@ -84,6 +90,7 @@ def test_query_still_uses_generator_when_available():
     answer = engine.query("health status")
 
     assert answer.text == "answer"
+    assert answer.quality["status"] == "grounded"
 
 
 def test_query_uses_retrieval_query_and_passes_conversation_context():
@@ -238,6 +245,26 @@ def test_query_refuses_low_evidence_before_generation():
     assert "未找到足够可靠的信息" in answer.text
     assert answer.citations == []
     assert generator.calls == []
+    assert answer.quality["status"] == "insufficient_evidence"
+    assert answer.quality["answer_mode"] == "no_answer"
+
+
+def test_query_surfaces_vector_store_degradation():
+    class VectorDegradedRetriever(FakeRetriever):
+        def retrieve(self, *args, **kwargs):
+            item = dict(CHUNKS[0])
+            item["degradations"] = [
+                {"stage": "vector", "status": "degraded", "error_type": "RuntimeError"}
+            ]
+            item["retrieval_status"] = "degraded"
+            return [item]
+
+    answer = QueryEngine(VectorDegradedRetriever(), WorkingGenerator()).query("health status")
+
+    assert answer.text == "answer"
+    assert answer.quality["status"] == "vector_store_unavailable"
+    assert answer.quality["answer_mode"] == "generated"
+    assert answer.quality["degradations"][0]["stage"] == "vector"
 
 
 def test_query_thresholds_are_configurable():
