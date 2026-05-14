@@ -5,6 +5,7 @@ window.DocFlowState = {
   app: {
     pendingConfirmResolve: null,
     locale: localStorage.getItem('docflow.locale') || 'zh-CN',
+    theme: localStorage.getItem('docflow.theme') || 'light',
   },
   chat: {
     currentConversationId: null,
@@ -81,4 +82,5 @@ Object.defineProperties(window, {
 
   pendingConfirmResolve: { get: () => DocFlowState.app.pendingConfirmResolve, set: value => { DocFlowState.app.pendingConfirmResolve = value; } },
   docflowLocale: { get: () => DocFlowState.app.locale, set: value => { DocFlowState.app.locale = value; } },
+  docflowTheme: { get: () => DocFlowState.app.theme, set: value => { DocFlowState.app.theme = value; } },
 });

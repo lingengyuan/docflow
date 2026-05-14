@@ -254,7 +254,7 @@
                 <span class="material-symbols-outlined" style="font-size:15px">sync</span>
               </button>
             </div>
-            <div id="chat-context-queue" class="mt-3 text-xs text-on-surface-variant rounded-lg bg-surface-container-low px-3 py-3">暂无后台任务。</div>
+            <div id="chat-context-queue" role="status" aria-live="polite" class="mt-3 text-xs text-on-surface-variant rounded-lg bg-surface-container-low px-3 py-3">暂无后台任务。</div>
           </section>
         </aside>
       </div>
@@ -266,7 +266,7 @@
     <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
       <h1 id="library-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="library.title">文件库</h1>
       <div class="flex items-center gap-3">
-        <div id="queue-banner" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-medium">
+        <div id="queue-banner" role="status" aria-live="polite" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-medium">
           <span class="spinner"></span>
           <span id="queue-text">处理中…</span>
         </div>
@@ -338,7 +338,7 @@
       </div>
       <textarea id="workflow-content-input" rows="5" placeholder="笔记内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
       <div class="mt-3 flex items-center justify-between gap-3">
-        <span id="workflow-status" class="text-[11px] text-on-surface-variant/60"></span>
+        <span id="workflow-status" role="status" aria-live="polite" class="text-[11px] text-on-surface-variant/60"></span>
         <button id="workflow-submit-btn" onclick="runLibraryWorkflow()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
           <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
           保存并入库
@@ -591,7 +591,7 @@
               <span id="notes-word-count">0 字</span>
               <span id="notes-title-count">0/200</span>
               <span>Markdown</span>
-              <span id="notes-status"></span>
+              <span id="notes-status" role="status" aria-live="polite"></span>
             </div>
             <button id="notes-submit-btn" onclick="createNoteFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
               <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
@@ -841,6 +841,18 @@
               </button>
             </div>
           </div>
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 mb-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="font-semibold text-on-surface" data-i18n="theme.label">界面主题</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70" data-i18n="theme.detail">浅色和深色外观会保持相同的信息层级。</div>
+              </div>
+              <button id="theme-toggle-btn" onclick="toggleTheme()" class="toolbar-btn justify-center" aria-label="切换主题" data-i18n-aria="theme.toggle">
+                <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>
+                <span id="theme-current-label">浅色</span>
+              </button>
+            </div>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div class="rounded-lg bg-surface-container-low px-3 py-3">
               <div class="font-semibold text-on-surface">默认本地优先</div>
@@ -866,11 +878,11 @@
                 <span class="material-symbols-outlined" style="font-size:15px">sync</span>
               </button>
             </div>
-            <div id="settings-insights-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+            <div id="settings-insights-list" role="status" aria-live="polite" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
           </section>
           <section class="soft-panel p-4 mt-3">
             <h2 class="panel-title">存储使用</h2>
-            <div id="settings-storage-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+            <div id="settings-storage-list" role="status" aria-live="polite" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
               <div class="rounded-lg bg-surface-container-low px-3 py-2">正在读取本地存储…</div>
             </div>
           </section>

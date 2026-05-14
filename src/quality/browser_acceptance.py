@@ -183,6 +183,21 @@ def run_browser_acceptance(
                 "mutation_note_ingest_query_cleanup",
                 lambda: _check_note_ingest_query_cleanup_flow(page, base_url, timeout_ms),
             )
+        _run_check(
+            checks,
+            "desktop_viewports_stay_usable",
+            lambda: _check_desktop_viewports(page, timeout_ms),
+        )
+        _run_check(
+            checks,
+            "basic_accessibility_contract",
+            lambda: _check_basic_accessibility_contract(page),
+        )
+        _run_check(
+            checks,
+            "keyboard_focus_reaches_controls",
+            lambda: _check_keyboard_focus(page, timeout_ms),
+        )
         browser.close()
 
     _run_check(
@@ -241,6 +256,11 @@ def _run_view_checks(
             "settings_has_no_developer_language",
             lambda: _assert_no_settings_developer_language(page, timeout_ms),
         )
+        _run_check(
+            checks,
+            "settings_theme_toggle",
+            lambda: _check_theme_toggle(page, timeout_ms),
+        )
     if view.id == "library":
         _run_check(
             checks, "library_group_filter_clicks", lambda: _check_library_groups(page, timeout_ms)
@@ -292,6 +312,98 @@ def _assert_no_settings_developer_language(page: Any, timeout_ms: int) -> None:
     found = [term for term in forbidden_terms if term in body]
     if found:
         raise AssertionError(f"settings exposes developer language: {', '.join(found)}")
+
+
+def _check_theme_toggle(page: Any, timeout_ms: int) -> dict[str, str]:
+    before = page.evaluate("document.documentElement.dataset.theme || 'light'")
+    page.locator("#theme-toggle-btn").click(timeout=timeout_ms)
+    page.wait_for_function(
+        """theme => (document.documentElement.dataset.theme || 'light') !== theme""",
+        arg=before,
+        timeout=timeout_ms,
+    )
+    after = page.evaluate("document.documentElement.dataset.theme || 'light'")
+    page.locator("#theme-toggle-btn").click(timeout=timeout_ms)
+    page.wait_for_function(
+        """theme => (document.documentElement.dataset.theme || 'light') === theme""",
+        arg=before,
+        timeout=timeout_ms,
+    )
+    return {"before": before, "after": after}
+
+
+def _check_desktop_viewports(page: Any, timeout_ms: int) -> dict[str, Any]:
+    checked: list[int] = []
+    for width in (1280, 1440, 1728):
+        page.set_viewport_size({"width": width, "height": 900})
+        page.locator("#nav-chat").click(timeout=timeout_ms)
+        page.locator("#input").wait_for(state="visible", timeout=timeout_ms)
+        overflow = page.evaluate(
+            """
+            () => Math.max(
+              document.documentElement.scrollWidth,
+              document.body.scrollWidth
+            ) - window.innerWidth
+            """
+        )
+        if overflow > 4:
+            raise AssertionError(f"horizontal overflow at {width}px: {overflow}px")
+        checked.append(width)
+    page.set_viewport_size({"width": 1440, "height": 960})
+    return {"widths": checked}
+
+
+def _check_basic_accessibility_contract(page: Any) -> dict[str, int]:
+    violations = page.evaluate(
+        """
+        () => {
+          const unlabeledButtons = Array.from(document.querySelectorAll('button,[role="button"]'))
+            .filter(el => {
+              const text = (el.innerText || '').trim();
+              return !text && !el.getAttribute('aria-label') && !el.getAttribute('title');
+            })
+            .map(el => el.id || el.className || el.tagName);
+          const unlabeledFields = Array.from(document.querySelectorAll(
+            'input:not([type="hidden"]), textarea, select'
+          ))
+            .filter(el => {
+              const type = (el.getAttribute('type') || '').toLowerCase();
+              if (['checkbox', 'radio', 'button', 'submit', 'file'].includes(type)) return false;
+              if (el.offsetParent === null) return false;
+              return !el.getAttribute('aria-label') && !el.getAttribute('placeholder') && !el.id;
+            })
+            .map(el => el.id || el.tagName);
+          const missingLiveRegions = ['queue-banner', 'workflow-status', 'notes-status']
+            .filter(id => !document.getElementById(id)?.getAttribute('aria-live'));
+          return { unlabeledButtons, unlabeledFields, missingLiveRegions };
+        }
+        """
+    )
+    problems = [
+        f"unlabeled buttons: {violations['unlabeledButtons']}",
+        f"unlabeled fields: {violations['unlabeledFields']}",
+        f"missing live regions: {violations['missingLiveRegions']}",
+    ]
+    if any(violations.values()):
+        raise AssertionError("; ".join(problems))
+    return {"checked": 3}
+
+
+def _check_keyboard_focus(page: Any, timeout_ms: int) -> dict[str, str]:
+    page.locator("#nav-chat").click(timeout=timeout_ms)
+    page.keyboard.press("Tab")
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement !== document.body",
+        timeout=timeout_ms,
+    )
+    active = page.evaluate(
+        """
+        () => document.activeElement.id ||
+          document.activeElement.getAttribute('aria-label') ||
+          document.activeElement.textContent.trim().slice(0, 32)
+        """
+    )
+    return {"focused": active}
 
 
 def _check_library_groups(page: Any, timeout_ms: int) -> dict[str, str]:

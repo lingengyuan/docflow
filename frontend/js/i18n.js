@@ -20,6 +20,9 @@ const DOCFLOW_I18N = {
     'locale.label': '界面语言',
     'locale.detail': '切换常用导航和状态文案。',
     'locale.current': '中文',
+    'theme.toggle': '切换主题',
+    'theme.label': '界面主题',
+    'theme.detail': '浅色和深色外观会保持相同的信息层级。',
   },
   en: {
     'skip.main': 'Skip to main content',
@@ -41,6 +44,9 @@ const DOCFLOW_I18N = {
     'locale.label': 'Interface language',
     'locale.detail': 'Switch common navigation and status text.',
     'locale.current': 'English',
+    'theme.toggle': 'Switch theme',
+    'theme.label': 'Theme',
+    'theme.detail': 'Light and dark appearances keep the same information hierarchy.',
   },
 };
 

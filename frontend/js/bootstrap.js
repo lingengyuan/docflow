@@ -3,6 +3,7 @@ const DOCFLOW_SCRIPT_ORDER = [
   '/js/icons.js',
   '/js/shared-ui.js',
   '/js/i18n.js',
+  '/js/theme.js',
   '/js/app-shell.js',
   '/js/settings.js',
   '/js/settings-models.js',
@@ -35,17 +36,23 @@ function loadClassicScript(src) {
 }
 
 async function bootDocFlowShell() {
+  document.documentElement.dataset.theme = localStorage.getItem('docflow.theme') || 'light';
   const root = document.getElementById('docflow-shell-root');
   const partial = root?.dataset.partial || '/partials/app.html';
   try {
     const response = await fetch(partial);
     if (!response.ok) throw new Error(`Failed to load ${partial}`);
+    root.style.visibility = 'hidden';
     root.innerHTML = await response.text();
     for (const script of DOCFLOW_SCRIPT_ORDER) {
       await loadClassicScript(script);
     }
     window.applyI18n?.();
+    window.applyTheme?.();
+    window.renderLocalIcons?.(document);
+    root.style.visibility = '';
   } catch (error) {
+    root.style.visibility = '';
     root.innerHTML = `<div class="m-auto max-w-sm rounded-lg bg-white px-4 py-3 text-sm font-semibold text-error shadow-sm">DocFlow 打开失败，请刷新页面重试。</div>`;
     console.error(error);
   }

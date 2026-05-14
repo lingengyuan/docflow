@@ -225,6 +225,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "icons.js",
         "shared-ui.js",
         "i18n.js",
+        "theme.js",
         "app-shell.js",
         "settings.js",
         "settings-models.js",
@@ -289,6 +290,23 @@ def test_phase69_frontend_shell_is_split_and_testable():
 
     tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
     assert "./frontend/js/**/*.js" in tailwind_config
+
+
+def test_phase70_theme_tokens_focus_and_live_regions_exist():
+    html = frontend_source_text()
+    app_css = Path("frontend/app.css").read_text(encoding="utf-8")
+    tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
+
+    assert ':root[data-theme="dark"]' in app_css
+    assert "--color-primary:" in app_css
+    assert 'button:focus-visible' in app_css
+    assert "colorVar" in tailwind_config
+    assert 'id="theme-toggle-btn"' in html
+    assert "function toggleTheme" in html
+    assert 'aria-live="polite"' in html
+    assert "desktop_viewports_stay_usable" in Path("src/quality/browser_acceptance.py").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
