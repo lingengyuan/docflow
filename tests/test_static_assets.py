@@ -415,12 +415,15 @@ def test_phase78_package_artifacts_include_runtime_resources():
     assert '"frontend/partials/app.html"' in pyproject
     assert '"config.example.yaml"' in pyproject
     assert '"docs/status.md"' in pyproject
+    assert '"eval/public_retrieval_v1.jsonl"' in pyproject
+    assert '"eval/public_corpus/wizard_oz_excerpt.txt"' in pyproject
     assert "scripts/package_smoke.py" in run_ci
     assert "resource_path(\"frontend\")" in app_impl
     assert 'os.getenv("DOCFLOW_CONFIG", "config.yaml")' in app_impl
     assert 'resource_path("config.example.yaml")' in startup
     assert "installed-wheel smoke test" in development_doc
     assert "scripts/package_smoke.py" in release_doc
+    assert "public_cases" in package_smoke
     assert '"install"' in package_smoke
     assert '"--target"' in package_smoke
 

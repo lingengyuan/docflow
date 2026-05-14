@@ -34,9 +34,9 @@ The public-domain smoke set below is reproducible from committed files, but it i
 - pass rate
 - retrieval latency P50/P95/max
 
-The public smoke set currently has 6 cases across public-domain or US government text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
+The public smoke set currently has 26 cases across public-domain or US government text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
 
-Latest local run: 6/6 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 799.0 ms and P95 4809.43 ms after model warmup and public corpus refresh.
+Latest local run: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 806.44 ms and P95 870.36 ms after model warmup and public corpus refresh.
 
 ## Internal Source-Filtered Regression
 

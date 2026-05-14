@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.query.engine import QueryEngine  # noqa: E402
+from src.resources import resource_path  # noqa: E402
 
 DEFAULT_EVAL_PATH = Path("eval/qa_v1.jsonl")
 DEFAULT_RESULTS_DIR = Path("eval/results")
@@ -105,6 +106,10 @@ def _resolve_eval_source(expected: str, cfg: dict, parse_watch_dirs, is_excluded
         PROJECT_ROOT / "docs" / expected,
         PROJECT_ROOT / "plans" / expected,
         PROJECT_ROOT / "eval" / expected,
+        resource_path(expected),
+        resource_path("docs", expected),
+        resource_path("plans", expected),
+        resource_path("eval", expected),
     ]
     for candidate in direct_candidates:
         if candidate.exists():

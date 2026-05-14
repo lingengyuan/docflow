@@ -56,10 +56,14 @@ from src.maintenance.startup import ensure_config_file
 
 frontend = resource_path("frontend")
 example = resource_path("config.example.yaml")
+public_cases = resource_path("eval", "public_retrieval_v1.jsonl")
+public_corpus = resource_path("eval", "public_corpus")
 assert (frontend / "index.html").is_file(), frontend
 assert (frontend / "partials" / "app.html").is_file(), frontend
 assert (frontend / "js" / "bootstrap.js").is_file(), frontend
 assert example.is_file(), example
+assert public_cases.is_file(), public_cases
+assert (public_corpus / "README.md").is_file(), public_corpus
 
 config = ensure_config_file("config.yaml")
 assert Path(config).is_file(), config
@@ -74,6 +78,7 @@ assert api_app.app is not None
 print(json.dumps({
     "frontend": str(frontend),
     "config": str(config),
+    "public_cases": str(public_cases),
     "app": True,
 }, ensure_ascii=False))
 """
@@ -92,6 +97,7 @@ print(json.dumps({
         print(f"Package smoke passed: {wheel.name}")
         print(f"Frontend: {payload['frontend']}")
         print(f"Config: {payload['config']}")
+        print(f"Public cases: {payload['public_cases']}")
     return 0
 
 

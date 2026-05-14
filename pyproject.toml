@@ -86,6 +86,28 @@ include = ["src*", "scripts*"]
   "docs/assets/notes.png",
   "docs/assets/settings.png",
 ]
+"share/docflow/eval" = [
+  "eval/public_retrieval_v1.jsonl",
+]
+"share/docflow/eval/public_corpus" = [
+  "eval/public_corpus/README.md",
+  "eval/public_corpus/alice_wonderland_excerpt.txt",
+  "eval/public_corpus/declaration_independence_excerpt.txt",
+  "eval/public_corpus/federalist_10_excerpt.txt",
+  "eval/public_corpus/frankenstein_excerpt.txt",
+  "eval/public_corpus/gettysburg_address.txt",
+  "eval/public_corpus/moby_dick_excerpt.txt",
+  "eval/public_corpus/nasa_apollo11_summary.txt",
+  "eval/public_corpus/nasa_moon_facts.txt",
+  "eval/public_corpus/pride_prejudice_excerpt.txt",
+  "eval/public_corpus/sherlock_bohemia_excerpt.txt",
+  "eval/public_corpus/tale_two_cities_excerpt.txt",
+  "eval/public_corpus/us_constitution_article1.txt",
+  "eval/public_corpus/us_constitution_preamble.txt",
+  "eval/public_corpus/us_first_amendment.txt",
+  "eval/public_corpus/us_fourth_amendment.txt",
+  "eval/public_corpus/wizard_oz_excerpt.txt",
+]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

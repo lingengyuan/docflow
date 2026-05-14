@@ -24,8 +24,9 @@ from scripts.run_eval import (  # noqa: E402
     write_results,
 )
 from src.query.engine import QueryEngine  # noqa: E402
+from src.resources import resource_path  # noqa: E402
 
-DEFAULT_PUBLIC_CASES = Path("eval/public_retrieval_v1.jsonl")
+DEFAULT_PUBLIC_CASES = resource_path("eval", "public_retrieval_v1.jsonl")
 DEFAULT_PUBLIC_RESULTS_DIR = DEFAULT_RESULTS_DIR / "public"
 
 
