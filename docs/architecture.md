@@ -24,3 +24,20 @@ SQLite schema changes must be handled through store migrations. Config changes m
 ## Browser UI
 
 The browser UI lives in `frontend/`. It is intentionally a local product interface, not a developer console. Normal UI pages must not expose shell commands, script names, maintenance commands, or recovery instructions.
+
+## Failure Modes
+
+- Qdrant is unavailable: startup and health checks should report the vector store as unavailable instead of silently falling back to stale results.
+- Local model server is unavailable: the app should keep the library usable and explain that answering needs a configured local model.
+- Model cache is missing while downloads are blocked: startup should show that the model is missing and respect `privacy.allow_model_download: false`.
+- SQLite schema is older: migrations should run at open time. If a migration cannot be applied safely, the error should name the database and stop before writing partial state.
+- Source file was moved or deleted: source preview should explain the file is missing and avoid showing old text as current evidence.
+- Webpage import or cloud model use is external by design: the action must remain explicit and must not be counted as offline behavior.
+
+## Upgrade Boundaries
+
+- Config changes must preserve existing keys or provide documented defaults.
+- SQLite schema changes belong in store migrations and need tests against older database shapes.
+- Qdrant collection changes must state whether users can keep the existing collection, run a vector-only rebuild, or reindex all files.
+- Embedding model changes are not automatically compatible with old vectors; release notes must call out any required reindex.
+- Browser asset changes are bundled with the app. Package builds must include `frontend/`, `config.example.yaml`, and public docs required by the app.

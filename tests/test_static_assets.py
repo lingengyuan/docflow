@@ -375,6 +375,32 @@ def test_phase74_public_eval_is_separate_from_internal_regression():
     assert "Public eval:" in status_doc
 
 
+def test_phase75_release_install_surface_is_documented():
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    development_doc = Path("docs/development.md").read_text(encoding="utf-8")
+    architecture_doc = Path("docs/architecture.md").read_text(encoding="utf-8")
+    release_doc = Path("docs/release.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+
+    assert Path("docker-compose.image.yml").exists()
+    assert Path(".github/workflows/docker-image.yml").exists()
+    assert Path(".github/workflows/python-package.yml").exists()
+    assert "ghcr.io/lingengyuan/docflow" in Path("docker-compose.image.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "ghcr.io/lingengyuan/docflow" in readme
+    assert "ghcr.io/lingengyuan/docflow" in readme_zh
+    assert "Docker image release" in development_doc
+    assert "DocFlow is not on PyPI yet" in development_doc
+    assert "First-run storage expectations" in development_doc
+    assert "Failure Modes" in architecture_doc
+    assert "Upgrade Boundaries" in architecture_doc
+    assert "Tagged releases build" in release_doc
+    assert "GHCR Docker images" in release_doc
+    assert "not published to PyPI yet" in status_doc
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

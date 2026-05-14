@@ -23,6 +23,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
+- Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for tagged releases.
 - Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
 - The latest dependency review raised `python-multipart`, `pillow`, `onnx`, `pytest`, `mlx`, and `mlx-lm` above the current Dependabot fixed versions. Local `pip-audit` and `npm audit` both report no known vulnerabilities.
@@ -32,7 +33,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 360 passed.
+- Unit/integration tests: 361 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 79 checks passed.
@@ -49,6 +50,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is currently a small smoke set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
+- DocFlow is not published to PyPI yet. The supported public install paths are source checkout and Docker; tagged Docker images are prepared through GHCR release automation.
 
 ## Status Update Rule
 

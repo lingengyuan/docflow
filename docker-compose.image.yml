@@ -1,0 +1,28 @@
+services:
+  docflow:
+    image: ${DOCFLOW_IMAGE:-ghcr.io/lingengyuan/docflow:latest}
+    container_name: docflow-app
+    depends_on:
+      - qdrant
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config.docker.yaml:/app/config.yaml:ro
+    environment:
+      DOCFLOW_MODEL_TASK_TIMEOUT_S: "30"
+      DOCFLOW_STREAM_FIRST_CONTENT_TIMEOUT_S: "30"
+      DOCFLOW_STREAM_IDLE_TIMEOUT_S: "30"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: docflow-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:

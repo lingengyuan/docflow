@@ -2,6 +2,14 @@
 
 ## Setup
 
+For daily use, prefer one of these supported paths:
+
+- Source checkout: clone the repository, create a virtual environment, install with `pip install -e .`, start Qdrant, and run `docflow serve`.
+- Docker from source: run `docker compose up --build` to build the app container and start Qdrant together.
+- Docker image release: after a tagged image is published, run `docker compose -f docker-compose.image.yml up` to use `ghcr.io/lingengyuan/docflow` without rebuilding locally.
+
+DocFlow is not on PyPI yet. The project first needs a package-data review for browser assets, configuration templates, and optional heavy model dependencies. Until that is complete, use source checkout or Docker.
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -20,6 +28,13 @@ Install optional Apple Silicon MLX support only when you want MLX-backed local a
 ```bash
 pip install -r requirements-mac-mlx.txt
 ```
+
+First-run storage expectations:
+
+- App and Python runtime: roughly 0.5 GB for the current Docker image build on the validation machine; local virtual environments vary by platform and dependency cache.
+- Qdrant and SQLite: grow with your indexed files and chunks.
+- Local answer models: managed by Ollama, LM Studio, or your chosen local model tool; a common 7B model is usually 4-5 GB.
+- Optional image understanding and Apple Silicon MLX packages increase install size and should be installed only when needed.
 
 ## Run Tests
 
@@ -69,3 +84,5 @@ Normal browser UI must feel like a finished personal knowledge product. Develope
 - New query behavior should be configurable through the `query:` section when it affects relevance, answer limits, or refusal thresholds.
 - SQLite schema changes belong in store migration code and need tests that prove an existing database can open after the change.
 - Config changes should keep old defaults working. If a rebuild or reindex is unavoidable, document that clearly before release.
+- Vector-store changes must say whether existing Qdrant collections are compatible, need a `rebuild --qdrant-only`, or require a full reindex.
+- Model changes must say whether old embeddings, reranker scores, or answer behavior remain comparable.

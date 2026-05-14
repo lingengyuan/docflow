@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
+build/
+dist/
 
 # 运行时数据（本地数据库、向量索引）
 docflow.db

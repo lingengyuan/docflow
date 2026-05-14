@@ -7,7 +7,7 @@ English · [简体中文](README.zh-CN.md)
 DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
 - **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
-- **Measured checks.** Current local checks include a 6-case public-domain smoke eval, 84 source-filtered internal retrieval cases, 31 parsing fixtures, 360 tests, and 79 browser checks.
+- **Measured checks.** Current local checks include a 6-case public-domain smoke eval, 84 source-filtered internal retrieval cases, 31 parsing fixtures, 361 tests, and 79 browser checks.
 - **Drop-in local models.** Works with Ollama, LM Studio, or any OpenAI-compatible local endpoint.
 
 Quick start:
@@ -20,6 +20,8 @@ docker compose up --build
 Then open <http://localhost:8000> and click **导入示例资料** to try a small local library.
 
 For real answers, run a local model server such as Ollama or LM Studio and select it in Settings. The Docker path starts the app and Qdrant; model weights are still managed by the local model tool you choose.
+
+Expected first-run cost: Docker plus Qdrant, about 0.5 GB for the base app image after build on the current validation machine, plus local model weights you choose. A 7B Ollama model is usually 4-5 GB. Image understanding and Apple Silicon MLX support are optional installs.
 
 ## Why DocFlow
 
@@ -86,13 +88,15 @@ docflow browser-acceptance
 docflow doctor --offline
 ```
 
+Release builds also support `docker-compose.image.yml` with `ghcr.io/lingengyuan/docflow` after a tagged image is published.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). Keep changes focused, run tests before opening a PR, and keep the normal browser UI free of command-line or developer-only wording.
 
 ## Documentation
 
-[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md)
+[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md) · [Release](docs/release.md) · [Status](docs/status.md)
 
 ## License
 

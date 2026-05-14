@@ -9,6 +9,8 @@ Use this checklist before tagging a public DocFlow release.
 - Confirm `README.md` and `docs/status.md` show the latest measured validation results.
 - Confirm screenshots in `docs/assets/` still match the current browser UI when the UI changed.
 - Confirm known limitations are listed in `docs/status.md`.
+- Confirm install cost, model size boundaries, and upgrade notes are current in `README.md`, `docs/development.md`, and `docs/architecture.md`.
+- Confirm Docker image release notes name the exact image tag, for example `ghcr.io/lingengyuan/docflow:v0.58.0`.
 
 ## 2. Validate
 
@@ -45,6 +47,13 @@ git push origin v0.58.0
 
 Use the actual version for the release you are publishing.
 
+Tagged releases build:
+
+- Python wheel and source archive artifacts through `.github/workflows/python-package.yml`.
+- GHCR Docker images through `.github/workflows/docker-image.yml`.
+
+DocFlow is not published to PyPI yet. Before enabling PyPI publishing, verify package data includes browser assets, config templates, docs needed at runtime, and that optional heavy dependencies remain optional.
+
 ## 5. Release Notes
 
 GitHub release notes should include:
@@ -55,6 +64,7 @@ GitHub release notes should include:
 - Screenshots when UI changed.
 - Known limitations.
 - Privacy or network behavior changes.
+- Install and upgrade notes, including whether users need to rebuild Qdrant vectors or update local models.
 
 ## 6. After Release
 
