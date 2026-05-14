@@ -4,8 +4,8 @@
 {"id": "readme_demo_entry", "category": "readme", "question": "Where does README mention 导入示例资料 for the first-run demo?", "expected_files": ["README.md"], "expected_terms": ["导入示例资料"], "must_find": true}
 {"id": "readme_sqlite_storage", "category": "readme", "question": "Where does DocFlow keep metadata?", "expected_files": ["README.md"], "expected_terms": ["SQLite"], "must_find": true}
 {"id": "readme_qdrant_vectors", "category": "readme", "question": "Where does DocFlow keep vectors?", "expected_files": ["README.md"], "expected_terms": ["Qdrant"], "must_find": true}
-{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["365"], "must_find": true}
-{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["79"], "must_find": true}
+{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["368"], "must_find": true}
+{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["81"], "must_find": true}
 {"id": "readme_offline_check", "category": "readme", "question": "What offline check is mentioned in README?", "expected_files": ["README.md"], "expected_terms": ["offline network check"], "must_find": true}
 {"id": "readme_license", "category": "readme", "question": "What license does README list?", "expected_files": ["README.md"], "expected_terms": ["MIT"], "must_find": true}
 {"id": "privacy_positioning", "category": "privacy", "question": "How does privacy.md define DocFlow?", "expected_files": ["docs/privacy.md"], "expected_terms": ["local-first personal knowledge assistant"], "must_find": true}
@@ -31,7 +31,7 @@
 {"id": "status_citation_identity", "category": "status", "question": "What citation metadata is now included?", "expected_files": ["docs/status.md"], "expected_terms": ["Citations include chunk identity"], "must_find": true}
 {"id": "status_parsing_eval", "category": "status", "question": "What parsing validation appears in latest status?", "expected_files": ["docs/status.md"], "expected_terms": ["Parsing eval"], "must_find": true}
 {"id": "status_unexpected_outbound", "category": "status", "question": "What offline outbound result is recorded?", "expected_files": ["docs/status.md"], "expected_terms": ["0 unexpected outbound"], "must_find": true}
-{"id": "status_impl_modules_gap", "category": "status", "question": "What architecture gap remains?", "expected_files": ["docs/status.md"], "expected_terms": ["handler/service extraction"], "must_find": true}
+{"id": "status_impl_modules_gap", "category": "status", "question": "What remains larger than ideal before outside contributors can review easily?", "expected_files": ["docs/status.md"], "expected_terms": ["outside contributors"], "must_find": true}
 {"id": "arch_layers", "category": "architecture", "question": "How many main layers does DocFlow have?", "expected_files": ["docs/architecture.md"], "expected_terms": ["four main layers"], "must_find": true}
 {"id": "arch_fastapi", "category": "architecture", "question": "What does the API layer serve?", "expected_files": ["docs/architecture.md"], "expected_terms": ["FastAPI browser app"], "must_find": true}
 {"id": "arch_ingest_parses", "category": "architecture", "question": "What does the ingest layer parse?", "expected_files": ["docs/architecture.md"], "expected_terms": ["parses files"], "must_find": true}

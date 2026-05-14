@@ -38,8 +38,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
-- Public eval: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 806.44 ms, P95 870.36 ms. This is a small public-domain smoke check, not a broad public benchmark.
-- Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 312.8 ms, P95 796.47 ms.
+- Public eval: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 794.82 ms, P95 851.99 ms. This is a small public-domain smoke check, not a broad public benchmark.
+- Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
