@@ -138,4 +138,11 @@ def test_create_note_ingest_query_citation_and_save_answer_flow(monkeypatch, tmp
     assert saved_path.exists()
     assert "Apollo budget is approved" in saved_path.read_text(encoding="utf-8")
     assert saved_record["status"] == "done"
+    assert save_body["source_links"] == [note_record["id"]]
+    assert store.list_backlinks(note_record["id"])[0]["file"]["id"] == saved_record["id"]
+    overview_response = client.get(f"/api/knowledge/overview?file_id={note_record['id']}")
+    assert overview_response.status_code == 200
+    overview = overview_response.json()
+    assert overview["backlinks"][0]["file"]["id"] == saved_record["id"]
+    assert any(edge["type"] == "backlink" for edge in overview["knowledge_graph"]["edges"])
     assert len(queue.submitted) == 2

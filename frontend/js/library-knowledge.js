@@ -21,6 +21,7 @@ function knowledgeOverviewMarkup(data) {
   const feedback = data?.feedback || {};
   const backlinks = data?.backlinks || [];
   const outbound = data?.outbound_links || [];
+  const graph = data?.knowledge_graph || { nodes: [], edges: [], stats: {} };
   return `
     <h3 class="panel-title">知识视图</h3>
     <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -48,6 +49,10 @@ function knowledgeOverviewMarkup(data) {
         <div class="panel-muted">引用来源</div>
         <div class="mt-1 font-bold text-on-surface">${outbound.length}</div>
       </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">关系图谱</div>
+      ${knowledgeGraphMarkup(graph)}
     </div>
     <div class="mt-4">
       <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">回答反馈</div>
@@ -81,6 +86,42 @@ function knowledgeOverviewMarkup(data) {
     <div class="mt-4">
       <div class="text-[11px] font-bold text-on-surface-variant/60 mb-2">知识卡片</div>
       ${cards.length ? cards.slice(0, 3).map(card => knowledgeCardMarkup(card)).join('') : '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">完成入库后会生成可复用卡片。</div>'}
+    </div>`;
+}
+
+function knowledgeGraphMarkup(graph) {
+  const nodes = graph?.nodes || [];
+  const edges = graph?.edges || [];
+  if (!nodes.length || !edges.length) {
+    return '<div class="rounded-lg bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">还没有足够关系生成图谱。</div>';
+  }
+  const byId = Object.fromEntries(nodes.map(node => [node.id, node]));
+  const labels = {
+    topic_file: '主题关联',
+    similar: '内容相似',
+    card_source: '卡片来源',
+    backlink: '反向引用',
+    source_link: '引用来源',
+  };
+  return `
+    <div class="rounded-lg bg-surface-container-low px-3 py-3">
+      <div class="mb-3 flex items-center justify-between gap-2 text-xs">
+        <span class="font-semibold text-on-surface">${Number(graph?.stats?.nodes || nodes.length)} 个对象</span>
+        <span class="text-on-surface-variant/60">${Number(graph?.stats?.edges || edges.length)} 条关系</span>
+      </div>
+      <div class="flex flex-col gap-2">
+        ${edges.slice(0, 5).map(edge => {
+          const source = byId[edge.source] || {};
+          const target = byId[edge.target] || {};
+          return `<div class="rounded-lg bg-surface-container-lowest px-3 py-2 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-on-surface line-clamp-1">${escHtml(source.label || '知识对象')}</span>
+              <span class="text-[10px] font-bold text-primary">${escHtml(labels[edge.type] || '关联')}</span>
+            </div>
+            <div class="mt-1 text-[11px] text-on-surface-variant/65 line-clamp-1">连接到：${escHtml(target.label || '知识对象')}</div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
 }
 

@@ -54,14 +54,25 @@ class KnowledgeService:
         profiles = [profile for profile in profiles if profile["terms"]]
         backlinks = store.list_backlinks(active_file_id) if active_file_id else []
         outbound_links = store.list_outbound_links(active_file_id) if active_file_id else []
+        topics = self._topics(profiles, limit=limit)
+        similar_documents = self._similar_documents(
+            profiles,
+            active_file_id=active_file_id,
+            limit=limit,
+        )
+        knowledge_cards = self._knowledge_cards(store, profiles, limit=limit)
         return {
-            "topics": self._topics(profiles, limit=limit),
-            "similar_documents": self._similar_documents(
-                profiles,
+            "topics": topics,
+            "similar_documents": similar_documents,
+            "knowledge_cards": knowledge_cards,
+            "knowledge_graph": self._knowledge_graph(
+                topics,
+                similar_documents,
+                knowledge_cards,
+                backlinks,
+                outbound_links,
                 active_file_id=active_file_id,
-                limit=limit,
             ),
-            "knowledge_cards": self._knowledge_cards(store, profiles, limit=limit),
             "feedback": store.get_feedback_summary(),
             "backlinks": backlinks,
             "outbound_links": outbound_links,
@@ -210,4 +221,88 @@ class KnowledgeService:
             "file_name": file.get("file_name", ""),
             "collection": file.get("collection", ""),
             "updated_at": file.get("updated_at", ""),
+        }
+
+    def _knowledge_graph(
+        self,
+        topics: list[dict[str, Any]],
+        similar_documents: list[dict[str, Any]],
+        knowledge_cards: list[dict[str, Any]],
+        backlinks: list[dict[str, Any]],
+        outbound_links: list[dict[str, Any]],
+        *,
+        active_file_id: int | None,
+    ) -> dict[str, Any]:
+        nodes: dict[str, dict[str, Any]] = {}
+        edges: list[dict[str, Any]] = []
+
+        def add_node(node_id: str, node_type: str, label: str, **meta: Any) -> None:
+            nodes.setdefault(
+                node_id,
+                {
+                    "id": node_id,
+                    "type": node_type,
+                    "label": label,
+                    **meta,
+                },
+            )
+
+        def add_file_node(file: dict[str, Any]) -> str:
+            file_id = int(file.get("id") or 0)
+            node_id = f"file:{file_id}"
+            add_node(
+                node_id,
+                "file",
+                str(file.get("file_name") or "资料"),
+                file_id=file_id,
+                collection=file.get("collection", ""),
+            )
+            return node_id
+
+        for topic in topics[:6]:
+            topic_id = f"topic:{topic['id']}"
+            add_node(topic_id, "topic", str(topic["title"]), keywords=topic.get("keywords", []))
+            for file in (topic.get("files") or [])[:4]:
+                file_id = add_file_node(file)
+                edges.append({"source": topic_id, "target": file_id, "type": "topic_file"})
+
+        for item in similar_documents[:6]:
+            files = item.get("files") or []
+            if len(files) < 2:
+                continue
+            left = add_file_node(files[0])
+            right = add_file_node(files[1])
+            edges.append(
+                {
+                    "source": left,
+                    "target": right,
+                    "type": "similar",
+                    "score": item.get("score", 0),
+                }
+            )
+
+        for card in knowledge_cards[:6]:
+            source_file = card.get("source_file") or {}
+            source = add_file_node(source_file)
+            card_id = f"card:{source_file.get('id', 0)}:{card.get('title', '')[:32]}"
+            add_node(card_id, "card", str(card.get("title") or "知识卡片"))
+            edges.append({"source": card_id, "target": source, "type": "card_source"})
+
+        active_node = f"file:{active_file_id}" if active_file_id else ""
+        for link in backlinks[:6]:
+            linked = add_file_node(link.get("file") or {})
+            if active_node:
+                edges.append({"source": linked, "target": active_node, "type": "backlink"})
+        for link in outbound_links[:6]:
+            linked = add_file_node(link.get("file") or {})
+            if active_node:
+                edges.append({"source": active_node, "target": linked, "type": "source_link"})
+
+        return {
+            "nodes": list(nodes.values())[:30],
+            "edges": edges[:48],
+            "stats": {
+                "nodes": min(len(nodes), 30),
+                "edges": min(len(edges), 48),
+            },
         }

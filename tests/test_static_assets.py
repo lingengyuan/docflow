@@ -309,6 +309,17 @@ def test_phase70_theme_tokens_focus_and_live_regions_exist():
     )
 
 
+def test_phase71_knowledge_graph_is_visible_and_data_backed():
+    html = frontend_source_text()
+    service = Path("src/api/services/knowledge_service.py").read_text(encoding="utf-8")
+
+    assert "关系图谱" in html
+    assert "knowledgeGraphMarkup" in html
+    assert "knowledge_graph" in service
+    assert "topic_file" in service
+    assert "backlink" in service
+
+
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")

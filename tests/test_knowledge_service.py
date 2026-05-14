@@ -64,6 +64,8 @@ def test_knowledge_service_derives_topics_similar_documents_and_cards(tmp_path):
         assert overview["similar_documents"]
         assert overview["knowledge_cards"]
         assert overview["knowledge_cards"][0]["source_file"]["file_name"]
+        assert overview["knowledge_graph"]["nodes"]
+        assert overview["knowledge_graph"]["edges"]
         assert overview["feedback"]["useful"] == 1
     finally:
         store.close()
@@ -89,5 +91,6 @@ def test_knowledge_overview_api_uses_current_store(monkeypatch, tmp_path):
         assert body["stats"]["files"] == 1
         assert body["knowledge_cards"][0]["source_file"]["id"] == file_id
         assert body["backlinks"] == []
+        assert body["knowledge_graph"]["stats"]["nodes"] >= 1
     finally:
         store.close()
