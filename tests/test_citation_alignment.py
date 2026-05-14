@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 
 from src.query.generator import (
+    AnswerGenerator,
     Citation,
+    apply_structured_citations,
     citation_from_chunk,
     sanitize_inline_citations,
     validate_citations,
@@ -37,6 +39,86 @@ def test_validate_citations_drops_unretrieved_chunk_ids():
     invalid = Citation(file_name="b.md", page_num=1, snippet="b", score=1.0, chunk_id="q:2")
 
     assert validate_citations([valid, invalid], chunks) == [valid]
+
+
+def test_context_includes_structured_chunk_citation_hint():
+    context = AnswerGenerator._build_context(
+        [
+            {
+                "qdrant_id": 17,
+                "file_name": "source.md",
+                "page_num": 3,
+                "text": "trusted fact",
+            }
+        ]
+    )
+
+    assert "chunk_id: q:17" in context
+    assert "引用格式: [[cite:q:17]]" in context
+
+
+def test_structured_citations_keep_only_used_verified_chunks():
+    citations = [
+        Citation(file_name="a.md", page_num=1, snippet="alpha", score=0.9, chunk_id="q:1"),
+        Citation(file_name="b.md", page_num=2, snippet="beta", score=0.8, chunk_id="q:2"),
+    ]
+
+    cleaned, used = apply_structured_citations("只引用第一段 [[cite:q:1]]。", citations)
+
+    assert cleaned == "只引用第一段 [来源: a.md, 第1页]。"
+    assert used == [citations[0]]
+
+
+def test_structured_citations_mark_invalid_chunk_ids_unverified():
+    citations = [
+        Citation(file_name="a.md", page_num=1, snippet="alpha", score=0.9, chunk_id="q:1")
+    ]
+
+    cleaned, used = apply_structured_citations("编造引用 [[cite:q:404]]。", citations)
+
+    assert cleaned == "编造引用 [未验证来源]。"
+    assert used == []
+
+
+def test_structured_citations_keep_valid_ids_in_first_use_order():
+    citations = [
+        Citation(file_name="a.md", page_num=1, snippet="alpha", score=0.9, chunk_id="q:1"),
+        Citation(file_name="b.md", page_num=2, snippet="beta", score=0.8, chunk_id="q:2"),
+        Citation(file_name="c.md", page_num=3, snippet="gamma", score=0.7, chunk_id="q:3"),
+    ]
+
+    cleaned, used = apply_structured_citations(
+        "第二段 [[cite:q:2]]，编造 [[cite:q:404]]，第一段 [[cite:q:1]]。",
+        citations,
+    )
+
+    assert cleaned == "第二段 [来源: b.md, 第2页]，编造 [未验证来源]，第一段 [来源: a.md, 第1页]。"
+    assert used == [citations[1], citations[0]]
+
+
+def test_structured_citations_dedupe_repeated_verified_ids():
+    citation = Citation(file_name="a.md", page_num=1, snippet="alpha", score=0.9, chunk_id="q:1")
+
+    cleaned, used = apply_structured_citations(
+        "第一处 [[cite:q:1]]，第二处 [[cite:q:1]]。",
+        [citation],
+    )
+
+    assert cleaned == "第一处 [来源: a.md, 第1页]，第二处 [来源: a.md, 第1页]。"
+    assert used == [citation]
+
+
+def test_structured_citations_preserve_legacy_inline_answers():
+    citations = [
+        Citation(file_name="a.md", page_num=1, snippet="alpha", score=0.9, chunk_id="q:1"),
+        Citation(file_name="b.md", page_num=2, snippet="beta", score=0.8, chunk_id="q:2"),
+    ]
+    answer = "旧格式仍可用 [来源: a.md, 第1页]。"
+
+    cleaned, used = apply_structured_citations(answer, citations)
+
+    assert cleaned == answer
+    assert used == citations
 
 
 def test_unverified_inline_model_citations_are_marked():

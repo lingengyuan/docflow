@@ -14,6 +14,8 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Local privacy has an offline doctor check covering startup, local ingest, query fallback, model status, and source preview.
 - Model downloads are blocked by default when the configured cache is missing and `privacy.allow_model_download` is false.
 - Citations include chunk identity and source span metadata.
+- Answer generation now asks models to cite exact chunk identifiers and filters displayed
+  source cards down to verified chunks that were actually cited.
 - Source preview can highlight the cited source range when citation span metadata is available.
 - Browser UI now presents model choices, collections, watched folders, queue stages, and source labels in user-facing language.
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
@@ -35,7 +37,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 368 passed.
+- Unit/integration tests: 374 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

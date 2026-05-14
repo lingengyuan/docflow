@@ -64,6 +64,10 @@ Current committed parsing set: 31 documents covering Markdown tables, Obsidian-f
 
 `tests/test_incremental_index.py` covers the add, modify, and delete cycle with deterministic local fakes. It confirms changed files replace old vectors and deleted files are cleaned from SQLite metadata within the five-second regression limit.
 
+## Citation Alignment
+
+`tests/test_citation_alignment.py` covers source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, and legacy citation compatibility.
+
 ## Internal Planning Report
 
 The old maturity scorecard is an internal planning aid only. It is not a public quality claim and should not be used in README, release notes, or status summaries.

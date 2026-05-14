@@ -20,11 +20,12 @@ from src.model_cache import resolve_model_load_reference
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
 
 规则：
-1. 每个关键事实必须附带引用：[来源: 文件名, 第N页]
+1. 每个关键事实必须附带片段引用，格式为 [[cite:chunk_id]]
 2. 若文档中未找到答案，明确回答"在现有文档中未找到相关信息"，不要编造
 3. 回答使用中文，简洁专业
 4. 若多个文档有相关信息，综合后回答并分别标注来源
-5. 最近对话只用于理解追问语境，事实依据仍必须来自文档片段"""
+5. 只能使用文档片段中给出的 chunk_id，不要编造引用
+6. 最近对话只用于理解追问语境，事实依据仍必须来自文档片段"""
 
 SUMMARIZE_PROMPT = """你是一个专业的文档摘要助手。请基于提供的文档片段生成结构化摘要。
 
@@ -167,6 +168,7 @@ class AnswerGenerator:
             [citation_from_chunk(chunk) for chunk in chunks],
             chunks,
         )
+        answer_text, citations = apply_structured_citations(answer_text, citations)
         answer_text = sanitize_inline_citations(answer_text, citations)
         return Answer(text=answer_text, citations=citations, reproducible=self.is_reproducible)
 
@@ -179,8 +181,13 @@ class AnswerGenerator:
         parts = []
         for i, c in enumerate(chunks, 1):
             section = f" > {c['section']}" if c.get("section") else ""
+            qdrant_id = c.get("qdrant_id")
+            chunk_id = c.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else "")
+            cite_hint = f"引用格式: [[cite:{chunk_id}]]\n" if chunk_id else ""
             parts.append(
-                f"[片段{i}] 来源: {c['file_name']}, 第{c['page_num']}页{section}\n{c['text']}"
+                f"[片段{i}] 来源: {c['file_name']}, 第{c['page_num']}页{section}\n"
+                f"chunk_id: {chunk_id or '无'}\n"
+                f"{cite_hint}{c['text']}"
             )
         return "\n\n---\n\n".join(parts)
 
@@ -460,6 +467,29 @@ def validate_citations(citations: list[Citation], chunks: list[dict]) -> list[Ci
 
 
 INLINE_CITATION_RE = re.compile(r"\[来源:\s*([^,\]，]+)(?:[,，]\s*第?(\d+)页)?\]")
+STRUCTURED_CITATION_RE = re.compile(r"\[\[cite:([^\]]+)\]\]")
+
+
+def apply_structured_citations(text: str, citations: list[Citation]) -> tuple[str, list[Citation]]:
+    citation_by_id = {citation.chunk_id: citation for citation in citations if citation.chunk_id}
+    used_ids: list[str] = []
+
+    def replace(match: re.Match[str]) -> str:
+        chunk_id = match.group(1).strip()
+        citation = citation_by_id.get(chunk_id)
+        if citation is None:
+            return "[未验证来源]"
+        if chunk_id not in used_ids:
+            used_ids.append(chunk_id)
+        return f"[来源: {citation.file_name}, 第{citation.page_num}页]"
+
+    cleaned = STRUCTURED_CITATION_RE.sub(replace, text)
+    if not used_ids and cleaned == text:
+        return text, citations
+    used_citations = [
+        citation_by_id[chunk_id] for chunk_id in used_ids if chunk_id in citation_by_id
+    ]
+    return cleaned, used_citations
 
 
 def sanitize_inline_citations(text: str, citations: list[Citation]) -> str:
