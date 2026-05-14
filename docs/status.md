@@ -26,6 +26,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Public retrieval smoke evaluation now covers 50 committed public-domain and United States government text cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
+- Performance smoke now covers parser/chunker behavior for a synthetic long note and a synthetic many-note library in the standard local CI script.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
 - Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for tagged releases.
@@ -40,20 +41,21 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 378 passed.
+- Unit/integration tests: 381 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
 - Public eval: 50/50 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 798.84 ms, P95 859.81 ms. This is a small public-domain smoke check, not a broad public benchmark.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
+- Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
 ## Remaining Gaps
 
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
-- Large-file and large-library benchmarks are not yet part of the standard CI path.
+- Parser/chunker performance smoke is now in the standard local CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of CI.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is still a smoke set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.

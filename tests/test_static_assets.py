@@ -375,6 +375,23 @@ def test_phase74_public_eval_is_separate_from_internal_regression():
     assert "Public eval:" in status_doc
 
 
+def test_phase88_performance_smoke_is_documented_and_in_ci():
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
+    main_source = Path("main.py").read_text(encoding="utf-8")
+    ci_script = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
+
+    assert Path("scripts/run_performance_smoke.py").exists()
+    assert "docflow eval performance" in readme
+    assert "docflow eval performance" in readme_zh
+    assert "docflow eval performance" in cli_doc
+    assert "Performance Smoke" in evaluation_doc
+    assert 'args[0] == "performance"' in main_source
+    assert "run_performance_smoke.py --json" in ci_script
+
+
 def test_phase75_release_install_surface_is_documented():
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")

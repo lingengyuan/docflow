@@ -7,6 +7,7 @@ DocFlow currently has several validation paths:
 docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
+docflow eval performance --write-results
 docflow browser-acceptance
 docflow restore-drill
 ```
@@ -19,6 +20,7 @@ DocFlow uses measured checks as external quality evidence:
 - Citation alignment.
 - Parsing regression checks.
 - Incremental indexing checks.
+- Parser/chunker performance smoke checks.
 - Reproducibility checks.
 - Offline privacy checks.
 
@@ -63,6 +65,12 @@ Current committed parsing set: 31 documents covering Markdown tables, Obsidian-f
 ## Incremental Indexing
 
 `tests/test_incremental_index.py` covers the add, modify, and delete cycle with deterministic local fakes. It confirms changed files replace old vectors and deleted files are cleaned from SQLite metadata within the five-second regression limit.
+
+## Performance Smoke
+
+`docflow eval performance --write-results` generates synthetic local Markdown files and measures parser/chunker throughput without downloading models or calling external services. The standard local CI script runs this smoke check. It is a regression guard for long-note and many-note parsing, not a full large-library retrieval or model-latency benchmark.
+
+Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 
 ## Citation Alignment
 

@@ -32,7 +32,7 @@ README 中的截图来自内置示例资料库，不包含个人文件夹或真�
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`378` 个测试通过，`81` 个浏览器检查通过，公开可复现小样本检索评估 `50/50`，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `31/31`，离线本地使用检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`381` 个测试通过，`81` 个浏览器检查通过，公开可复现小样本检索评估 `50/50`，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `31/31`，性能冒烟检查通过，离线本地使用检查报告 `0` 个意外外连。
 
 这些数字适合用来守住项目回归，不等同于大规模公开 benchmark。
 
@@ -73,6 +73,7 @@ docflow demo --create-only
 docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
+docflow eval performance --write-results
 docflow browser-acceptance
 docflow doctor --offline
 ```

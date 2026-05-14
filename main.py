@@ -27,6 +27,7 @@ DocFlow 入口。
   # 运行固定评估集（不调用回答 LLM）
   python main.py eval retrieval
   python main.py eval parsing
+  python main.py eval performance
 
   # 生成并验证真实样本套件
   python main.py sample-suite
@@ -215,6 +216,11 @@ def eval_command(args: list[str]):
 
         sys.argv = [sys.argv[0], *args[1:]]
         return run_public_eval_main()
+    if args and args[0] == "performance":
+        from scripts.run_performance_smoke import main as run_performance_smoke_main
+
+        sys.argv = [sys.argv[0], *args[1:]]
+        return run_performance_smoke_main()
     if args and args[0] == "retrieval":
         args = args[1:]
     from scripts.run_eval import main as run_eval_main

@@ -10,6 +10,7 @@ PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 "$PYTHON_BIN" -m ruff check .
 "$PYTHON_BIN" -m mypy
 "$PYTHON_BIN" -m pytest -q
+"$PYTHON_BIN" scripts/run_performance_smoke.py --json > /tmp/docflow-performance-smoke.json
 npm run check:frontend
 npm run test:frontend
 npm run build:frontend
