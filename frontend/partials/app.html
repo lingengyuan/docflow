@@ -1,0 +1,930 @@
+<a href="#view-chat" class="skip-link" data-i18n="skip.main">跳到主内容</a>
+
+<!-- ── Left Sidebar ── -->
+<aside class="app-sidebar flex flex-col h-screen flex-shrink-0">
+  <div class="window-dots flex items-center gap-2 px-2 pb-5" aria-hidden="true">
+    <span class="window-dot bg-[#ff5f57]"></span>
+    <span class="window-dot bg-[#febc2e]"></span>
+    <span class="window-dot bg-[#28c840]"></span>
+  </div>
+  <div class="flex items-center gap-3 px-2 pb-8">
+    <div class="brand-mark">
+      <span class="material-symbols-outlined icon-fill" style="font-size:18px">auto_awesome</span>
+    </div>
+    <span class="sidebar-brand-name text-lg font-bold text-on-surface">DocFlow</span>
+  </div>
+  <nav class="flex flex-col gap-2 flex-1" aria-label="主导航" data-i18n-aria="nav.main">
+    <button id="nav-chat" class="nav-btn active-nav" onclick="switchView('chat')" aria-current="page">
+      <span class="material-symbols-outlined icon-fill" style="font-size:20px">chat_bubble</span>
+      <span class="sidebar-label" data-i18n="nav.chat">对话</span>
+    </button>
+    <button id="nav-library" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('library')">
+      <span class="material-symbols-outlined" style="font-size:20px">folder_open</span>
+      <span class="sidebar-label" data-i18n="nav.library">资料库</span>
+    </button>
+    <button id="nav-source" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('source')">
+      <span class="material-symbols-outlined" style="font-size:20px">article</span>
+      <span class="sidebar-label" data-i18n="nav.source">来源预览</span>
+    </button>
+    <button id="nav-notes" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('notes')">
+      <span class="material-symbols-outlined" style="font-size:20px">edit_note</span>
+      <span class="sidebar-label" data-i18n="nav.notes">笔记</span>
+    </button>
+    <button id="nav-settings" class="nav-btn opacity-80 hover:opacity-100" onclick="switchView('settings')">
+      <span class="material-symbols-outlined" style="font-size:20px">tune</span>
+      <span class="sidebar-label" data-i18n="nav.settings">设置</span>
+    </button>
+  </nav>
+  <div class="mx-2 flex flex-col gap-2">
+    <button onclick="switchView('library')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地资料库" aria-label="查看本地资料库">
+      <span class="material-symbols-outlined text-primary" style="font-size:17px">inventory_2</span>
+      <span class="sidebar-bottom-text min-w-0">
+        <span id="sidebar-storage-label" class="block text-xs font-bold text-on-surface" data-i18n="sidebar.storage">本地存储</span>
+        <span id="sidebar-storage-count" class="block text-[11px] text-on-surface-variant/60" data-i18n="state.loading">正在读取</span>
+        <span class="mt-2 block h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+          <span id="sidebar-storage-meter" class="block h-full rounded-full bg-primary transition-all" style="width:0%"></span>
+        </span>
+      </span>
+    </button>
+    <button onclick="switchView('settings')" class="soft-panel flex items-center gap-3 px-3 py-3 text-left" title="查看本地运行状态" aria-label="查看本地运行状态">
+      <span id="status-dot" class="w-2 h-2 rounded-full bg-tertiary flex-shrink-0"></span>
+      <span class="sidebar-bottom-text min-w-0">
+        <span id="sidebar-status-label" class="block text-xs font-bold text-on-surface" data-i18n="sidebar.local">本地运行</span>
+        <span class="block text-[11px] text-on-surface-variant/60" data-i18n="sidebar.privacy">隐私数据仅在本机处理</span>
+      </span>
+    </button>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+  <header class="app-topbar flex-shrink-0">
+    <label class="global-search" for="global-search-input">
+      <span class="material-symbols-outlined text-on-surface-variant/60" style="font-size:18px">search</span>
+      <input id="global-search-input" type="search" placeholder="搜索资料库、笔记或提问… (⌘K)" data-i18n-placeholder="search.placeholder" onkeydown="handleGlobalSearchKey(event)" aria-label="全局搜索或提问" data-i18n-aria="search.aria">
+    </label>
+    <div class="flex items-center justify-end gap-2">
+      <button id="top-local-status" onclick="switchView('settings')" class="top-action" title="查看本地运行状态" aria-label="查看本地运行状态">
+        <span id="top-status-dot" class="w-2 h-2 rounded-full bg-tertiary"></span>
+        <span id="top-status-label" data-i18n="sidebar.local">本地运行</span>
+      </button>
+      <button onclick="toggleLocale()" id="locale-toggle-btn" class="icon-button" title="切换语言" aria-label="切换语言" data-i18n-title="locale.toggle" data-i18n-aria="locale.toggle">
+        <span class="material-symbols-outlined" style="font-size:18px">language</span>
+      </button>
+      <button onclick="document.getElementById('file-input-chat').click()" class="icon-button" title="上传文件" aria-label="上传文件">
+        <span class="material-symbols-outlined" style="font-size:18px">upload_file</span>
+      </button>
+      <button onclick="checkHealth()" class="icon-button" title="刷新状态" aria-label="刷新状态">
+        <span class="material-symbols-outlined" style="font-size:18px">sync</span>
+      </button>
+      <button onclick="switchView('settings')" class="icon-button" title="设置" aria-label="设置">
+        <span class="material-symbols-outlined" style="font-size:18px">tune</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Chat View ── -->
+  <div id="view-chat" class="view flex flex-col flex-1 min-h-0" role="region" aria-labelledby="chat-title" tabindex="-1">
+    <div class="workspace-shell">
+      <div class="workspace-card workspace-grid">
+        <section class="relative flex flex-col min-h-0">
+    <!-- Header -->
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <div class="flex items-center gap-4">
+        <h1 id="chat-title" class="text-base font-semibold text-on-surface tracking-tight">DocFlow</h1>
+        <div class="relative">
+          <button id="conversation-btn" onclick="toggleConversationMenu(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 transition-all text-xs font-medium text-on-surface-variant">
+            <span class="material-symbols-outlined text-primary" style="font-size:15px">forum</span>
+            <span id="conversation-current" class="max-w-[180px] truncate">新对话</span>
+            <span class="material-symbols-outlined" style="font-size:14px">keyboard_arrow_down</span>
+          </button>
+          <div id="conversation-menu" class="hidden absolute left-0 mt-2 w-80 max-h-[520px] overflow-hidden bg-surface-container-lowest shadow-xl rounded-xl border border-outline-variant/10 z-50">
+            <div class="p-3 border-b border-outline-variant/10 flex items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" data-i18n="nav.chat">对话</span>
+              <button onclick="createNewConversation()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-on-primary hover:bg-primary-dim transition-all" title="新建对话">
+                <span class="material-symbols-outlined" style="font-size:17px">add</span>
+              </button>
+            </div>
+            <div id="conversation-list" class="max-h-[450px] overflow-y-auto custom-scrollbar p-2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="chat-inline-status-btn" onclick="switchView('settings')" class="flex flex-shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/10 hover:border-primary/20 active:scale-95 transition-all text-xs font-medium text-on-surface-variant" title="打开设置" aria-label="打开设置">
+          <span class="material-symbols-outlined text-primary" style="font-size:14px">tune</span>
+          <span id="chat-status-label" class="whitespace-nowrap">本地运行</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto custom-scrollbar pt-8 pb-36">
+      <div class="max-w-2xl mx-auto px-6 flex flex-col gap-10">
+        <!-- Welcome message -->
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-surface-container-highest flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary icon-fill" style="font-size:14px">auto_awesome</span>
+            </div>
+            <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">DocFlow</span>
+          </div>
+          <div class="text-sm text-on-surface leading-relaxed">
+            你好，我是 DocFlow — 你的本地知识助手。<br>
+            可以先导入示例资料，也可以上传自己的文件，完成整理后再回到这里选择范围提问。
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <button onclick="createDemoLibrary()" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">导入示例资料</span>
+                <span class="text-on-surface-variant/70">快速体验来源问答</span>
+              </button>
+              <button onclick="switchView('library'); setTimeout(() => document.getElementById('file-input')?.click(), 120)" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">上传本地文件</span>
+                <span class="text-on-surface-variant/70">PDF、笔记、代码</span>
+              </button>
+              <button onclick="switchView('library'); triggerIngest()" class="text-left rounded-lg bg-surface-container-low px-3 py-2 hover:bg-surface-container transition-all active:scale-95">
+                <span class="block font-semibold text-on-surface">扫描本地文件夹</span>
+                <span class="text-on-surface-variant/70">整理已配置目录</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface/95 to-transparent pt-12 pb-8 px-6">
+      <div class="max-w-2xl mx-auto">
+        <div id="query-scope-controls" class="mb-2 flex items-center gap-2 text-xs">
+          <select id="query-scope-mode" onchange="updateQueryScopeControls()" aria-label="提问范围" class="h-8 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20">
+            <option value="all">全部知识库</option>
+            <option value="collection">指定集合</option>
+            <option value="file">指定文件</option>
+            <option value="full_text">全文模式</option>
+          </select>
+          <select id="query-scope-collection" onchange="updateQueryScopeControls()" aria-label="选择集合" class="hidden h-8 max-w-[190px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
+          <select id="query-scope-file" onchange="updateQueryScopeControls()" aria-label="选择文件" class="hidden h-8 max-w-[240px] rounded-lg border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant text-xs focus:border-primary focus:ring-primary/20"></select>
+          <button id="query-scope-refresh" onclick="loadQueryScopeOptions(true)" title="刷新范围选项" aria-label="刷新范围选项" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant/60 hover:text-primary hover:bg-surface-container active:scale-95 transition-all">
+            <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+          </button>
+          <span id="query-scope-status" class="text-[10px] text-on-surface-variant/45 whitespace-nowrap"></span>
+        </div>
+        <div class="relative flex items-end bg-surface-container-lowest border border-outline-variant/15 rounded-2xl shadow-sm focus-within:shadow-md focus-within:border-primary/40 transition-all p-1.5 gap-1">
+          <button class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-on-surface-variant/60 hover:text-primary transition-colors rounded-xl hover:bg-surface-container" onclick="document.getElementById('file-input-chat').click()" title="添加文件" aria-label="添加文件">
+            <span class="material-symbols-outlined">add_circle</span>
+          </button>
+          <input type="file" id="file-input-chat" accept=".pdf,.md,.markdown,.txt,.docx,.py,.rs,.ts,.css,.sh,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
+          <textarea id="input" rows="1"
+            placeholder="向你的文档提问…"
+            class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-2 placeholder:text-on-surface-variant/40 resize-none overflow-hidden leading-relaxed outline-none"
+            style="max-height:120px"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"></textarea>
+          <button id="send-btn" onclick="sendMessage()" title="发送问题" aria-label="发送问题"
+            class="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center bg-primary text-on-primary hover:bg-primary-dim active:scale-95 transition-all">
+            <span class="material-symbols-outlined" style="font-size:18px">arrow_upward</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-center mt-3 text-on-surface-variant/40 tracking-wide font-medium">DocFlow 可能出错，请核对重要信息</p>
+      </div>
+    </footer>
+        </section>
+        <aside class="context-panel hidden lg:flex flex-col overflow-y-auto custom-scrollbar p-4 gap-3">
+          <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="panel-title">引用来源</h2>
+                <p id="chat-context-source-count" class="panel-muted mt-1">等待提问后显示</p>
+              </div>
+              <button onclick="switchView('library')" class="toolbar-btn" title="打开资料库" aria-label="打开资料库">
+                <span class="material-symbols-outlined" style="font-size:15px">folder_open</span>
+                全部打开
+              </button>
+            </div>
+            <div id="chat-context-sources" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-3">回答生成后，这里会显示本次引用的文件和片段。</div>
+            </div>
+          </section>
+          <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="panel-title">相关笔记</h2>
+                <p id="chat-related-count" class="panel-muted mt-1">等待提问后显示</p>
+              </div>
+              <span class="material-symbols-outlined text-primary/70" style="font-size:17px">hub</span>
+            </div>
+            <div id="chat-related-notes" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-3">回答生成后，这里会显示可继续探索的笔记。</div>
+            </div>
+          </section>
+          <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="panel-title">来源预览</h2>
+              <button id="chat-source-open-btn" onclick="openSourceFromChatPreview()" class="icon-button !w-8 !h-8 hidden" title="打开来源预览" aria-label="打开来源预览">
+                <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+              </button>
+            </div>
+            <div id="chat-context-preview" class="mt-3 text-xs leading-relaxed text-on-surface-variant rounded-lg bg-surface-container-low px-3 py-3">
+              选择回答中的引用后，这里会显示可核查片段。
+            </div>
+          </section>
+          <section class="soft-panel p-4">
+            <h2 class="panel-title">模型状态</h2>
+            <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <div class="panel-muted">范围</div>
+                <div id="chat-context-scope" class="mt-1 font-bold text-on-surface">全部知识库</div>
+              </div>
+              <div>
+                <div class="panel-muted">模型</div>
+                <div id="chat-context-model" class="mt-1 font-bold text-on-surface line-clamp-1">读取中</div>
+              </div>
+              <div>
+                <div class="panel-muted">状态</div>
+                <div id="chat-context-health" class="mt-1 font-bold text-on-surface">检查中</div>
+              </div>
+              <div>
+                <div class="panel-muted">来源</div>
+                <div id="chat-context-source-metric" class="mt-1 font-bold text-on-surface">待生成</div>
+              </div>
+            </div>
+          </section>
+          <section class="soft-panel p-4">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="panel-title">后台任务</h2>
+              <button onclick="pollQueueOnce()" class="icon-button !w-8 !h-8" title="刷新后台任务" aria-label="刷新后台任务">
+                <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+              </button>
+            </div>
+            <div id="chat-context-queue" class="mt-3 text-xs text-on-surface-variant rounded-lg bg-surface-container-low px-3 py-3">暂无后台任务。</div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Library View ── -->
+  <div id="view-library" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="library-title" tabindex="-1">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <h1 id="library-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="library.title">文件库</h1>
+      <div class="flex items-center gap-3">
+        <div id="queue-banner" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-medium">
+          <span class="spinner"></span>
+          <span id="queue-text">处理中…</span>
+        </div>
+        <button id="refresh-files-btn" onclick="refreshFiles({ showLoading: true })" title="重新加载文件列表" aria-label="重新加载文件列表" class="toolbar-btn disabled:opacity-60">
+          <span id="refresh-files-icon" class="material-symbols-outlined" style="font-size:16px">refresh</span>
+          <span id="refresh-files-label">刷新列表</span>
+        </button>
+        <button id="scan-folders-btn" onclick="triggerIngest()" title="扫描监控文件夹，把新文件加入队列" aria-label="扫描监控文件夹，把新文件加入队列" class="toolbar-btn toolbar-btn-primary disabled:opacity-70">
+          <span id="scan-folders-icon" class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
+          <span id="scan-folders-label">扫描文件夹</span>
+        </button>
+        <button onclick="openLibraryWorkflow('url')" title="导入网页" aria-label="导入网页" class="toolbar-btn">
+          <span class="material-symbols-outlined" style="font-size:16px">language</span>
+          导入网页
+        </button>
+        <button onclick="openLibraryWorkflow('note')" title="新建笔记" aria-label="新建笔记" class="toolbar-btn">
+          <span class="material-symbols-outlined" style="font-size:16px">edit_note</span>
+          新建笔记
+        </button>
+        <button onclick="document.getElementById('file-input').click()" title="上传文件" aria-label="上传文件" class="toolbar-btn">
+          <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
+          上传文件
+        </button>
+        <input type="file" id="file-input" accept=".pdf,.md,.markdown,.txt,.docx,.py,.rs,.ts,.css,.sh,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple class="hidden" onchange="handleFileSelect(event)">
+      </div>
+    </header>
+    <div class="workspace-shell">
+      <div class="workspace-card flex flex-col">
+
+    <!-- Upload zone -->
+    <div class="px-5 pt-2 pb-2 flex-shrink-0">
+      <div id="upload-zone"
+        role="button"
+        tabindex="0"
+        aria-label="拖拽文件至此或点击上传"
+        class="border border-dashed border-outline-variant/35 rounded-lg px-3 py-2 flex items-center justify-between gap-3 cursor-pointer hover:border-primary/40 hover:bg-surface-container/50 transition-all text-left"
+        onclick="document.getElementById('file-input').click()"
+        onkeydown="handleUploadZoneKey(event)"
+        ondragover="event.preventDefault();this.classList.add('border-primary/60','bg-surface-container')"
+        ondragleave="this.classList.remove('border-primary/60','bg-surface-container')"
+        ondrop="handleDrop(event)">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="material-symbols-outlined text-primary" style="font-size:18px">upload_file</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-on-surface">拖拽文件至此或点击上传</div>
+            <div class="text-[11px] text-on-surface-variant/60 line-clamp-1">PDF、Markdown、文本、Word、图片</div>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant/40" style="font-size:16px">add</span>
+      </div>
+    </div>
+
+    <!-- Import / note workflow -->
+    <div id="library-workflow-panel" class="hidden mx-5 mb-4 flex-shrink-0 rounded-xl bg-surface-container-lowest border border-outline-variant/15 shadow-sm p-4">
+      <div class="flex items-center justify-between gap-4 mb-3">
+        <div>
+          <div id="workflow-title" class="text-sm font-semibold text-on-surface">新建笔记</div>
+          <div id="workflow-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">写入本地监控目录并加入入库队列</div>
+        </div>
+        <button onclick="closeLibraryWorkflow()" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" title="关闭" aria-label="关闭导入面板">
+          <span class="material-symbols-outlined" style="font-size:17px">close</span>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <input id="workflow-title-input" placeholder="标题" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-url-input" placeholder="https://example.com/article" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-collection-input" list="collection-options" placeholder="集合" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+        <input id="workflow-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+      </div>
+      <textarea id="workflow-content-input" rows="5" placeholder="笔记内容" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+      <div class="mt-3 flex items-center justify-between gap-3">
+        <span id="workflow-status" class="text-[11px] text-on-surface-variant/60"></span>
+        <button id="workflow-submit-btn" onclick="runLibraryWorkflow()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim transition-all">
+          <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
+          保存并入库
+        </button>
+      </div>
+    </div>
+
+    <div class="library-grid flex-1 min-h-0">
+      <aside class="side-filter-panel overflow-y-auto custom-scrollbar p-4">
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">分组</div>
+        <div id="library-group-controls" class="flex flex-col gap-1.5 text-xs mb-6">
+          <button id="library-group-all" onclick="setLibraryGroup('all')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">inventory_2</span>全部文件</span>
+            <span id="library-group-all-count">0</span>
+          </button>
+          <button id="library-group-favorites" onclick="setLibraryGroup('favorites')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">star</span>收藏</span>
+            <span id="library-group-favorites-count">0</span>
+          </button>
+          <button id="library-group-recent" onclick="setLibraryGroup('recent')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">schedule</span>最近导入</span>
+            <span id="library-group-recent-count">0</span>
+          </button>
+          <button id="library-group-pdf" onclick="setLibraryGroup('pdf')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">description</span>PDF</span>
+            <span id="library-group-pdf-count">0</span>
+          </button>
+          <button id="library-group-markdown" onclick="setLibraryGroup('markdown')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">article</span>Markdown</span>
+            <span id="library-group-markdown-count">0</span>
+          </button>
+          <button id="library-group-image" onclick="setLibraryGroup('image')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">image</span>图片</span>
+            <span id="library-group-image-count">0</span>
+          </button>
+          <button id="library-group-code" onclick="setLibraryGroup('code')" class="library-group-btn toolbar-btn justify-between">
+            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:14px">code</span>代码</span>
+            <span id="library-group-code-count">0</span>
+          </button>
+        </div>
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">集合</div>
+        <div id="library-collection-list" class="flex flex-col gap-1.5 text-xs mb-6">
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">正在读取集合…</div>
+        </div>
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">标签</div>
+        <div id="library-tag-list" class="flex flex-col gap-1.5 text-xs mb-6">
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 text-on-surface-variant/60">正在读取标签…</div>
+        </div>
+        <div class="text-[11px] font-bold text-on-surface-variant/60 mb-3">筛选</div>
+        <div class="flex flex-col gap-2 text-xs">
+          <select id="library-status-filter" onchange="applyLibraryFilters()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+            <option value="">全部状态</option>
+            <option value="done">已完成</option>
+            <option value="processing">处理中</option>
+            <option value="pending">等待中</option>
+            <option value="error">出错</option>
+          </select>
+          <select id="library-collection-filter" onchange="applyLibraryFilters()" class="h-9 min-w-0 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+            <option value="">全部集合</option>
+          </select>
+          <select id="library-tag-filter" onchange="applyLibraryFilters()" class="h-9 min-w-0 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs text-on-surface-variant focus:border-primary focus:ring-primary/20">
+            <option value="">全部标签</option>
+          </select>
+          <label class="h-9 inline-flex items-center gap-2 px-3 rounded-lg bg-surface-container-low text-on-surface-variant">
+            <input id="library-favorite-filter" type="checkbox" onchange="applyLibraryFilters()" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+            只看收藏
+          </label>
+          <button onclick="clearLibraryFilters()" class="toolbar-btn w-full">
+            <span class="material-symbols-outlined" style="font-size:15px">filter_alt_off</span>
+            清除筛选
+          </button>
+        </div>
+        <div class="mt-6 text-[11px] font-bold text-on-surface-variant/60 mb-3">统计</div>
+        <div id="library-count" class="rounded-lg bg-surface-container-low px-3 py-3 text-[11px] text-on-surface-variant/70">读取中…</div>
+      </aside>
+
+      <section class="flex flex-col min-h-0">
+        <!-- Batch action bar -->
+        <div id="summarize-bar" class="hidden px-5 py-2 flex-shrink-0 flex-wrap items-center gap-3 border-y border-outline-variant/10 bg-surface-container-low/70">
+          <span id="selected-count" class="text-xs font-medium text-on-surface-variant"></span>
+          <button onclick="summarizeSelected()" id="summarize-btn" class="toolbar-btn toolbar-btn-primary">
+            <span class="material-symbols-outlined" style="font-size:15px">summarize</span>
+            生成摘要
+          </button>
+          <button onclick="openKnowledgeFromSelectedFiles()" id="knowledge-from-selected-btn" class="toolbar-btn">
+            <span class="material-symbols-outlined" style="font-size:15px">lightbulb</span>
+            知识产物
+          </button>
+          <button onclick="favoriteSelected()" id="favorite-selected-btn" class="toolbar-btn">
+            <span class="material-symbols-outlined" style="font-size:15px">star</span>
+            加入收藏
+          </button>
+          <input id="batch-collection-input" list="collection-options" placeholder="集合" class="h-8 w-36 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
+          <input id="batch-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-8 w-44 rounded-lg border-outline-variant/20 bg-surface-container-lowest text-xs focus:border-primary focus:ring-primary/20">
+          <button onclick="applyBatchMetadata()" id="apply-metadata-btn" class="toolbar-btn">
+            <span class="material-symbols-outlined" style="font-size:15px">sell</span>
+            应用
+          </button>
+          <button onclick="rebuildSelected()" id="rebuild-selected-btn" class="toolbar-btn">
+            <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+            重新整理
+          </button>
+          <datalist id="collection-options"></datalist>
+          <datalist id="tag-options"></datalist>
+        </div>
+
+        <!-- File table -->
+        <div class="flex-1 overflow-auto custom-scrollbar px-5 pb-5">
+          <table class="w-full min-w-[980px] text-sm">
+            <thead>
+              <tr class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60">
+                <th class="text-left py-3 pr-4 w-8"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" class="rounded"></th>
+                <th class="text-left py-3 pr-4">文件名</th>
+                <th class="text-left py-3 pr-4">集合</th>
+                <th class="text-left py-3 pr-4">标签</th>
+                <th class="text-left py-3 pr-4">类型</th>
+                <th class="text-left py-3 pr-4">状态</th>
+                <th class="text-left py-3 pr-4">页数</th>
+                <th class="text-left py-3 pr-4">片段</th>
+                <th class="text-left py-3 pr-4">更新时间</th>
+                <th class="text-left py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="file-tbody" class="divide-y divide-surface-container">
+            </tbody>
+          </table>
+        </div>
+        <div id="library-pagination" class="h-12 flex-shrink-0 px-5 border-t border-outline-variant/10 flex items-center justify-between gap-3 text-xs text-on-surface-variant">
+          <span>正在读取文件…</span>
+        </div>
+      </section>
+
+      <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
+        <div id="library-context-panel" class="flex flex-col gap-3">
+          <section class="soft-panel p-4">
+            <h2 class="panel-title">文件详情</h2>
+            <p class="panel-muted mt-1">选择文件后显示来源、标签和入库状态。</p>
+          </section>
+        </div>
+      </aside>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Source Preview View ── -->
+  <div id="view-source" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="source-title" tabindex="-1">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <div>
+        <h1 id="source-title" class="text-base font-semibold text-on-surface tracking-tight">来源预览与引用详情</h1>
+        <p id="source-preview-subtitle" class="text-[11px] text-on-surface-variant/60 mt-0.5">从回答引用或资料库文件进入，核查每个片段的出处</p>
+      </div>
+      <button onclick="switchView('library')" title="返回资料库" aria-label="返回资料库" class="toolbar-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">folder_open</span>
+        返回资料库
+      </button>
+    </header>
+    <div class="workspace-shell">
+      <div class="workspace-card grid grid-cols-[300px_minmax(0,1fr)_320px] min-h-0 overflow-hidden">
+        <aside class="border-r border-outline-variant/10 p-4 overflow-y-auto custom-scrollbar">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <h2 class="panel-title">搜索与引用</h2>
+            <span id="source-preview-count" class="text-[11px] text-on-surface-variant/60">0 个片段</span>
+          </div>
+          <div id="source-result-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </aside>
+        <section class="min-h-0 flex flex-col">
+          <div class="h-14 flex-shrink-0 flex items-center justify-between gap-3 px-5 border-b border-outline-variant/10">
+            <div class="min-w-0">
+              <div id="source-document-title" class="text-sm font-semibold text-on-surface line-clamp-1">选择一个来源</div>
+              <div id="source-document-meta" class="text-[11px] text-on-surface-variant/60 mt-0.5">等待载入片段</div>
+            </div>
+            <button id="source-open-original-btn" onclick="openSourceOriginal()" class="toolbar-btn hidden" title="打开原文" aria-label="打开原文">
+              <span class="material-symbols-outlined" style="font-size:15px">open_in_new</span>
+              打开原文
+            </button>
+          </div>
+          <div id="source-document-viewer" class="flex-1 overflow-y-auto custom-scrollbar p-6 text-sm leading-7 text-on-surface">
+            <div class="mx-auto max-w-2xl rounded-xl bg-surface-container-low px-5 py-8 text-center text-on-surface-variant">
+              从对话引用或资料库文件进入来源预览。
+            </div>
+          </div>
+        </section>
+        <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
+          <section class="soft-panel p-4">
+            <h2 class="panel-title">引用详情</h2>
+            <div id="source-detail-panel" class="mt-3 text-xs leading-relaxed text-on-surface-variant">
+              选中左侧片段后，这里会显示页码、章节、字数和可执行操作。
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Notes View ── -->
+  <div id="view-notes" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="notes-title" tabindex="-1">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <div>
+        <h1 id="notes-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="nav.notes">笔记</h1>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5">采集网页、临时想法和可复用回答</p>
+      </div>
+      <button onclick="refreshNotesView()" title="刷新笔记列表" aria-label="刷新笔记列表" class="toolbar-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+        刷新
+      </button>
+    </header>
+    <div class="workspace-shell">
+      <div class="workspace-card workspace-grid">
+        <section class="overflow-y-auto custom-scrollbar p-5">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">edit_note</span>
+            <h2 class="text-sm font-semibold text-on-surface">新建 Markdown 笔记</h2>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input id="notes-title-input" placeholder="标题" maxlength="200" oninput="updateNotesEditorStats()" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-collection-input" list="collection-options" placeholder="集合，默认笔记" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <div id="notes-editor-toolbar" class="mt-3 flex flex-wrap gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
+            <button onclick="insertMarkdownToken('# ', '')" class="toolbar-btn !px-2 !py-1" title="一级标题" aria-label="一级标题">H1</button>
+            <button onclick="insertMarkdownToken('## ', '')" class="toolbar-btn !px-2 !py-1" title="二级标题" aria-label="二级标题">H2</button>
+            <button onclick="insertMarkdownToken('### ', '')" class="toolbar-btn !px-2 !py-1" title="三级标题" aria-label="三级标题">H3</button>
+            <button onclick="insertMarkdownToken('**', '**')" class="toolbar-btn !px-2 !py-1" title="加粗" aria-label="加粗">
+              <span class="material-symbols-outlined" style="font-size:14px">bolt</span>
+            </button>
+            <button onclick="insertMarkdownToken('*', '*')" class="toolbar-btn !px-2 !py-1" title="斜体" aria-label="斜体">I</button>
+            <button onclick="insertMarkdownToken('`', '`')" class="toolbar-btn !px-2 !py-1" title="行内代码" aria-label="行内代码">&lt;/&gt;</button>
+            <button onclick="insertMarkdownToken('- ', '')" class="toolbar-btn !px-2 !py-1" title="列表" aria-label="列表">
+              <span class="material-symbols-outlined" style="font-size:14px">article</span>
+            </button>
+            <button onclick="insertMarkdownToken('- [ ] ', '')" class="toolbar-btn !px-2 !py-1" title="待办" aria-label="待办">
+              <span class="material-symbols-outlined" style="font-size:14px">check_box</span>
+            </button>
+            <button onclick="insertMarkdownToken('> ', '')" class="toolbar-btn !px-2 !py-1" title="引用" aria-label="引用">
+              <span class="material-symbols-outlined" style="font-size:14px">format_quote</span>
+            </button>
+            <button onclick="insertMarkdownToken('[', '](url)')" class="toolbar-btn !px-2 !py-1" title="链接" aria-label="链接">
+              <span class="material-symbols-outlined" style="font-size:14px">link</span>
+            </button>
+            <button onclick="insertMarkdownToken('\\n| 列 | 值 |\\n| --- | --- |\\n|  |  |\\n', '')" class="toolbar-btn !px-2 !py-1" title="表格" aria-label="表格">
+              <span class="material-symbols-outlined" style="font-size:14px">table</span>
+            </button>
+          </div>
+          <textarea id="notes-content-input" rows="10" placeholder="写下要入库的内容，支持 Markdown…" oninput="updateNotesEditorStats()" class="mt-2 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 text-[11px] text-on-surface-variant/60">
+              <span id="notes-word-count">0 字</span>
+              <span id="notes-title-count">0/200</span>
+              <span>Markdown</span>
+              <span id="notes-status"></span>
+            </div>
+            <button id="notes-submit-btn" onclick="createNoteFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">add_task</span>
+              保存并入库
+            </button>
+          </div>
+        </section>
+
+        <div class="flex flex-col gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">language</span>
+            <h2 class="text-sm font-semibold text-on-surface">导入网页</h2>
+          </div>
+          <input id="notes-url-input" placeholder="https://example.com/article" class="h-9 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input id="notes-url-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-url-collection-input" list="collection-options" placeholder="集合，默认网页采集" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="notes-url-tags-input" list="tag-options" placeholder="标签，默认 web" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-on-surface-variant">
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-extract-main" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              提取正文
+            </label>
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-keep-source" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              保留来源信息
+            </label>
+            <label class="h-9 inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3">
+              <input id="notes-url-queue-index" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary/20">
+              加入资料库
+            </label>
+          </div>
+          <div class="mt-3 rounded-lg bg-surface-container-low px-3 py-2 text-xs leading-relaxed text-on-surface-variant line-clamp-2">
+            导入会把网页正文保存成 Markdown 文件，再进入本地入库队列。适合公开文章、文档页和短网页。
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <span id="notes-url-status" class="text-[11px] text-on-surface-variant/60"></span>
+            <button id="notes-url-submit-btn" onclick="importUrlFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary-container hover:bg-surface-container-highest active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">add_link</span>
+              导入网页
+            </button>
+          </div>
+        </section>
+
+        <section id="knowledge-output-panel" class="rounded-xl bg-surface-container-lowest shadow-sm p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary" style="font-size:18px">lightbulb</span>
+              <div>
+                <h2 class="text-sm font-semibold text-on-surface">生成知识产物</h2>
+                <p id="knowledge-source-files-label" class="text-[11px] text-on-surface-variant/60 mt-0.5">可粘贴资料，也可从资料库选中文件带入</p>
+              </div>
+            </div>
+            <button onclick="clearKnowledgeSourceFiles()" id="knowledge-clear-files-btn" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">close</span>
+              清除选中文件
+            </button>
+          </div>
+          <div class="mb-3 grid grid-cols-2 lg:grid-cols-4 gap-2" id="knowledge-output-cards" aria-label="知识产物类型">
+            <button type="button" onclick="setKnowledgeOutputType('summary')" data-output-type="summary" class="knowledge-output-card rounded-lg bg-primary-container text-primary px-3 py-1.5 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">结构化总结</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">提炼脉络和要点</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('learning_cards')" data-output-type="learning_cards" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">学习卡片</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">适合复习整理</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('action_items')" data-output-type="action_items" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">行动项</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">转成待办清单</span>
+            </button>
+            <button type="button" onclick="setKnowledgeOutputType('project_brief')" data-output-type="project_brief" class="knowledge-output-card rounded-lg bg-surface-container-low px-3 py-1.5 text-left active:scale-95 transition-all">
+              <span class="block text-xs font-bold">项目简报</span>
+              <span class="block text-[10px] mt-0.5 text-on-surface-variant/70">形成项目说明</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select id="knowledge-output-type" class="sr-only" aria-label="知识产物类型" onchange="syncKnowledgeOutputCards()">
+              <option value="summary">结构化总结</option>
+              <option value="learning_cards">学习卡片</option>
+              <option value="action_items">行动项</option>
+              <option value="project_brief">项目简报</option>
+            </select>
+            <input id="knowledge-title-input" placeholder="标题，可选" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="knowledge-collection-input" list="collection-options" placeholder="集合，默认知识产物" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+            <input id="knowledge-tags-input" list="tag-options" placeholder="标签，用逗号分隔" class="h-9 rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+          </div>
+          <textarea id="knowledge-source-input" rows="2" placeholder="粘贴会议记录、文章片段、项目说明，或先在资料库选中文件再点击“知识产物”" class="mt-3 w-full rounded-lg border-outline-variant/20 bg-surface-container-low text-xs leading-relaxed focus:border-primary focus:ring-primary/20"></textarea>
+          <div class="mt-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-[11px] text-on-surface-variant/60">
+              <span>模型</span>
+              <select id="knowledge-model-select" onchange="handleKnowledgeModelSelect()" class="h-8 min-w-[160px] rounded-lg border-outline-variant/20 bg-surface-container-low text-xs focus:border-primary focus:ring-primary/20">
+                <option>读取中</option>
+              </select>
+              <span id="knowledge-status"></span>
+            </div>
+            <button id="knowledge-submit-btn" onclick="createKnowledgeOutputFromNotesView()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-primary bg-primary hover:bg-primary-dim active:scale-95 transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span>
+              生成并入库
+            </button>
+          </div>
+        </section>
+        </div>
+
+      </div>
+      <section class="mt-5 rounded-xl bg-surface-container-lowest shadow-sm p-5">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="text-sm font-semibold text-on-surface">最近采集</h2>
+          <span id="notes-recent-count" class="text-[11px] text-on-surface-variant/60"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[680px] text-xs">
+            <thead class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+              <tr>
+                <th class="text-left py-2 pr-3">类型</th>
+                <th class="text-left py-2 pr-3">标题</th>
+                <th class="text-left py-2 pr-3">集合</th>
+                <th class="text-left py-2 pr-3">标签</th>
+                <th class="text-left py-2 pr-3">状态</th>
+                <th class="text-left py-2">时间</th>
+              </tr>
+            </thead>
+            <tbody id="notes-recent-table" class="divide-y divide-surface-container"></tbody>
+          </table>
+        </div>
+      </section>
+        </section>
+        <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
+        <section class="soft-panel p-4">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <div>
+              <h2 class="panel-title">今日知识产物</h2>
+              <p class="text-[11px] text-on-surface-variant/60 mt-0.5">来自本地文件和最近生成内容</p>
+            </div>
+            <span id="notes-count" class="text-[11px] text-on-surface-variant/60"></span>
+          </div>
+          <div id="notes-list" class="flex flex-col gap-3"></div>
+        </section>
+        <section class="soft-panel p-4 mt-3">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="panel-title">已保存的回答</h2>
+            <button onclick="switchView('history')" class="text-[11px] font-bold text-primary">查看全部</button>
+          </div>
+          <div id="saved-answers-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+        <section class="soft-panel p-4 mt-3">
+          <h2 class="panel-title">处理进度</h2>
+          <div id="notes-processing-timeline" class="mt-3 flex flex-col gap-3 text-xs text-on-surface-variant"></div>
+        </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Settings View ── -->
+  <div id="view-settings" class="view hidden flex flex-col flex-1 min-h-0 overflow-hidden" role="region" aria-labelledby="settings-title" tabindex="-1">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface-container-lowest/90 z-40">
+      <div>
+        <h1 id="settings-title" class="text-base font-semibold text-on-surface tracking-tight" data-i18n="nav.settings">设置</h1>
+        <p class="text-[11px] text-on-surface-variant/60 mt-0.5" data-i18n="settings.subtitle">本地状态、模型和资料来源</p>
+      </div>
+      <button onclick="refreshSettings()" title="刷新设置状态" aria-label="刷新设置状态" class="toolbar-btn whitespace-nowrap">
+        <span class="material-symbols-outlined" style="font-size:16px">sync</span>
+        <span class="hidden sm:inline">刷新状态</span>
+      </button>
+    </header>
+    <div class="workspace-shell">
+      <div class="workspace-card workspace-grid">
+        <section class="overflow-y-auto custom-scrollbar p-5">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <div class="flex flex-col gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span id="health-icon" class="w-2 h-2 rounded-full bg-tertiary"></span>
+              <h2 class="text-sm font-semibold text-on-surface">系统状态</h2>
+            </div>
+            <button id="health-btn" onclick="toggleHealthPanel(event)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
+              <span id="health-label">状态</span>
+              <span class="material-symbols-outlined" style="font-size:14px">refresh</span>
+            </button>
+          </div>
+          <div id="health-panel" class="max-h-[300px] overflow-y-auto custom-scrollbar rounded-lg bg-surface-container-low p-3">
+            <div id="health-details" class="grid grid-cols-2 xl:grid-cols-3 gap-2 text-xs text-on-surface-variant"></div>
+          </div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">folder_managed</span>
+            <h2 class="text-sm font-semibold text-on-surface">监控目录</h2>
+          </div>
+          <div id="settings-sources-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+        </div>
+
+        <div class="flex flex-col gap-5">
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-sm font-semibold text-on-surface">本地模型</h2>
+              <p id="llm-status" class="text-[11px] text-on-surface-variant/60 mt-0.5">本地模型</p>
+            </div>
+            <div class="relative">
+              <button id="llm-btn" class="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-primary" style="font-size:14px">bolt</span>
+                <span id="llm-current" class="line-clamp-2 text-left">读取中</span>
+                <span class="material-symbols-outlined text-on-surface-variant" style="font-size:14px">keyboard_arrow_down</span>
+              </button>
+              <div id="llm-dropdown" class="hidden absolute right-0 mt-1 bg-surface-container-lowest shadow-xl rounded-xl overflow-hidden z-50 min-w-max">
+              </div>
+            </div>
+          </div>
+          <div id="settings-model-list" class="flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+        </section>
+
+        <section class="rounded-xl bg-surface-container-lowest shadow-sm p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-size:18px">tune</span>
+            <h2 class="text-sm font-semibold text-on-surface">使用偏好</h2>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            <button onclick="triggerIngest()" class="toolbar-btn toolbar-btn-primary justify-center">
+              <span class="material-symbols-outlined" style="font-size:15px">folder_sync</span>
+              扫描文件夹
+            </button>
+            <button onclick="switchView('history')" class="toolbar-btn justify-center">
+              <span class="material-symbols-outlined" style="font-size:15px">history</span>
+              历史记录
+            </button>
+            <button onclick="switchView('library')" class="toolbar-btn justify-center">
+              <span class="material-symbols-outlined" style="font-size:15px">folder_open</span>
+              文件库
+            </button>
+          </div>
+          <div class="rounded-lg bg-surface-container-low px-3 py-3 mb-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="font-semibold text-on-surface" data-i18n="locale.label">界面语言</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70" data-i18n="locale.detail">切换常用导航和状态文案。</div>
+              </div>
+              <button onclick="toggleLocale()" class="toolbar-btn justify-center" aria-label="切换语言" data-i18n-aria="locale.toggle">
+                <span class="material-symbols-outlined" style="font-size:15px">language</span>
+                <span id="locale-current-label">中文</span>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="rounded-lg bg-surface-container-low px-3 py-3">
+              <div class="font-semibold text-on-surface">默认本地优先</div>
+              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">资料、整理结果和历史都保存在本机。</div>
+            </div>
+            <div class="rounded-lg bg-surface-container-low px-3 py-3">
+              <div class="font-semibold text-on-surface">手动整理</div>
+              <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">从文件库统一管理收藏、集合和标签。</div>
+            </div>
+          </div>
+        </section>
+        </div>
+      </div>
+        </section>
+        <aside class="context-panel overflow-y-auto custom-scrollbar p-4">
+          <section class="soft-panel p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="panel-title">状态提示</h2>
+                <p class="panel-muted mt-1">基于当前本地服务状态生成。</p>
+              </div>
+              <button onclick="refreshSettings()" class="icon-button !w-8 !h-8" title="刷新状态提示" aria-label="刷新状态提示">
+                <span class="material-symbols-outlined" style="font-size:15px">sync</span>
+              </button>
+            </div>
+            <div id="settings-insights-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant"></div>
+          </section>
+          <section class="soft-panel p-4 mt-3">
+            <h2 class="panel-title">存储使用</h2>
+            <div id="settings-storage-list" class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">正在读取本地存储…</div>
+            </div>
+          </section>
+          <section class="soft-panel p-4 mt-3">
+            <h2 class="panel-title">资料范围</h2>
+            <div class="mt-3 flex flex-col gap-2 text-xs text-on-surface-variant">
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">
+                <div class="font-semibold text-on-surface">监控目录</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">系统会读取已添加的本地文件夹。</div>
+              </div>
+              <div class="rounded-lg bg-surface-container-low px-3 py-2">
+                <div class="font-semibold text-on-surface">采集内容</div>
+                <div class="mt-1 text-[11px] leading-relaxed text-on-surface-variant/70">网页、临时笔记和知识产物会进入文件库。</div>
+              </div>
+              <button onclick="switchView('library')" class="toolbar-btn justify-between">
+                <span>查看文件库</span>
+                <span class="material-symbols-outlined" style="font-size:15px">arrow_forward</span>
+              </button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── History View ── -->
+  <div id="view-history" class="view hidden flex flex-col h-full overflow-hidden">
+    <header class="h-16 flex-shrink-0 flex justify-between items-center px-8 bg-surface/80 backdrop-blur-md z-40">
+      <h1 class="text-base font-semibold text-on-surface tracking-tight">搜索历史</h1>
+      <button onclick="clearHistory()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 transition-all">
+        <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>
+        清空历史
+      </button>
+    </header>
+    <div id="history-list" class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 flex flex-col gap-3">
+    </div>
+  </div>
+
+</main>
+
+<div id="confirm-modal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/35 backdrop-blur-sm px-4" onclick="if(event.target===this) closeConfirmDialog(false)">
+  <div role="dialog" aria-modal="true" aria-labelledby="confirm-title" class="w-full max-w-sm rounded-xl bg-surface-container-lowest shadow-2xl border border-outline-variant/20 p-5">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-lg bg-error/10 text-error flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined" style="font-size:20px">warning</span>
+      </div>
+      <div class="min-w-0">
+        <h2 id="confirm-title" class="text-sm font-semibold text-on-surface"></h2>
+        <p id="confirm-message" class="mt-1 text-xs leading-relaxed text-on-surface-variant"></p>
+      </div>
+    </div>
+    <div class="mt-5 flex justify-end gap-2">
+      <button id="confirm-cancel" onclick="closeConfirmDialog(false)" class="px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-all">取消</button>
+      <button id="confirm-action" onclick="closeConfirmDialog(true)" class="px-3 py-1.5 rounded-lg text-xs font-medium text-on-error bg-error hover:opacity-90 transition-all">确认</button>
+    </div>
+  </div>
+</div>

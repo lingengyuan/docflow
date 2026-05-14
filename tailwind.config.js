@@ -1,5 +1,5 @@
 module.exports = {
-  content: ["./frontend/index.html", "./frontend/js/**/*.js"],
+  content: ["./frontend/index.html", "./frontend/partials/**/*.html", "./frontend/js/**/*.js"],
   theme: {
     extend: {
       colors: {

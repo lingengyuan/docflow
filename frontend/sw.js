@@ -2,12 +2,16 @@ const DOCFLOW_CACHE = 'docflow-shell-v1';
 const DOCFLOW_SHELL = [
   '/',
   '/styles.css',
+  '/app.css',
   '/favicon.svg',
+  '/partials/app.html',
   '/js/state.js',
   '/js/icons.js',
   '/js/shared-ui.js',
   '/js/i18n.js',
   '/js/app-shell.js',
+  '/js/bootstrap.js',
+  '/js/generated/stream-parser.js',
 ];
 
 self.addEventListener('install', event => {

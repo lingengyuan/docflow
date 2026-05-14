@@ -60,3 +60,24 @@ jobs:
           python -m pip install -e .
       - name: Offline doctor
         run: python main.py doctor --offline --json
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Syntax
+        run: npm run check:frontend
+      - name: Unit tests
+        run: npm run test:frontend
+      - name: Build
+        run: npm run build:frontend
+      - name: Audit
+        run: npm run audit:frontend

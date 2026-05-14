@@ -10,3 +10,7 @@ PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 "$PYTHON_BIN" -m ruff check .
 "$PYTHON_BIN" -m mypy
 "$PYTHON_BIN" -m pytest -q
+npm run check:frontend
+npm run test:frontend
+npm run build:frontend
+npm run audit:frontend

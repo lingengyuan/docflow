@@ -9,10 +9,14 @@ from src.api import app as api_app
 
 def frontend_source_text() -> str:
     html = Path("frontend/index.html").read_text(encoding="utf-8")
-    scripts = "\n".join(
-        path.read_text(encoding="utf-8") for path in sorted(Path("frontend/js").glob("*.js"))
+    partial_paths = sorted(Path("frontend/partials").glob("*.html"))
+    partials = "\n".join(
+        path.read_text(encoding="utf-8") for path in partial_paths
     )
-    return f"{html}\n{scripts}"
+    scripts = "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(Path("frontend/js").rglob("*.js"))
+    )
+    return f"{html}\n{partials}\n{scripts}"
 
 
 def test_favicon_svg_is_served():
@@ -215,6 +219,7 @@ def test_phase32_chat_errors_are_user_facing():
 
 def test_phase33_frontend_scripts_are_split_by_domain():
     index = Path("frontend/index.html").read_text(encoding="utf-8")
+    bootstrap = Path("frontend/js/bootstrap.js").read_text(encoding="utf-8")
     expected_scripts = [
         "state.js",
         "icons.js",
@@ -222,19 +227,27 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "i18n.js",
         "app-shell.js",
         "settings.js",
+        "settings-models.js",
+        "settings-data.js",
         "chat.js",
         "notes.js",
         "chat-stream.js",
+        "chat-actions.js",
         "source-preview.js",
+        "source-preview-actions.js",
         "library.js",
+        "library-render.js",
+        "library-knowledge.js",
+        "library-actions.js",
         "history.js",
         "queue-upload.js",
         "pwa.js",
+        "settings-bootstrap.js",
     ]
 
     assert "<script>\nconst API" not in index
     for script in expected_scripts:
-        assert f'src="/js/{script}"' in index
+        assert f"'/js/{script}'" in bootstrap
         assert Path("frontend/js", script).exists()
 
     state = Path("frontend/js/state.js").read_text(encoding="utf-8")
@@ -246,12 +259,40 @@ def test_phase33_frontend_scripts_are_split_by_domain():
     assert "Object.defineProperties(window" in state
     assert "locale:" in state
 
+
+def test_phase69_frontend_shell_is_split_and_testable():
+    index = Path("frontend/index.html")
+    assert len(index.read_text(encoding="utf-8").splitlines()) < 300
+    assert Path("frontend/partials/app.html").exists()
+    assert Path("frontend/app.css").exists()
+    assert Path("frontend/src/stream-parser.ts").exists()
+    assert Path("frontend/tests/stream-parser.test.ts").exists()
+    assert "consumeSseBuffer" in Path("frontend/js/generated/stream-parser.js").read_text(
+        encoding="utf-8"
+    )
+
+    limits = {
+        "frontend/js/chat-stream.js": 350,
+        "frontend/js/chat-actions.js": 350,
+        "frontend/js/library.js": 350,
+        "frontend/js/library-render.js": 350,
+        "frontend/js/library-knowledge.js": 350,
+        "frontend/js/library-actions.js": 350,
+        "frontend/js/settings.js": 350,
+        "frontend/js/settings-models.js": 350,
+        "frontend/js/settings-data.js": 350,
+        "frontend/js/source-preview.js": 350,
+        "frontend/js/source-preview-actions.js": 350,
+    }
+    for path, limit in limits.items():
+        assert len(Path(path).read_text(encoding="utf-8").splitlines()) < limit
+
     tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
     assert "./frontend/js/**/*.js" in tailwind_config
 
 
 def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
-    html = Path("frontend/index.html").read_text(encoding="utf-8")
+    html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")
     app_shell = Path("frontend/js/app-shell.js").read_text(encoding="utf-8")
     pwa = Path("frontend/js/pwa.js").read_text(encoding="utf-8")

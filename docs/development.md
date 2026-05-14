@@ -27,12 +27,14 @@ pip install -r requirements-mac-mlx.txt
 scripts/run_ci.sh
 ```
 
-This runs compile checks, ruff, mypy, and pytest. Use `docs/release.md` before publishing a release.
+This runs compile checks, ruff, mypy, pytest, frontend syntax checks, frontend unit tests, the frontend build, and dependency audit. Use `docs/release.md` before publishing a release.
 
 Frontend and dependency checks:
 
 ```bash
 npm run check:frontend
+npm run test:frontend
+npm run build:frontend
 npm run audit:frontend
 .venv/bin/python -m pip_audit -r requirements.txt -r requirements-dev.txt -r requirements-vision.txt
 ```
@@ -47,11 +49,14 @@ docflow serve
 
 ## Frontend Styles
 
-Committed CSS is enough to run the app. Rebuild styles only after frontend style changes:
+The browser shell is split into a small `frontend/index.html`, reusable markup in `frontend/partials/`, product styles in `frontend/app.css`, and focused JavaScript files in `frontend/js/`. Stream parsing is built from TypeScript in `frontend/src/` and tested with Vitest.
+
+Committed CSS and generated frontend assets are enough to run the app. Rebuild styles or frontend generated assets only after related changes:
 
 ```bash
 npm install
 npm run build:css
+npm run build:frontend
 ```
 
 ## Project Rule
