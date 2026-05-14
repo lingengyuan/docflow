@@ -52,6 +52,7 @@ function answerQualityMarkup(quality) {
     local_model_unavailable: 'bg-error/10 text-error',
     vector_store_unavailable: 'bg-primary-container text-primary',
     degraded_retrieval: 'bg-primary-container text-primary',
+    citation_needs_review: 'bg-error/10 text-error',
   }[quality.status] || 'bg-primary-container text-primary';
   const icon = {
     grounded: 'verified',
@@ -59,6 +60,7 @@ function answerQualityMarkup(quality) {
     local_model_unavailable: 'warning',
     vector_store_unavailable: 'travel_explore',
     degraded_retrieval: 'low_priority',
+    citation_needs_review: 'fact_check',
   }[quality.status] || 'info';
   const mode = quality.answer_mode === 'snippet_fallback'
     ? '当前只显示引用片段'

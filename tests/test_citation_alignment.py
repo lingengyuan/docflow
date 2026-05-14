@@ -140,6 +140,29 @@ def test_unverified_inline_model_citations_are_marked():
     assert "[未验证来源]" in cleaned
 
 
+def test_generator_records_claim_support_quality():
+    class FakeGenerator(AnswerGenerator):
+        def _call_ollama_with_system(self, system_prompt: str, user_msg: str) -> str:
+            return "可信结论 [[cite:q:1]]。缺少来源的结论。"
+
+    answer = FakeGenerator().generate(
+        "question",
+        [
+            {
+                "qdrant_id": 1,
+                "file_name": "trusted.md",
+                "page_num": 2,
+                "text": "可信结论",
+                "rerank_score": 0.9,
+            }
+        ],
+    )
+
+    assert answer.text == "可信结论 [来源: trusted.md, 第2页]。缺少来源的结论。"
+    assert answer.quality["claim_support"]["level"] == "partial"
+    assert answer.quality["claim_support"]["unsupported_claims"] == 1
+
+
 @pytest.mark.parametrize(
     ("file_name", "page_num"),
     [

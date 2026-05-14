@@ -65,6 +65,28 @@ def retrieval_quality_from_chunks(chunks: list[dict]) -> dict[str, Any]:
     return grounded_quality()
 
 
+def quality_with_claim_support(
+    quality: dict[str, Any] | None,
+    claim_support: dict[str, Any],
+) -> dict[str, Any]:
+    updated = dict(quality or grounded_quality())
+    updated["claim_support"] = claim_support
+    if updated.get("answer_mode") in {"no_answer", "snippet_fallback"}:
+        return updated
+    if claim_support.get("level") in {"none", "supported"}:
+        return updated
+
+    updated.update(
+        {
+            "status": "citation_needs_review",
+            "severity": "warning",
+            "label": "部分结论缺少来源",
+            "reason": "这次回答里有结论没有逐句来源支撑，使用前请打开来源核对。",
+        }
+    )
+    return updated
+
+
 def _collect_degradations(chunks: list[dict]) -> list[dict[str, Any]]:
     seen: set[tuple[str, str]] = set()
     degradations: list[dict[str, Any]] = []

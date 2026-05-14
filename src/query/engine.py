@@ -17,6 +17,7 @@ from src.query.answer_quality import (
     grounded_quality,
     insufficient_evidence_quality,
     local_model_unavailable_quality,
+    quality_with_claim_support,
     retrieval_quality_from_chunks,
 )
 from src.query.generator import Answer, AnswerGenerator, citation_from_chunk
@@ -163,7 +164,7 @@ class QueryEngine:
                 conversation_context=conversation_context,
             )
             answer.related_notes = related_notes
-            answer.quality = retrieval_quality_from_chunks(answer_chunks)
+            answer.quality = self._answer_quality(answer_chunks, answer.quality)
             return answer
         except Exception as exc:
             logger.warning(
@@ -297,8 +298,7 @@ class QueryEngine:
             answer = self._fallback_answer(answer_chunks, exc)
         answer.related_notes = related_notes
         answer.research_steps = steps
-        if not answer.quality:
-            answer.quality = retrieval_quality_from_chunks(answer_chunks)
+        answer.quality = self._answer_quality(answer_chunks, answer.quality)
         return answer
 
     def _split_answer_and_related(self, chunks: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -452,3 +452,11 @@ class QueryEngine:
     @staticmethod
     def default_quality() -> dict:
         return grounded_quality()
+
+    @staticmethod
+    def _answer_quality(chunks: list[dict], answer_quality: dict | None) -> dict:
+        quality = retrieval_quality_from_chunks(chunks)
+        claim_support = (answer_quality or {}).get("claim_support")
+        if isinstance(claim_support, dict):
+            return quality_with_claim_support(quality, claim_support)
+        return quality

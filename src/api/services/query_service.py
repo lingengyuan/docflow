@@ -6,6 +6,8 @@ import json
 import re
 
 from src.api.services.evidence_service import EvidenceService
+from src.query.answer_quality import quality_with_claim_support
+from src.query.claim_support import audit_answer_claim_support
 from src.query.generator import (
     apply_structured_citations,
     citation_from_chunk,
@@ -112,13 +114,36 @@ class QueryService:
         answer_text: str,
         chunks: list[dict],
     ) -> tuple[str, list[dict]]:
+        answer_text, citations, _quality = self.finalize_stream_answer_with_quality(
+            answer_text,
+            chunks,
+            {},
+        )
+        return answer_text, citations
+
+    def finalize_stream_answer_with_quality(
+        self,
+        answer_text: str,
+        chunks: list[dict],
+        quality: dict | None = None,
+    ) -> tuple[str, list[dict], dict]:
         citations = validate_citations([citation_from_chunk(chunk) for chunk in chunks], chunks)
         answer_text, citations = apply_structured_citations(answer_text, citations)
         answer_text = sanitize_inline_citations(answer_text, citations)
-        return answer_text, self.response_citations(citations)
+        response_citations = self.response_citations(citations)
+        claim_support = audit_answer_claim_support(answer_text, response_citations)
+        return (
+            answer_text,
+            response_citations,
+            quality_with_claim_support(quality or {}, claim_support),
+        )
 
-    def evidence_summary(self, citations: list[dict]) -> dict:
-        return self.evidence.summarize(citations)
+    def evidence_summary(
+        self,
+        citations: list[dict],
+        claim_support: dict | None = None,
+    ) -> dict:
+        return self.evidence.summarize(citations, claim_support=claim_support)
 
     def decode_history_items(self, items: list[dict]) -> list[dict]:
         for item in items:

@@ -16,6 +16,7 @@ from typing import Any
 from src import net
 from src.knowledge_outputs import get_knowledge_output_type
 from src.model_cache import resolve_model_load_reference
+from src.query.claim_support import audit_answer_claim_support
 
 SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
 
@@ -170,7 +171,13 @@ class AnswerGenerator:
         )
         answer_text, citations = apply_structured_citations(answer_text, citations)
         answer_text = sanitize_inline_citations(answer_text, citations)
-        return Answer(text=answer_text, citations=citations, reproducible=self.is_reproducible)
+        quality = {"claim_support": audit_answer_claim_support(answer_text, citations)}
+        return Answer(
+            text=answer_text,
+            citations=citations,
+            quality=quality,
+            reproducible=self.is_reproducible,
+        )
 
     # ------------------------------------------------------------------
     # Context builder

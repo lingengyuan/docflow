@@ -55,7 +55,11 @@ class EvidenceService:
     def enrich_citations(self, citations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [self._enrich_citation(citation) for citation in citations]
 
-    def summarize(self, citations: list[dict[str, Any]]) -> dict[str, Any]:
+    def summarize(
+        self,
+        citations: list[dict[str, Any]],
+        claim_support: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         if not citations:
             return {
                 "level": "none",
@@ -91,6 +95,11 @@ class EvidenceService:
             recommendations.append("可以换更具体的问题，或限定到可信文件。")
         if conflicts:
             recommendations.append("先比较冲突来源，再保存为笔记。")
+        if self._claim_support_needs_review(claim_support):
+            level = "weak"
+            label = "部分结论缺少来源"
+            summary = "这次回答里有结论没有逐句来源支撑。"
+            recommendations.insert(0, "先打开来源核对未标注结论，再保存或复用。")
         return {
             "level": level,
             "label": label,
@@ -187,3 +196,9 @@ class EvidenceService:
     def _contains_any(text: Any, terms: set[str]) -> bool:
         normalized = str(text or "").lower()
         return any(term in normalized for term in terms)
+
+    @staticmethod
+    def _claim_support_needs_review(claim_support: dict[str, Any] | None) -> bool:
+        if not claim_support:
+            return False
+        return str(claim_support.get("level") or "") in {"partial", "unsupported"}

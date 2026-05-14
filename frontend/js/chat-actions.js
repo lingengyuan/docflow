@@ -161,6 +161,7 @@ async function sendMessage() {
           const citations = payload.citations || [];
           renderCitations(citations);
           renderEvidenceSummary(payload.evidence || {});
+          renderAnswerQuality(payload.quality || {});
           const saveBtn = msgContainer.querySelector('.answer-save');
           if (saveBtn) {
             saveBtn.dataset.citationsJson = encodeURIComponent(JSON.stringify(citations));

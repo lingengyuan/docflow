@@ -27,6 +27,10 @@ def _api():
     return sys.modules["src.api.app_impl"]
 
 
+def _claim_support(quality: dict) -> dict | None:
+    return quality.get("claim_support") if isinstance(quality, dict) else None
+
+
 def _resolve_query_options(req) -> QueryOptions:
     scope_mode = str(getattr(req, "scope_mode", None) or "all").strip().lower().replace("-", "_")
     retrieval_mode = _normalize_retrieval_mode(getattr(req, "retrieval_mode", None))
@@ -161,6 +165,7 @@ async def query(req: QueryRequest):
         )
         raise HTTPException(504, _api().MODEL_TIMEOUT_MESSAGE) from exc
     citations_data = _api().query_service.response_citations(result.citations)
+    quality = getattr(result, "quality", {}) or {}
     history_id = None
     if _api().store is not None:
         history_id = _api().store.add_history(
@@ -181,8 +186,8 @@ async def query(req: QueryRequest):
     return QueryResponse(
         answer=result.text,
         citations=citations_data,
-        evidence=_api().query_service.evidence_summary(citations_data),
-        quality=getattr(result, "quality", {}) or {},
+        evidence=_api().query_service.evidence_summary(citations_data, _claim_support(quality)),
+        quality=quality,
         related_notes=getattr(result, "related_notes", []),
         history_id=history_id,
         conversation_id=conversation_id,
@@ -225,6 +230,7 @@ async def research(req: ResearchRequest):
         )
         raise HTTPException(504, _api().MODEL_TIMEOUT_MESSAGE) from exc
     citations_data = _api().query_service.response_citations(result.citations)
+    quality = getattr(result, "quality", {}) or {}
     history_id = None
     if _api().store is not None:
         history_id = _api().store.add_history(
@@ -245,8 +251,8 @@ async def research(req: ResearchRequest):
     return ResearchResponse(
         answer=result.text,
         citations=citations_data,
-        evidence=_api().query_service.evidence_summary(citations_data),
-        quality=getattr(result, "quality", {}) or {},
+        evidence=_api().query_service.evidence_summary(citations_data, _claim_support(quality)),
+        quality=quality,
         related_notes=getattr(result, "related_notes", []),
         research_steps=getattr(result, "research_steps", []),
         history_id=history_id,
@@ -257,10 +263,8 @@ async def research(req: ResearchRequest):
 
 
 async def query_stream(req: QueryRequest, request: Request):
-    """SSE 流式查询。"""
     if _api().query_engine is None:
         raise HTTPException(503, "Query engine not ready")
-
     options = _resolve_query_options(req)
     conversation_id = _resolve_conversation_id(req.conversation_id)
     conversation_context = _conversation_context(conversation_id)
@@ -273,7 +277,6 @@ async def query_stream(req: QueryRequest, request: Request):
             content=req.question,
             file_filter_json=file_filter_json,
         )
-
     loop = asyncio.get_event_loop()
     q: queue.Queue = queue.Queue()
     cancel = threading.Event()
@@ -321,15 +324,18 @@ async def query_stream(req: QueryRequest, request: Request):
                 full_answer.append(token)
                 q.put(("token", token))
             answer_text = "".join(full_answer).strip()
-            answer_text, citations_data = _api().query_service.finalize_stream_answer(
-                answer_text,
-                chunks,
+            finalize = _api().query_service.finalize_stream_answer_with_quality
+            answer_text, citations_data, quality = finalize(answer_text, chunks, quality)
+            evidence_data = _api().query_service.evidence_summary(
+                citations_data,
+                _claim_support(quality),
             )
-            evidence_data = _api().query_service.evidence_summary(citations_data)
+            q.put(("quality", quality))
             answer_payload = {
                 "answer": answer_text,
                 "citations": citations_data,
                 "evidence": evidence_data,
+                "quality": quality,
             }
             q.put(("answer", answer_payload))
             history_id = None
