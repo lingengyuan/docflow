@@ -1,11 +1,11 @@
-{"id": "readme_positioning", "category": "readme", "question": "What is DocFlow's one-line positioning?", "expected_files": ["README.md"], "expected_terms": ["Local-first personal knowledge Q&A"], "must_find": true}
+{"id": "readme_positioning", "category": "readme", "question": "What is DocFlow's one-line positioning?", "expected_files": ["README.md"], "expected_terms": ["local-first document Q&A and knowledge workspace"], "must_find": true}
 {"id": "readme_privacy_no_telemetry", "category": "readme", "question": "Does the README say DocFlow includes telemetry?", "expected_files": ["README.md"], "expected_terms": ["no telemetry"], "must_find": true}
 {"id": "readme_visible_sources", "category": "readme", "question": "How does the README describe answer sources?", "expected_files": ["README.md"], "expected_terms": ["source snippets"], "must_find": true}
 {"id": "readme_demo_entry", "category": "readme", "question": "Where does README mention 导入示例资料 for the first-run demo?", "expected_files": ["README.md"], "expected_terms": ["导入示例资料"], "must_find": true}
 {"id": "readme_sqlite_storage", "category": "readme", "question": "Where does DocFlow keep metadata?", "expected_files": ["README.md"], "expected_terms": ["SQLite"], "must_find": true}
 {"id": "readme_qdrant_vectors", "category": "readme", "question": "Where does DocFlow keep vectors?", "expected_files": ["README.md"], "expected_terms": ["Qdrant"], "must_find": true}
-{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["312"], "must_find": true}
-{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["73"], "must_find": true}
+{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["361"], "must_find": true}
+{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["79"], "must_find": true}
 {"id": "readme_offline_check", "category": "readme", "question": "What offline check is mentioned in README?", "expected_files": ["README.md"], "expected_terms": ["offline network check"], "must_find": true}
 {"id": "readme_license", "category": "readme", "question": "What license does README list?", "expected_files": ["README.md"], "expected_terms": ["MIT"], "must_find": true}
 {"id": "privacy_positioning", "category": "privacy", "question": "How does privacy.md define DocFlow?", "expected_files": ["docs/privacy.md"], "expected_terms": ["local-first personal knowledge assistant"], "must_find": true}
@@ -23,7 +23,7 @@
 {"id": "eval_incremental_indexing", "category": "evaluation", "question": "What indexing check is planned as a measured output?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["Incremental indexing checks"], "must_find": true}
 {"id": "eval_reproducibility", "category": "evaluation", "question": "What reproducibility section exists?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["Reproducibility"], "must_find": true}
 {"id": "eval_query_seed", "category": "evaluation", "question": "Which config section contains deterministic generation settings?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["query:"], "must_find": true}
-{"id": "eval_not_external_claim", "category": "evaluation", "question": "Why is the maturity score not enough?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["not enough as an external quality claim"], "must_find": true}
+{"id": "eval_not_external_claim", "category": "evaluation", "question": "Why is the maturity score not enough?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["not a public quality claim"], "must_find": true}
 {"id": "status_beyond_prototype", "category": "status", "question": "How does status describe the project state?", "expected_files": ["docs/status.md"], "expected_terms": ["beyond the original prototype phase"], "must_find": true}
 {"id": "status_docker_compose", "category": "status", "question": "What first-run startup support is listed?", "expected_files": ["docs/status.md"], "expected_terms": ["Docker Compose"], "must_find": true}
 {"id": "status_demo_library", "category": "status", "question": "What first-run library support exists?", "expected_files": ["docs/status.md"], "expected_terms": ["demo library"], "must_find": true}
@@ -31,7 +31,7 @@
 {"id": "status_citation_identity", "category": "status", "question": "What citation metadata is now included?", "expected_files": ["docs/status.md"], "expected_terms": ["Citations include chunk identity"], "must_find": true}
 {"id": "status_parsing_eval", "category": "status", "question": "What parsing validation appears in latest status?", "expected_files": ["docs/status.md"], "expected_terms": ["Parsing eval"], "must_find": true}
 {"id": "status_unexpected_outbound", "category": "status", "question": "What offline outbound result is recorded?", "expected_files": ["docs/status.md"], "expected_terms": ["0 unexpected outbound"], "must_find": true}
-{"id": "status_impl_modules_gap", "category": "status", "question": "What architecture gap remains?", "expected_files": ["docs/status.md"], "expected_terms": ["implementation modules"], "must_find": true}
+{"id": "status_impl_modules_gap", "category": "status", "question": "What architecture gap remains?", "expected_files": ["docs/status.md"], "expected_terms": ["handler/service extraction"], "must_find": true}
 {"id": "arch_layers", "category": "architecture", "question": "How many main layers does DocFlow have?", "expected_files": ["docs/architecture.md"], "expected_terms": ["four main layers"], "must_find": true}
 {"id": "arch_fastapi", "category": "architecture", "question": "What does the API layer serve?", "expected_files": ["docs/architecture.md"], "expected_terms": ["FastAPI browser app"], "must_find": true}
 {"id": "arch_ingest_parses", "category": "architecture", "question": "What does the ingest layer parse?", "expected_files": ["docs/architecture.md"], "expected_terms": ["parses files"], "must_find": true}
@@ -43,7 +43,7 @@
 {"id": "cli_demo_create_only", "category": "cli", "question": "Which command creates demo data only?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow demo --create-only"], "must_find": true}
 {"id": "cli_eval_retrieval", "category": "cli", "question": "Which command runs retrieval eval?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow eval retrieval"], "must_find": true}
 {"id": "cli_browser_acceptance", "category": "cli", "question": "Which command runs browser verification?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow browser-acceptance"], "must_find": true}
-{"id": "cli_python_main", "category": "cli", "question": "Where does CLI documentation mention python main.py?", "expected_files": ["docs/cli.md"], "expected_terms": ["python main.py"], "must_find": true}
+{"id": "cli_docflow_command", "category": "cli", "question": "Where does CLI documentation mention the serve command?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow serve"], "must_find": true}
 {"id": "dev_requirements_dev", "category": "development", "question": "Which requirements file is used for development?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-dev.txt"], "must_find": true}
 {"id": "dev_requirements_vision", "category": "development", "question": "Which optional requirements file installs image understanding support?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-vision.txt"], "must_find": true}
 {"id": "dev_pytest", "category": "development", "question": "Which command runs tests in development docs?", "expected_files": ["docs/development.md"], "expected_terms": ["scripts/run_ci.sh"], "must_find": true}
