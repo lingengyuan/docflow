@@ -28,6 +28,7 @@ class KnowledgeReviewService:
             citation_counts=citation_counts,
             limit=limit,
         )
+        relationship_timeline = self._relationship_timeline(store, files, limit=limit)
         return {
             "signals": self._review_signals(files, history, feedback, store),
             "recent_activity": {
@@ -43,6 +44,7 @@ class KnowledgeReviewService:
             },
             "topic_activity": self._topic_activity(topics, history, base=base, limit=limit),
             "review_queue": review_queue,
+            "relationship_timeline": relationship_timeline,
             "recommendations": self._recommendations(
                 files,
                 history,
@@ -103,6 +105,32 @@ class KnowledgeReviewService:
                 }
             )
         items.sort(key=lambda item: (item["priority"], item["file"]["updated_at"]), reverse=True)
+        return items[:limit]
+
+    def _relationship_timeline(
+        self,
+        store: DocStore,
+        files: list[dict[str, Any]],
+        *,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        items = []
+        for file in files:
+            note_file = self._file_summary(file)
+            for link in store.list_outbound_links(int(file["id"])):
+                source = self._file_summary(link.get("file") or {})
+                if not source["id"]:
+                    continue
+                items.append(
+                    {
+                        "type": str(link.get("relation") or "answer_note"),
+                        "label": self._relationship_label(str(link.get("relation") or "")),
+                        "created_at": link.get("created_at", ""),
+                        "note": note_file,
+                        "source": source,
+                    }
+                )
+        items.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
         return items[:limit]
 
     def _review_reasons(
@@ -237,6 +265,24 @@ class KnowledgeReviewService:
                 }
             )
         return recommendations[:limit]
+
+    @staticmethod
+    def _relationship_label(relation: str) -> str:
+        labels = {
+            "answer_note": "保存回答引用了来源",
+            "source_note": "笔记摘录自来源",
+            "knowledge_output": "知识产物基于来源",
+        }
+        return labels.get(relation or "answer_note", "连接了来源资料")
+
+    @staticmethod
+    def _file_summary(file: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": int(file.get("id") or 0),
+            "file_name": file.get("file_name", ""),
+            "collection": file.get("collection", ""),
+            "updated_at": file.get("updated_at", ""),
+        }
 
     def _citation_counts(
         self,

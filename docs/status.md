@@ -21,6 +21,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Source preview can highlight the cited source range when citation span metadata is available.
 - Browser UI now presents model choices, collections, watched folders, queue stages, and source labels in user-facing language.
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
+- The Notes page now surfaces answer-to-source relationship activity in the active review panel.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Public retrieval smoke evaluation now covers 50 committed public-domain and United States government text cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
@@ -39,7 +40,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 377 passed.
+- Unit/integration tests: 378 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

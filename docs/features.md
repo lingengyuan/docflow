@@ -26,6 +26,7 @@ DocFlow is designed as a local personal knowledge workspace.
 - Chat: ask questions and inspect cited answers.
 - Library: browse files, collections, tags, favorites, and source chunks.
 - Notes: create quick notes, import webpages, and save generated knowledge outputs.
+- Active review: see which saved answers are connected to source material and which files are worth revisiting.
 - Settings: review local model, dependency, watched folder, and storage status.
 - Source Preview: inspect source material behind citations.
 

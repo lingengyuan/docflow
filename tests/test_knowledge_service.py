@@ -106,6 +106,9 @@ def test_knowledge_service_builds_active_review_from_usage_signals(tmp_path):
         assert review["recommendations"]
         assert review["review_queue"][0]["file"]["id"] == source_id
         assert review["review_queue"][0]["signals"]["citations"] == 1
+        assert review["relationship_timeline"][0]["note"]["id"] == note_id
+        assert review["relationship_timeline"][0]["source"]["id"] == source_id
+        assert review["relationship_timeline"][0]["label"] == "保存回答引用了来源"
     finally:
         store.close()
 

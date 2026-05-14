@@ -702,6 +702,15 @@ def test_streaming_answer_hides_internal_citation_markers_until_finalized():
     assert r"\[\[cite:" in text
 
 
+def test_notes_review_surfaces_answer_source_relationships():
+    text = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+
+    assert "relationship_timeline" in text
+    assert "knowledgeRelationshipMarkup" in text
+    assert "account_tree" in text
+    assert "来源：" in text
+
+
 def test_source_preview_highlights_exact_citation_range():
     text = Path("frontend/js/source-preview.js").read_text(encoding="utf-8")
 
