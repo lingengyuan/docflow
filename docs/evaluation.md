@@ -66,7 +66,7 @@ Current committed parsing set: 31 documents covering Markdown tables, Obsidian-f
 
 ## Citation Alignment
 
-`tests/test_citation_alignment.py` covers source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, and legacy citation compatibility.
+`tests/test_citation_alignment.py`, `tests/test_query_service.py`, and stream conversation tests cover source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, legacy citation compatibility, and streamed-answer finalization before history is saved.
 
 ## Internal Planning Report
 

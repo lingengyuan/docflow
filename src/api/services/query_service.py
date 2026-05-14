@@ -6,6 +6,12 @@ import json
 import re
 
 from src.api.services.evidence_service import EvidenceService
+from src.query.generator import (
+    apply_structured_citations,
+    citation_from_chunk,
+    sanitize_inline_citations,
+    validate_citations,
+)
 
 
 class QueryService:
@@ -100,6 +106,16 @@ class QueryService:
                     "char_end": char_start + len(matched_text),
                 }
         return self.evidence.enrich_citations(list(seen_chunks.values()))
+
+    def finalize_stream_answer(
+        self,
+        answer_text: str,
+        chunks: list[dict],
+    ) -> tuple[str, list[dict]]:
+        citations = validate_citations([citation_from_chunk(chunk) for chunk in chunks], chunks)
+        answer_text, citations = apply_structured_citations(answer_text, citations)
+        answer_text = sanitize_inline_citations(answer_text, citations)
+        return answer_text, self.response_citations(citations)
 
     def evidence_summary(self, citations: list[dict]) -> dict:
         return self.evidence.summarize(citations)

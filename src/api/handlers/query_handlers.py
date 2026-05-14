@@ -257,7 +257,7 @@ async def research(req: ResearchRequest):
 
 
 async def query_stream(req: QueryRequest, request: Request):
-    """SSE 流式查询：先返回 citations，再逐 token 返回答案。"""
+    """SSE 流式查询。"""
     if _api().query_engine is None:
         raise HTTPException(503, "Query engine not ready")
 
@@ -321,6 +321,17 @@ async def query_stream(req: QueryRequest, request: Request):
                 full_answer.append(token)
                 q.put(("token", token))
             answer_text = "".join(full_answer).strip()
+            answer_text, citations_data = _api().query_service.finalize_stream_answer(
+                answer_text,
+                chunks,
+            )
+            evidence_data = _api().query_service.evidence_summary(citations_data)
+            answer_payload = {
+                "answer": answer_text,
+                "citations": citations_data,
+                "evidence": evidence_data,
+            }
+            q.put(("answer", answer_payload))
             history_id = None
             if not cancel.is_set() and _api().store is not None:
                 history_id = _api().store.add_history(
@@ -339,15 +350,7 @@ async def query_stream(req: QueryRequest, request: Request):
                         file_filter_json=file_filter_json,
                     )
             if not cancel.is_set():
-                q.put(
-                    (
-                        "done",
-                        {
-                            "history_id": history_id,
-                            "conversation_id": conversation_id,
-                        },
-                    )
-                )
+                q.put(("done", {"history_id": history_id, "conversation_id": conversation_id}))
         except Exception as e:
             if not cancel.is_set():
                 q.put(("error", str(e)))
@@ -410,6 +413,7 @@ async def query_stream(req: QueryRequest, request: Request):
                 "quality",
                 "related_notes",
                 "token",
+                "answer",
                 "done",
                 "error",
             ):

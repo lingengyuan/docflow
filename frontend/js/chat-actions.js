@@ -63,6 +63,12 @@ async function saveAnswerFromButton(btn) {
   }
 }
 
+function streamDisplayAnswer(text) {
+  return String(text || '')
+    .replace(/\[\[cite:[^\]]*\]\]/g, '')
+    .replace(/\[\[cite:[^\]\n]*$/g, '');
+}
+
 async function sendMessage() {
   const input = document.getElementById('input');
   const question = input.value.trim();
@@ -146,8 +152,19 @@ async function sendMessage() {
           const token = JSON.parse(eventData);
           answerText += token;
           prose.classList.add('streaming-cursor');
-          prose.innerHTML = renderMarkdown(answerText);
+          prose.innerHTML = renderMarkdown(streamDisplayAnswer(answerText));
           msgs.scrollTop = msgs.scrollHeight;
+        } else if (eventType === 'answer') {
+          const payload = JSON.parse(eventData || '{}');
+          answerText = payload.answer || answerText;
+          prose.innerHTML = renderMarkdown(answerText);
+          const citations = payload.citations || [];
+          renderCitations(citations);
+          renderEvidenceSummary(payload.evidence || {});
+          const saveBtn = msgContainer.querySelector('.answer-save');
+          if (saveBtn) {
+            saveBtn.dataset.citationsJson = encodeURIComponent(JSON.stringify(citations));
+          }
         } else if (eventType === 'done') {
           streamCompleted = true;
           const payload = JSON.parse(eventData || '{}');

@@ -694,6 +694,14 @@ def test_chat_citations_render_chunk_identity():
     assert "char_end" in text
 
 
+def test_streaming_answer_hides_internal_citation_markers_until_finalized():
+    text = Path("frontend/js/chat-actions.js").read_text(encoding="utf-8")
+
+    assert "function streamDisplayAnswer" in text
+    assert "streamDisplayAnswer(answerText)" in text
+    assert r"\[\[cite:" in text
+
+
 def test_source_preview_highlights_exact_citation_range():
     text = Path("frontend/js/source-preview.js").read_text(encoding="utf-8")
 

@@ -1,3 +1,4 @@
+import json
 import threading
 import time
 
@@ -84,13 +85,14 @@ class FakeQueryEngine:
                 "file_name": "README.md",
                 "file_path": "/tmp/README.md",
                 "page_num": 1,
+                "qdrant_id": 11,
                 "rerank_score": 0.9,
             }
         ]
         if include_related:
             return (
                 chunks,
-                iter(["stream answer"]),
+                iter(["stream answer [[cite:q:11]]"]),
                 [{"file_name": "related-stream.md"}],
                 {
                     "status": "grounded",
@@ -98,7 +100,7 @@ class FakeQueryEngine:
                     "answer_mode": "generated",
                 },
             )
-        return chunks, iter(["stream answer"])
+        return chunks, iter(["stream answer [[cite:q:11]]"])
 
 
 class TimeoutThenFastQueryEngine:
@@ -294,11 +296,14 @@ def test_stream_query_emits_conversation_and_saves_messages(monkeypatch, tmp_pat
     assert "event: related_notes" in body
     assert "related-stream.md" in body
     assert "event: token" in body
+    assert "event: answer" in body
+    assert "[来源: README.md, 第1页]" in body
     assert '"history_id":' in body
     conversation_id = active_store.list_conversations()[0]["id"]
     messages = active_store.list_messages(conversation_id)
     assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert messages[1]["content"] == "stream answer"
+    assert messages[1]["content"] == "stream answer [来源: README.md, 第1页]"
+    assert json.loads(messages[1]["citations"])[0]["chunk_id"] == "q:11"
 
 
 def test_stream_query_timeout_reports_error_and_skips_assistant_message(monkeypatch, tmp_path):
