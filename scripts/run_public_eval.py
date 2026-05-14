@@ -37,7 +37,7 @@ def public_benchmark_metadata(cases_path: Path) -> dict:
         "cases_file": str(cases_path),
         "corpus_dir": "eval/public_corpus",
         "source_filter": False,
-        "scope_note": "Small public-domain smoke set; not a BEIR, MTEB, or C-MTEB score.",
+        "scope_note": "Committed public-domain smoke set; not a BEIR, MTEB, or C-MTEB score.",
     }
 
 

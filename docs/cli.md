@@ -21,7 +21,7 @@ docflow eval performance
 
 `docflow doctor --offline` checks startup, a local ingest probe, query fallback, model status, and source preview for unexpected outbound connections.
 
-`docflow eval public` runs the small committed public-domain smoke benchmark without source filtering. `docflow eval retrieval` runs the larger internal source-filtered project regression set. `docflow eval performance` runs a local parser/chunker smoke check for one long synthetic note and a synthetic many-note library.
+`docflow eval public` runs the committed public-domain smoke benchmark without source filtering. `docflow eval retrieval` runs the larger internal source-filtered project regression set. `docflow eval performance` runs a local parser/chunker smoke check for one long synthetic note and a synthetic many-note library.
 
 ## Maintenance Commands
 

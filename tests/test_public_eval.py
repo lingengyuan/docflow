@@ -10,7 +10,7 @@ def test_public_retrieval_cases_reference_committed_public_corpus():
     cases_path = Path("eval/public_retrieval_v1.jsonl")
     cases = load_cases(cases_path)
 
-    assert len(cases) >= 25
+    assert len(cases) >= 150
     assert {case.category for case in cases} == {"public_domain_smoke"}
     for case in cases:
         assert case.expected_files

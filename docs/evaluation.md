@@ -24,7 +24,7 @@ DocFlow uses measured checks as external quality evidence:
 - Reproducibility checks.
 - Offline privacy checks.
 
-The public-domain smoke set below is reproducible from committed files, but it is intentionally small. It is not a BEIR, MTEB, or C-MTEB score and should not be treated as a broad external benchmark.
+The public-domain smoke set below is reproducible from committed files and is large enough to catch more routine retrieval regressions. It is still not a BEIR, MTEB, or C-MTEB score and should not be treated as a broad external benchmark.
 
 ## Public Reproducible Smoke Benchmark
 
@@ -36,9 +36,9 @@ The public-domain smoke set below is reproducible from committed files, but it i
 - pass rate
 - retrieval latency P50/P95/max
 
-The public smoke set currently has 50 cases across public-domain or US government text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
+The public smoke set currently has 190 cases across public-domain, United States government, and NASA text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
 
-Latest local run: 50/50 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 798.84 ms and P95 859.81 ms after model warmup and public corpus refresh.
+Latest local run: 190/190 passed, Recall@5 1.0, MRR@5 0.9557, nDCG@5 0.9669, retrieval P50 839.0 ms and P95 935.78 ms after model warmup and public corpus refresh.
 
 ## Internal Source-Filtered Regression
 
