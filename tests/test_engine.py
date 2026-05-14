@@ -1,6 +1,6 @@
 import yaml
 
-from src.query.engine import QueryEngine
+from src.query.engine import QueryEngine, QuerySettings
 from src.query.generator import Answer
 
 CHUNKS = [
@@ -240,13 +240,33 @@ def test_query_refuses_low_evidence_before_generation():
     assert generator.calls == []
 
 
+def test_query_thresholds_are_configurable():
+    class LowEvidenceRetriever(FakeRetriever):
+        def retrieve(self, *args, **kwargs):
+            item = dict(CHUNKS[0])
+            item["rerank_score"] = 0.01
+            return [item]
+
+    generator = WorkingGenerator()
+    engine = QueryEngine(
+        LowEvidenceRetriever(),
+        generator,
+        settings=QuerySettings(min_rerank_score=0.005),
+    )
+
+    answer = engine.query("weak but configured match")
+
+    assert answer.text == "answer"
+    assert generator.calls
+
+
 def test_from_config_passes_query_generation_settings(tmp_path, monkeypatch):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         yaml.safe_dump(
             {
                 "paths": {"db_path": str(tmp_path / "docflow.db")},
-                "qdrant": {"host": "localhost", "port": 6333},
+                "qdrant": {"host": "localhost", "port": 6333, "collection": "custom-docflow"},
                 "ollama": {
                     "base_url": "http://localhost:11434",
                     "llm_model": "qwen2.5:7b",
@@ -257,14 +277,24 @@ def test_from_config_passes_query_generation_settings(tmp_path, monkeypatch):
                     "temperature": 0.1,
                     "top_p": 0.8,
                     "max_tokens": 512,
+                    "min_rerank_score": 0.2,
+                    "min_vector_score": 0.5,
+                    "related_notes_limit": 2,
+                    "max_research_steps": 2,
                 },
             }
         ),
         encoding="utf-8",
     )
 
+    retriever_kwargs = {}
+
+    def fake_retriever(**kwargs):
+        retriever_kwargs.update(kwargs)
+        return FakeRetriever()
+
     monkeypatch.setattr("src.query.engine.embedding_backend_config_from_dict", lambda *_: None)
-    monkeypatch.setattr("src.query.engine.HybridRetriever", lambda **_: FakeRetriever())
+    monkeypatch.setattr("src.query.engine.HybridRetriever", fake_retriever)
 
     engine = QueryEngine.from_config(config_path)
 
@@ -272,3 +302,8 @@ def test_from_config_passes_query_generation_settings(tmp_path, monkeypatch):
     assert engine.generator.temperature == 0.1
     assert engine.generator.top_p == 0.8
     assert engine.generator.max_tokens == 512
+    assert engine.settings.min_rerank_score == 0.2
+    assert engine.settings.min_vector_score == 0.5
+    assert engine.settings.related_notes_limit == 2
+    assert engine.settings.max_research_steps == 2
+    assert retriever_kwargs["collection_name"] == "custom-docflow"

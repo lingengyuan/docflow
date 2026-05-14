@@ -66,7 +66,7 @@ class LLMSwitchState(MutableMapping[str, Any]):
 
 
 @dataclass
-class AppState:
+class AppContext:
     """Container for long-lived API runtime dependencies."""
 
     config_path: Path
@@ -107,3 +107,6 @@ class AppState:
         self.watcher = None
         self.watch_dirs = []
         self.llm_options = []
+
+
+AppState = AppContext

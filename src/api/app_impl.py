@@ -10,7 +10,6 @@ import shutil
 import sys
 import types
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, Response
@@ -99,7 +98,7 @@ from src.api.services.health_service import HealthService
 from src.api.services.import_service import ImportService
 from src.api.services.knowledge_service import KnowledgeService
 from src.api.services.query_service import QueryService
-from src.api.state import AppState
+from src.api.state import AppContext
 from src.ingest.imports import (
     build_answer_note_markdown,
     build_knowledge_output_markdown,
@@ -108,13 +107,6 @@ from src.ingest.imports import (
 )
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 from src.maintenance.startup import ensure_config_file
-
-if TYPE_CHECKING:
-    from src.ingest.pipeline import IngestPipeline
-    from src.ingest.queue import IngestQueue
-    from src.ingest.store import DocStore
-    from src.ingest.watcher import FolderWatcher, WatchDir
-    from src.query.engine import QueryEngine
 
 __all__ = [
     "app",
@@ -168,43 +160,22 @@ MODEL_TIMEOUT_MESSAGE = "模型任务超时，请稍后重试；系统已释放�
 
 
 # ---------------------------------------------------------------------------
-# Global state (initialized in lifespan)
+# Application context (initialized in lifespan)
 # ---------------------------------------------------------------------------
 
-pipeline: IngestPipeline | None = None
-ingest_queue: IngestQueue | None = None
-query_engine: QueryEngine | None = None
-store: DocStore | None = None
-watcher: FolderWatcher | None = None
-watch_dirs: list[WatchDir] = []
-llm_options: list[str] = []
-llm_switch_state: dict = {
-    "state": "idle",
-    "model": None,
-    "message": "",
-    "started_at": None,
-    "finished_at": None,
-}
-
-model_tasks = ModelTaskController(thread_name_prefix="ml-inference", logger=logger)
-app_state = AppState(config_path=CONFIG_PATH, model_tasks=model_tasks)
-llm_switch_state = app_state.llm_switch_state
+_initial_model_tasks = ModelTaskController(thread_name_prefix="ml-inference", logger=logger)
+app_context = AppContext(config_path=CONFIG_PATH, model_tasks=_initial_model_tasks)
+app_state = app_context
+del _initial_model_tasks
 query_service = QueryService()
 import_service = ImportService()
 knowledge_service = KnowledgeService()
 health_service = HealthService()
-configure_health_checks(store_getter=lambda: store)
+configure_health_checks(store_getter=lambda: app_context.store)
 
 
 def _sync_app_state() -> None:
-    app_state.pipeline = pipeline
-    app_state.ingest_queue = ingest_queue
-    app_state.query_engine = query_engine
-    app_state.store = store
-    app_state.watcher = watcher
-    app_state.watch_dirs = watch_dirs
-    app_state.llm_options = llm_options
-    app_state.model_tasks = model_tasks
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -347,14 +318,15 @@ _STATE_FIELD_NAMES = {
 class _ApiModule(types.ModuleType):
     def __getattribute__(self, name: str):
         if name in _STATE_FIELD_NAMES:
-            state = types.ModuleType.__getattribute__(self, "app_state")
+            state = types.ModuleType.__getattribute__(self, "app_context")
             return getattr(state, name)
         return types.ModuleType.__getattribute__(self, name)
 
     def __setattr__(self, name: str, value):
         if name in _STATE_FIELD_NAMES:
-            state = types.ModuleType.__getattribute__(self, "app_state")
+            state = types.ModuleType.__getattribute__(self, "app_context")
             setattr(state, name, value)
+            return
         types.ModuleType.__setattr__(self, name, value)
 
 

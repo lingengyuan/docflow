@@ -74,6 +74,7 @@ class IngestPipeline:
         embedder = Embedder(
             qdrant_host=cfg["qdrant"]["host"],
             qdrant_port=cfg["qdrant"]["port"],
+            collection_name=cfg["qdrant"].get("collection", "docflow"),
             batch_size=cfg["embedding"]["batch_size"],
             id_counter_path=id_counter,
             adaptive_batch_char_budget=ingest_cfg.get("adaptive_batch_char_budget"),

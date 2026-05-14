@@ -49,7 +49,7 @@ def fts_search(
 
     try:
         fetched = retriever._qdrant.retrieve(
-            collection_name=COLLECTION_NAME,
+            collection_name=getattr(retriever, "collection_name", COLLECTION_NAME),
             ids=top_ids,
             with_payload=True,
         )

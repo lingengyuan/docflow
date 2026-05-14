@@ -57,8 +57,10 @@ class Embedder:
         adaptive_batch_char_budget: int | None = None,
         adaptive_batch_max: int | None = None,
         embedding_config: EmbeddingBackendConfig | None = None,
+        collection_name: str = COLLECTION_NAME,
     ):
         self.batch_size = batch_size
+        self.collection_name = collection_name
         self.adaptive_batch_char_budget = adaptive_batch_char_budget or (batch_size * 1024)
         self.adaptive_batch_max = adaptive_batch_max or max(batch_size, batch_size * 2)
         self._embedding_config = embedding_config or EmbeddingBackendConfig(
@@ -90,10 +92,10 @@ class Embedder:
 
     def _ensure_collection(self, vector_dim: int):
         existing_dim = None
-        if self._qdrant.collection_exists(COLLECTION_NAME):
-            info = self._qdrant.get_collection(COLLECTION_NAME)
+        if self._qdrant.collection_exists(self.collection_name):
+            info = self._qdrant.get_collection(self.collection_name)
             existing_dim = info.config.params.vectors.size
-        self._vector_store.ensure_collection(COLLECTION_NAME, vector_dim)
+        self._vector_store.ensure_collection(self.collection_name, vector_dim)
         if existing_dim is not None and existing_dim != vector_dim:
             logger.warning(
                 f"[embedder] Vector dim changed {existing_dim} -> {vector_dim}. "
@@ -221,7 +223,7 @@ class Embedder:
             for j in range(len(chunks))
         ]
 
-        self._vector_store.upsert_points(collection_name=COLLECTION_NAME, points=points)
+        self._vector_store.upsert_points(collection_name=self.collection_name, points=points)
 
         return ids
 
@@ -283,7 +285,7 @@ class Embedder:
     def max_point_id(self) -> int:
         """Return the highest point ID in Qdrant, or -1 when the collection is empty."""
         try:
-            return self._vector_store.max_point_id(COLLECTION_NAME)
+            return self._vector_store.max_point_id(self.collection_name)
         except Exception as exc:
             logger.warning("[embedder] failed to inspect Qdrant point IDs: %s", exc, exc_info=True)
             raise
@@ -315,7 +317,7 @@ class Embedder:
         """删除某个文件的所有 Qdrant 向量。FTS5 清理由 store.add_chunks() 负责。"""
         if not qdrant_ids:
             return
-        self._vector_store.delete_points(COLLECTION_NAME, qdrant_ids)
+        self._vector_store.delete_points(self.collection_name, qdrant_ids)
 
     def close(self) -> None:
         self._vector_store.close()

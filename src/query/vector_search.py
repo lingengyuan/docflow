@@ -10,7 +10,7 @@ def vector_search(
     limit: int | None = None,
 ) -> list[dict]:
     results = retriever._vector_store.search(
-        collection_name=COLLECTION_NAME,
+        collection_name=getattr(retriever, "collection_name", COLLECTION_NAME),
         query=query_vec,
         file_filter=file_filter,
         limit=limit or retriever.top_k_retrieval,
@@ -30,7 +30,7 @@ def fetch_file_chunks(retriever, qdrant_ids: list[int], max_chunks: int = 15) ->
         return []
     sample_ids = qdrant_ids[: max_chunks * 3]
     records = retriever._qdrant.retrieve(
-        collection_name=COLLECTION_NAME,
+        collection_name=getattr(retriever, "collection_name", COLLECTION_NAME),
         ids=sample_ids,
         with_payload=True,
     )
@@ -50,7 +50,7 @@ def fetch_chunks_by_ids(
     for i in range(0, len(qdrant_ids), 100):
         batch = qdrant_ids[i : i + 100]
         records = retriever._qdrant.retrieve(
-            collection_name=COLLECTION_NAME,
+            collection_name=getattr(retriever, "collection_name", COLLECTION_NAME),
             ids=batch,
             with_payload=True,
         )

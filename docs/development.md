@@ -57,3 +57,10 @@ npm run build:css
 ## Project Rule
 
 Normal browser UI must feel like a finished personal knowledge product. Developer-only commands, repair instructions, scripts, and recovery details belong in docs, CLI, tests, or internal implementation, not in the user-facing app.
+
+## Configuration And Migration
+
+- Runtime dependencies must live in the API application context; do not add new module-level state for the same object.
+- New query behavior should be configurable through the `query:` section when it affects relevance, answer limits, or refusal thresholds.
+- SQLite schema changes belong in store migration code and need tests that prove an existing database can open after the change.
+- Config changes should keep old defaults working. If a rebuild or reindex is unavoidable, document that clearly before release.

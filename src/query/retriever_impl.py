@@ -10,12 +10,13 @@ from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.store import DocStore
 from src.query import debug as debug_module
 from src.query import fusion, keyword_search, vector_search
-from src.query.constants import QUERY_INSTRUCTION
+from src.query.constants import COLLECTION_NAME, QUERY_INSTRUCTION
 from src.query.reranker import MLXReranker
 from src.query.router import QueryRouter
 from src.vector_store import QdrantVectorStore
 
 logger = logging.getLogger(__name__)
+
 
 class HybridRetriever:
     _logger = logger
@@ -32,9 +33,11 @@ class HybridRetriever:
         store: DocStore | None = None,
         embedding_config: EmbeddingBackendConfig | None = None,
         allow_model_download: bool = False,
+        collection_name: str = COLLECTION_NAME,
     ):
         self.top_k_retrieval = top_k_retrieval
         self.top_k_rerank = top_k_rerank
+        self.collection_name = collection_name
         self._vector_store = QdrantVectorStore(host=qdrant_host, port=qdrant_port)
         self._qdrant = self._vector_store.client
         self._store = store or DocStore(db_path)

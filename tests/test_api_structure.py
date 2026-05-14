@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.api import app as api_app
-from src.api.state import AppState, LLMSwitchState
+from src.api.state import AppContext, AppState, LLMSwitchState
 
 
 def test_phase34_api_routes_are_registered_from_route_modules():
@@ -86,9 +86,27 @@ def test_phase60_god_modules_are_split_into_focused_files():
 
 
 def test_phase34_app_state_holds_runtime_dependencies():
+    assert api_app.app_context is api_app.app_state
+    assert isinstance(api_app.app_context, AppContext)
     assert isinstance(api_app.app_state, AppState)
     assert api_app.app_state.model_tasks is api_app.model_tasks
     assert api_app.app_state.llm_switch_state is api_app.llm_switch_state
+
+
+def test_phase68_runtime_state_has_single_context_source():
+    for name in [
+        "pipeline",
+        "ingest_queue",
+        "query_engine",
+        "store",
+        "watcher",
+        "watch_dirs",
+        "llm_options",
+        "model_tasks",
+        "llm_switch_state",
+    ]:
+        assert name not in vars(api_app)
+        assert getattr(api_app, name) is getattr(api_app.app_context, name)
 
 
 def test_phase34_llm_switch_state_is_thread_safe_mapping():
