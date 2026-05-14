@@ -26,6 +26,7 @@ docker compose up --build
 ```
 
 打开 [http://localhost:8000](http://localhost:8000)，然后选择 **导入示例资料** 体验一个小型本地资料库。
+README 中的截图来自内置示例资料库，不包含个人文件夹或真实笔记内容。
 
 首次运行成本需要提前知道：Docker 和 Qdrant 会占用本地空间，当前验证机器上应用镜像构建后约 0.5 GB；你选择的本地问答模型会额外占用空间，常见 7B Ollama 模型通常约 4-5 GB。图片理解和 Apple Silicon MLX 支持都是可选安装。
 

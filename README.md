@@ -4,6 +4,8 @@ English · [简体中文](README.zh-CN.md)
 
 ![DocFlow chat workspace](docs/assets/chat.png)
 
+The screenshots in this README are captured from the bundled demo library, not a personal vault.
+
 DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
 - **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
@@ -17,7 +19,9 @@ git clone https://github.com/lingengyuan/docflow.git && cd docflow
 docker compose up --build
 ```
 
-Then open <http://localhost:8000> and click **导入示例资料** to try a small local library.
+Then open <http://localhost:8000> and click the demo-library card, **导入示例资料**,
+to try a small local library. The browser UI is Chinese-first today; the language
+button switches common navigation and status labels while fuller localization continues.
 
 For real answers, run a local model server such as Ollama or LM Studio and select it in Settings. The Docker path starts the app and Qdrant; model weights are still managed by the local model tool you choose.
 
