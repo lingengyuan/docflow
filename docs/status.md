@@ -19,7 +19,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The Library page now derives topic views, similar documents, and knowledge cards from indexed local content.
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
-- Public retrieval smoke evaluation now covers 26 committed public-domain cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
+- Public retrieval smoke evaluation now covers 50 committed public-domain and United States government text cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
 - Parsing regression now covers 31 committed files across Markdown, TXT, code-like text, PDF, and DOCX fixtures.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
@@ -39,7 +39,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
-- Public eval: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 794.82 ms, P95 851.99 ms. This is a small public-domain smoke check, not a broad public benchmark.
+- Public eval: 50/50 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 798.84 ms, P95 859.81 ms. This is a small public-domain smoke check, not a broad public benchmark.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 31/31 passed, 42 chunks checked, 11,351 text characters checked.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.

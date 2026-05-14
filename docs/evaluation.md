@@ -34,9 +34,9 @@ The public-domain smoke set below is reproducible from committed files, but it i
 - pass rate
 - retrieval latency P50/P95/max
 
-The public smoke set currently has 26 cases across public-domain or US government text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
+The public smoke set currently has 50 cases across public-domain or US government text excerpts. It always runs without source filtering, so the expected evidence must be found by retrieval rather than pre-limited to a source file. Results are written under `eval/results/public/`, which is local runtime output and is not committed.
 
-Latest local run: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 806.44 ms and P95 870.36 ms after model warmup and public corpus refresh.
+Latest local run: 50/50 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 798.84 ms and P95 859.81 ms after model warmup and public corpus refresh.
 
 ## Internal Source-Filtered Regression
 
@@ -50,7 +50,7 @@ Latest local run: 26/26 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P
 
 Results are written under `eval/results/`, which is local runtime output and is not committed.
 
-Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 312.8 ms and P95 796.47 ms after model warmup.
+Current committed retrieval set: 84 cases across README, public docs, contribution docs, security policy, roadmap, and changelog. Latest source-filtered local run: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, retrieval P50 310.27 ms and P95 775.24 ms after model warmup.
 
 This set is useful for project regression only. It uses source filtering for many checks, so it must not be presented as an external benchmark.
 
