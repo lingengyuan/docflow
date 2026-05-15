@@ -47,14 +47,16 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - GitHub CI now runs the release surface check, package smoke test, parser/chunker performance smoke, and parsing eval in addition to ruff, mypy, pytest, frontend checks, dependency audit, and offline doctor.
 - A scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model download enabled for that isolated benchmark job.
 - Mypy now covers API schemas, the API runtime access layer, API services, and query modules; API handlers now read runtime state through `src/api/runtime.py` instead of reaching back into `src.api.app_impl`.
+- External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. No external benchmark score has been archived yet.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 448 passed.
+- Unit/integration tests: 449 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
 - Public eval: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, P50 213.92 ms, P95 271.26 ms. This is a committed public-domain regression check, not a broad public benchmark.
+- External benchmark catalog: valid; 0 archived external scores.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.

@@ -138,6 +138,7 @@ def check_status_alignment() -> None:
         "docs/status.md",
         [
             "not a broad public benchmark",
+            "No external benchmark score has been archived yet",
             "Offline doctor: 0 unexpected outbound connections",
             "DocFlow is not published to PyPI yet",
         ],
@@ -168,6 +169,8 @@ def check_docker_and_package_surface() -> None:
     for doc in PUBLIC_DOCS:
         if f"docs/{doc}" not in pyproject:
             fail(f"pyproject package data is missing docs/{doc}")
+    if '"eval/external_benchmarks.json"' not in pyproject:
+        fail("pyproject package data is missing eval/external_benchmarks.json")
     for asset in ("chat.png", "library.png", "notes.png", "settings.png"):
         if f"docs/assets/{asset}" not in pyproject:
             fail(f"pyproject package data is missing docs/assets/{asset}")
@@ -182,6 +185,7 @@ def check_workflows() -> None:
             "mypy",
             "pytest",
             "scripts/run_performance_smoke.py --json",
+            "scripts/run_external_benchmark_status.py --json",
             "main.py eval parsing --json",
             "scripts/run_release_surface_check.py",
             "scripts/package_smoke.py",

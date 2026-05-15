@@ -453,6 +453,36 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
     assert "GitHub CI now runs" in status_doc
 
 
+def test_phase99_external_benchmark_claims_are_explicitly_unclaimed():
+    catalog = Path("eval/external_benchmarks.json").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+    main_source = Path("main.py").read_text(encoding="utf-8")
+    run_ci = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
+    ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    release_check = Path("scripts/run_release_surface_check.py").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert Path("scripts/run_external_benchmark_status.py").exists()
+    assert '"schema": "docflow.external_benchmark_catalog.v1"' in catalog
+    for benchmark in ["BEIR", "MTEB", "C-MTEB"]:
+        assert benchmark in catalog
+        assert benchmark in evaluation_doc
+    assert '"docflow_status": "not_run"' in catalog
+    assert "No external benchmark score has been archived yet" in evaluation_doc
+    assert "No external benchmark score has been archived yet" in status_doc
+    assert "External benchmark catalog: valid; 0 archived external scores." in status_doc
+    assert "docflow eval external --json" in readme
+    assert "docflow eval external --json" in readme_zh
+    assert 'args[0] == "external"' in main_source
+    assert "run_external_benchmark_status.py --json" in run_ci
+    assert "run_external_benchmark_status.py --json" in ci_workflow
+    assert "eval/external_benchmarks.json" in pyproject
+    assert "No external benchmark score has been archived yet" in release_check
+
+
 def test_phase75_release_install_surface_is_documented():
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")

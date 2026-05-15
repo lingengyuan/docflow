@@ -1,0 +1,54 @@
+{
+  "schema": "docflow.external_benchmark_catalog.v1",
+  "updated_at": "2026-05-15",
+  "claim_policy": [
+    "DocFlow's committed public regression set is not an external benchmark.",
+    "Do not claim BEIR, MTEB, or C-MTEB scores until the corresponding benchmark run is completed and archived.",
+    "Release notes may quote external benchmark results only when the benchmark name, task split, model config, hardware, and result artifact are listed."
+  ],
+  "benchmarks": [
+    {
+      "id": "beir",
+      "name": "BEIR",
+      "scope": "Heterogeneous information retrieval benchmark for zero-shot retrieval evaluation.",
+      "primary_source": "https://arxiv.org/abs/2104.08663",
+      "implementation": "https://github.com/UKPLab/beir",
+      "docflow_status": "not_run",
+      "required_before_claim": [
+        "dataset/task list",
+        "retrieval configuration",
+        "hardware/runtime summary",
+        "raw result artifact"
+      ]
+    },
+    {
+      "id": "mteb",
+      "name": "MTEB",
+      "scope": "Massive Text Embedding Benchmark for embedding and retrieval systems.",
+      "primary_source": "https://arxiv.org/abs/2210.07316",
+      "implementation": "https://github.com/embeddings-benchmark/mteb",
+      "leaderboard": "https://huggingface.co/spaces/mteb/leaderboard",
+      "docflow_status": "not_run",
+      "required_before_claim": [
+        "benchmark version",
+        "task list",
+        "embedding model",
+        "raw result artifact"
+      ]
+    },
+    {
+      "id": "cmteb",
+      "name": "C-MTEB",
+      "scope": "Chinese Massive Text Embedding Benchmark covering Chinese embedding tasks and datasets.",
+      "primary_source": "https://embeddings-benchmark.github.io/mteb/overview/available_benchmarks/#mtebcmn-v1",
+      "datasets": "https://huggingface.co/C-MTEB",
+      "docflow_status": "not_run",
+      "required_before_claim": [
+        "C-MTEB task subset",
+        "Chinese query/document preprocessing",
+        "embedding model",
+        "raw result artifact"
+      ]
+    }
+  ]
+}

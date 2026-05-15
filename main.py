@@ -28,6 +28,7 @@ DocFlow 入口。
   python main.py eval retrieval
   python main.py eval parsing
   python main.py eval performance
+  python main.py eval external
 
   # 生成并验证真实样本套件
   python main.py sample-suite
@@ -221,6 +222,11 @@ def eval_command(args: list[str]):
 
         sys.argv = [sys.argv[0], *args[1:]]
         return run_performance_smoke_main()
+    if args and args[0] == "external":
+        from scripts.run_external_benchmark_status import main as run_external_benchmark_status_main
+
+        sys.argv = [sys.argv[0], *args[1:]]
+        return run_external_benchmark_status_main()
     if args and args[0] == "retrieval":
         args = args[1:]
     from scripts.run_eval import main as run_eval_main

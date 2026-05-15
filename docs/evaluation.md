@@ -8,6 +8,7 @@ docflow eval public --write-results
 docflow eval retrieval --refresh-sources --source-filter --write-results
 docflow eval parsing --write-results
 docflow eval performance --write-results
+docflow eval external --json
 docflow browser-acceptance
 docflow restore-drill
 ```
@@ -45,6 +46,20 @@ Latest local no-rerank run after public corpus refresh: 547/547 passed, Recall@5
 GitHub CI now runs ruff, mypy, pytest, offline doctor, frontend checks, release surface, package smoke, parser/chunker performance smoke, and parsing eval. These checks are small enough to run on normal pushes and pull requests.
 
 The full public retrieval benchmark uses Qdrant plus embedding model downloads, so it runs in a separate weekly evaluation workflow and can also be started manually. That split keeps normal pull-request feedback practical while still making the public retrieval number reproducible outside one developer machine.
+
+## External Benchmarks
+
+DocFlow tracks external benchmark readiness in `eval/external_benchmarks.json`. `docflow eval external --json` reports the current status and claim policy.
+
+No external benchmark score has been archived yet. The current committed regression results must therefore stay labeled as DocFlow regression checks, not as BEIR, MTEB, or C-MTEB results.
+
+Reference baselines:
+
+- BEIR: heterogeneous zero-shot retrieval benchmark across public retrieval tasks and domains. Primary source: <https://arxiv.org/abs/2104.08663>.
+- MTEB: embedding and retrieval benchmark with public tooling and leaderboard. Primary implementation: <https://github.com/embeddings-benchmark/mteb>.
+- C-MTEB: Chinese embedding benchmark listed in MTEB as `MTEB(cmn, v1)`, covering Chinese tasks and datasets. Benchmark overview: <https://embeddings-benchmark.github.io/mteb/overview/available_benchmarks/#mtebcmn-v1>.
+
+Release notes may quote an external benchmark only when the benchmark name, task split, model config, hardware/runtime summary, and raw result artifact are all listed.
 
 ## Internal Source-Filtered Regression
 

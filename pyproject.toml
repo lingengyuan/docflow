@@ -87,6 +87,7 @@ include = ["src*", "scripts*"]
   "docs/assets/settings.png",
 ]
 "share/docflow/eval" = [
+  "eval/external_benchmarks.json",
   "eval/public_retrieval_v1.jsonl",
 ]
 "share/docflow/eval/public_corpus" = [
