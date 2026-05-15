@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added a maintainer self-critique (`docs/critique-2026-05.md`), an improvement roadmap toward all-dimension excellence (`docs/improvement-roadmap.md`), and an honest current self-score (`docs/scoring-2026-05.md`).
+- Added an Architecture Decision Record directory (`docs/adr/`) seeded with module-boundary, local-first/no-telemetry, and Obsidian-plugin-scope ADRs.
+- Added PEP 621 `[project.optional-dependencies]` for `dev`, `vision`, and `mlx`, enabling `pip install "docflow[dev]"` while keeping the existing `requirements-*.txt` files as the canonical CI path.
+- Linked the new ADR index, self-critique, and roadmap from the README and `docs/architecture.md`.
 - Added release packaging automation for GHCR Docker images and Python package artifacts.
 - Added a Docker image Compose file for tagged releases.
 - Clarified installation costs, upgrade boundaries, and failure modes in public docs.

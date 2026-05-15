@@ -12,6 +12,30 @@ license = "MIT"
 license-files = ["LICENSE"]
 dynamic = ["dependencies"]
 
+[project.optional-dependencies]
+# Mirror the requirements-*.txt files. The .txt files remain canonical for CI
+# (see .github/workflows/ci.yml) so this section stays additive. End users can
+# now use the more idiomatic `pip install "docflow[dev]"` style installs.
+# Keep these lists in sync with the corresponding requirements-*.txt files;
+# the sync check is on the Phase 1 roadmap (docs/improvement-roadmap.md).
+dev = [
+  "mypy>=1.13",
+  "build>=1.3",
+  "pip-audit==2.10.0",
+  "playwright==1.59.0",
+  "pre-commit>=4.0",
+  "pytest==9.0.3",
+  "ruff>=0.8",
+]
+mlx = [
+  "mlx==0.31.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "mlx-lm==0.31.3; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+vision = [
+  "mlx-vlm==0.5.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "pillow-heif==1.3.0",
+]
+
 [project.scripts]
 docflow = "main:cli"
 
