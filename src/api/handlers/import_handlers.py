@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
 
 from src.api.model_tasks import ModelTaskTimeout
+from src.api.runtime import get_api_runtime
 from src.api.schemas import (
     AnswerNoteRequest,
     KnowledgeOutputRequest,
@@ -15,7 +15,7 @@ from src.api.schemas import (
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 async def import_url(req: WebImportRequest):

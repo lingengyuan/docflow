@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
 
+from src.api.runtime import get_api_runtime
 from src.ingest.watcher import WatchDir
 from src.model_cache import (
     assert_model_download_allowed,
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:

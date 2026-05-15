@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import sys
-
 from fastapi import HTTPException
 
 from src.api.handlers.query_handlers import _normalize_retrieval_mode
+from src.api.runtime import get_api_runtime
 from src.api.schemas import ObsidianRelatedRequest
 from src.query.engine import QueryEngine
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 async def obsidian_related_notes(req: ObsidianRelatedRequest):

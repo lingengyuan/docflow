@@ -46,10 +46,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Release surface checks now verify public docs, README/status validation counts, Docker Compose files, workflows, package data, and ignored internal handoff/output paths before package smoke testing.
 - GitHub CI now runs the release surface check, package smoke test, parser/chunker performance smoke, and parsing eval in addition to ruff, mypy, pytest, frontend checks, dependency audit, and offline doctor.
 - A scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model download enabled for that isolated benchmark job.
+- Mypy now covers API schemas, the API runtime access layer, API services, and query modules; API handlers now read runtime state through `src/api/runtime.py` instead of reaching back into `src.api.app_impl`.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 447 passed.
+- Unit/integration tests: 448 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

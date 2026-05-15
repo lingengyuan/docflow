@@ -109,6 +109,24 @@ def test_phase68_runtime_state_has_single_context_source():
         assert getattr(api_app, name) is getattr(api_app.app_context, name)
 
 
+def test_phase98_api_handlers_use_runtime_context_not_app_impl_module_lookup():
+    checked_paths = [
+        *sorted(Path("src/api/handlers").glob("*_handlers.py")),
+        Path("src/api/lifecycle.py"),
+        Path("src/api/runtime_helpers.py"),
+    ]
+
+    for path in checked_paths:
+        source = path.read_text(encoding="utf-8")
+        assert 'sys.modules["src.api.app_impl"]' not in source
+        assert "import sys" not in source
+        assert "get_api_runtime" in source
+
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+    assert '"src/api/runtime.py"' in pyproject
+    assert '"src/api/services"' in pyproject
+
+
 def test_phase34_llm_switch_state_is_thread_safe_mapping():
     state = LLMSwitchState()
 

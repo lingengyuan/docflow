@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,6 +9,7 @@ import yaml
 from fastapi import FastAPI
 
 from src.api.model_tasks import ModelTaskTimeout
+from src.api.runtime import get_api_runtime
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.store import DocStore
@@ -18,7 +18,7 @@ from src.query.engine import QueryEngine
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 def _warmup_models():

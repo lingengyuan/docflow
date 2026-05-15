@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import sys
-
 import yaml
 from fastapi import HTTPException
 
 from src.api.model_tasks import ModelTaskTimeout
+from src.api.runtime import get_api_runtime
 from src.api.schemas import LLMSwitchRequest
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 async def get_llm():

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import yaml
@@ -8,6 +7,7 @@ from fastapi import HTTPException
 from fastapi.responses import FileResponse, Response
 
 from src.api.model_tasks import ModelTaskTimeout
+from src.api.runtime import get_api_runtime
 from src.api.schemas import (
     BatchFavoriteRequest,
     BatchMetadataRequest,
@@ -20,7 +20,7 @@ from src.ingest.watcher import _is_excluded
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 async def trigger_ingest():

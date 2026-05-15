@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from src.api.services.knowledge_review import KnowledgeReviewService
-from src.domain_types import FileStatus
+from src.domain_types import FileRecord, FileStatus
 from src.ingest.store import DocStore
 
 TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_+-]{2,}|[\u4e00-\u9fff]{2,}")
@@ -91,7 +91,7 @@ class KnowledgeService:
     def review(self, store: DocStore, *, limit: int = 6) -> dict[str, Any]:
         return self._review_service.review(store, base=self, limit=limit)
 
-    def _build_file_profile(self, store: DocStore, file: dict) -> dict[str, Any]:
+    def _build_file_profile(self, store: DocStore, file: FileRecord) -> dict[str, Any]:
         chunks = store.list_file_chunks(int(file["id"]))[:8]
         chunk_text = "\n".join(
             str(chunk.get("raw_text") or chunk.get("parent_text") or "")[:800]
@@ -115,7 +115,7 @@ class KnowledgeService:
         }
 
     def _topics(self, profiles: list[dict[str, Any]], *, limit: int) -> list[dict[str, Any]]:
-        corpus = Counter()
+        corpus: Counter[str] = Counter()
         for profile in profiles:
             corpus.update(profile["terms"])
         topics = []
@@ -123,7 +123,7 @@ class KnowledgeService:
             matches = [profile for profile in profiles if term in profile["term_set"]]
             if len(matches) < 1:
                 continue
-            related = Counter()
+            related: Counter[str] = Counter()
             for profile in matches:
                 related.update(profile["terms"])
             keywords = [word for word, _ in related.most_common(5) if word != term]
@@ -147,7 +147,7 @@ class KnowledgeService:
         active_file_id: int | None,
         limit: int,
     ) -> list[dict[str, Any]]:
-        pairs = []
+        pairs: list[dict[str, Any]] = []
         for left, right in combinations(profiles, 2):
             left_terms = left["term_set"]
             right_terms = right["term_set"]
@@ -170,7 +170,7 @@ class KnowledgeService:
                     "files": [left["file"], right["file"]],
                 }
             )
-        pairs.sort(key=lambda item: item["score"], reverse=True)
+        pairs.sort(key=lambda item: float(item["score"]), reverse=True)
         return pairs[:limit]
 
     def _knowledge_cards(
@@ -222,7 +222,7 @@ class KnowledgeService:
         return " ".join(str(text or "").split())
 
     @staticmethod
-    def _file_summary(file: dict) -> dict[str, Any]:
+    def _file_summary(file: FileRecord) -> dict[str, Any]:
         return {
             "id": int(file["id"]),
             "file_name": file.get("file_name", ""),

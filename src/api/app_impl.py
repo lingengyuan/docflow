@@ -78,6 +78,7 @@ from src.api.routes import maintenance as maintenance_routes
 from src.api.routes import obsidian as obsidian_routes
 from src.api.routes import query as query_routes
 from src.api.routes import settings as settings_routes
+from src.api.runtime import ApiRuntime, configure_api_runtime, get_api_runtime
 from src.api.runtime_helpers import (
     _app_data_paths,
     _collect_storage_usage,
@@ -173,6 +174,46 @@ import_service = ImportService()
 knowledge_service = KnowledgeService()
 health_service = HealthService()
 configure_health_checks(store_getter=lambda: app_context.store)
+configure_api_runtime(
+    ApiRuntime(
+        app_context=app_context,
+        CONFIG_PATH=CONFIG_PATH,
+        MODEL_TASK_TIMEOUT_S=MODEL_TASK_TIMEOUT_S,
+        STREAM_FIRST_CONTENT_TIMEOUT_S=STREAM_FIRST_CONTENT_TIMEOUT_S,
+        STREAM_IDLE_TIMEOUT_S=STREAM_IDLE_TIMEOUT_S,
+        STREAM_QUEUE_POLL_S=STREAM_QUEUE_POLL_S,
+        MODEL_TIMEOUT_MESSAGE=MODEL_TIMEOUT_MESSAGE,
+        logger=logger,
+        query_service=query_service,
+        import_service=import_service,
+        knowledge_service=knowledge_service,
+        health_service=health_service,
+        shutil=shutil,
+        fetch_webpage_markdown=fetch_webpage_markdown,
+        build_quick_note_markdown=build_quick_note_markdown,
+        build_answer_note_markdown=build_answer_note_markdown,
+        build_knowledge_output_markdown=build_knowledge_output_markdown,
+        get_knowledge_output_type=get_knowledge_output_type,
+        knowledge_output_tags=knowledge_output_tags,
+        _collect_storage_usage=_collect_storage_usage,
+        _configured_model_cache_paths=_configured_model_cache_paths,
+        _app_data_paths=_app_data_paths,
+        _is_hf_model_cached=_is_hf_model_cached,
+        _parse_watch_dirs=_parse_watch_dirs,
+        _llm_model_status=_llm_model_status,
+        _load_mlx_model_candidate=_load_mlx_model_candidate,
+        _set_llm_switch_state=_set_llm_switch_state,
+        _timed_check=_timed_check,
+        _check_sqlite=_check_sqlite,
+        _check_qdrant=_check_qdrant,
+        _check_ollama=_check_ollama,
+        _check_models=_check_models,
+        _health_capabilities=_health_capabilities,
+        _aggregate_health_status=_aggregate_health_status,
+        _health_groups=_health_groups,
+        _health_actions=_health_actions,
+    )
+)
 
 
 def _sync_app_state() -> None:
@@ -329,6 +370,12 @@ class _ApiModule(types.ModuleType):
             state = types.ModuleType.__getattribute__(self, "app_context")
             setattr(state, name, value)
             return
+        try:
+            runtime = get_api_runtime()
+        except RuntimeError:
+            runtime = None
+        if runtime is not None and hasattr(runtime, name):
+            setattr(runtime, name, value)
         types.ModuleType.__setattr__(self, name, value)
 
 

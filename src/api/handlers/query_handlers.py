@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import queue
-import sys
 import threading
 from time import perf_counter
 
@@ -11,6 +10,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.api.model_tasks import ModelTaskTimeout
+from src.api.runtime import get_api_runtime
 from src.api.schemas import (
     AnswerFeedbackRequest,
     ConversationCreateRequest,
@@ -24,7 +24,7 @@ from src.domain_types import FileStatus
 
 
 def _api():
-    return sys.modules["src.api.app_impl"]
+    return get_api_runtime()
 
 
 def _claim_support(quality: dict) -> dict | None:
