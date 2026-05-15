@@ -44,10 +44,12 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Public screenshots are regenerated from the bundled demo library so they do not expose local personal paths or private notes.
 - Internal planning notes now live outside the public project surface; the repository no longer ships a public `plans/` directory.
 - Release surface checks now verify public docs, README/status validation counts, Docker Compose files, workflows, package data, and ignored internal handoff/output paths before package smoke testing.
+- GitHub CI now runs the release surface check, package smoke test, parser/chunker performance smoke, and parsing eval in addition to ruff, mypy, pytest, frontend checks, dependency audit, and offline doctor.
+- A scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model download enabled for that isolated benchmark job.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 446 passed.
+- Unit/integration tests: 447 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
@@ -63,9 +65,9 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - The answer-level source check verifies citation coverage and source-content overlap, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
-- Parser/chunker performance smoke is now in the standard local CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of CI.
+- Parser/chunker performance smoke and parsing eval are now in the standard GitHub CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of every pull-request CI run.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
-- Public eval is still a committed regression set. It improves reproducibility, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
+- Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 - DocFlow is not published to PyPI yet. Source checkout and Docker remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 

@@ -40,6 +40,12 @@ The public regression set currently has 547 cases across public-domain literatur
 
 Latest local no-rerank run after public corpus refresh: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, retrieval P50 213.92 ms and P95 271.26 ms.
 
+## GitHub CI and Scheduled Evaluation
+
+GitHub CI now runs ruff, mypy, pytest, offline doctor, frontend checks, release surface, package smoke, parser/chunker performance smoke, and parsing eval. These checks are small enough to run on normal pushes and pull requests.
+
+The full public retrieval benchmark uses Qdrant plus embedding model downloads, so it runs in a separate weekly evaluation workflow and can also be started manually. That split keeps normal pull-request feedback practical while still making the public retrieval number reproducible outside one developer machine.
+
 ## Internal Source-Filtered Regression
 
 `docflow eval retrieval --refresh-sources --source-filter --write-results` refreshes the expected project source files, runs `eval/qa_v1.jsonl`, and reports:

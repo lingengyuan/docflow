@@ -42,6 +42,18 @@ jobs:
         run: python -m mypy
       - name: Tests
         run: python -m pytest
+      - name: Performance smoke
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/run_performance_smoke.py --json
+      - name: Parsing eval
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python main.py eval parsing --json
+      - name: Release surface
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/run_release_surface_check.py
+      - name: Package smoke
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/package_smoke.py
 
   offline-doctor:
     name: Offline doctor on Ubuntu

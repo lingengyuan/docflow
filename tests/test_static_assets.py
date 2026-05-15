@@ -417,6 +417,42 @@ def test_phase88_performance_smoke_is_documented_and_in_ci():
     assert "run_performance_smoke.py --json" in ci_script
 
 
+def test_phase97_github_ci_runs_release_and_eval_gates():
+    ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    eval_workflow = Path(".github/workflows/evaluation.yml").read_text(encoding="utf-8")
+    release_check = Path("scripts/run_release_surface_check.py").read_text(encoding="utf-8")
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    release_doc = Path("docs/release.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+
+    for snippet in [
+        "scripts/run_performance_smoke.py --json",
+        "main.py eval parsing --json",
+        "scripts/run_release_surface_check.py",
+        "scripts/package_smoke.py",
+    ]:
+        assert snippet in ci_workflow
+
+    for snippet in [
+        "workflow_dispatch",
+        "schedule:",
+        "qdrant/qdrant",
+        "allow_model_download: true",
+        "main.py eval public",
+        "--no-rerank",
+        "actions/upload-artifact",
+    ]:
+        assert snippet in eval_workflow
+        assert snippet in release_check or snippet in eval_workflow
+
+    assert ".github/workflows/evaluation.yml" in release_check
+    assert "GitHub CI" in evaluation_doc
+    assert "weekly evaluation workflow" in evaluation_doc
+    assert "release surface" in release_doc
+    assert "scheduled evaluation workflow" in release_doc
+    assert "GitHub CI now runs" in status_doc
+
+
 def test_phase75_release_install_surface_is_documented():
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")

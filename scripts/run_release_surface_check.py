@@ -47,6 +47,7 @@ REQUIRED_WORKFLOWS = [
     ".github/workflows/codeql.yml",
     ".github/workflows/dependency-audit.yml",
     ".github/workflows/docker-image.yml",
+    ".github/workflows/evaluation.yml",
     ".github/workflows/python-package.yml",
 ]
 
@@ -176,7 +177,28 @@ def check_workflows() -> None:
     require_files(REQUIRED_WORKFLOWS)
     require_snippets(
         ".github/workflows/ci.yml",
-        ["ruff check", "mypy", "pytest", "doctor --offline"],
+        [
+            "ruff check",
+            "mypy",
+            "pytest",
+            "scripts/run_performance_smoke.py --json",
+            "main.py eval parsing --json",
+            "scripts/run_release_surface_check.py",
+            "scripts/package_smoke.py",
+            "doctor --offline",
+        ],
+    )
+    require_snippets(
+        ".github/workflows/evaluation.yml",
+        [
+            "workflow_dispatch",
+            "schedule:",
+            "qdrant/qdrant",
+            "allow_model_download: true",
+            "main.py eval parsing",
+            "main.py eval public",
+            "--no-rerank",
+        ],
     )
     require_snippets(
         ".github/workflows/docker-image.yml",
