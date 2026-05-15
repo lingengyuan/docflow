@@ -43,4 +43,4 @@ Cross-cutting helpers (`src/domain_types.py`, `src/net.py`, `src/resources.py`, 
 
 ## Compliance check
 
-Any PR that introduces a new import edge across these boundaries must justify it in the PR description, or refactor to keep the edge inside the appropriate layer. There is no automated linter for this today; adding one is tracked in [`../improvement-roadmap.md`](../improvement-roadmap.md) Phase 1.
+Any PR that introduces a new import edge across these boundaries must justify it in the PR description, or refactor to keep the edge inside the appropriate layer. There is no automated linter for this today; adding one belongs in the public [ROADMAP](../../ROADMAP.md) or the relevant issue before implementation.

@@ -42,6 +42,22 @@ PUBLIC_DOCS = [
     "status.md",
 ]
 
+PUBLIC_ADRS = [
+    "README.md",
+    "0001-module-boundaries.md",
+    "0002-local-first-no-telemetry.md",
+    "0003-obsidian-plugin-scope.md",
+]
+
+DISALLOWED_PUBLIC_DOC_REFS = [
+    "docs/critique-2026-05.md",
+    "docs/improvement-roadmap.md",
+    "docs/scoring-2026-05.md",
+    "critique-2026-05.md",
+    "improvement-roadmap.md",
+    "scoring-2026-05.md",
+]
+
 REQUIRED_WORKFLOWS = [
     ".github/workflows/ci.yml",
     ".github/workflows/codeql.yml",
@@ -102,6 +118,23 @@ def check_public_docs() -> None:
     for ignored in ("docs/history/", "output/", "config.yaml", "qdrant_storage/"):
         if ignored not in gitignore:
             fail(f".gitignore no longer protects {ignored}")
+
+    public_files = [
+        ROOT / "README.md",
+        ROOT / "README.zh-CN.md",
+        ROOT / "CHANGELOG.md",
+        ROOT / "ROADMAP.md",
+        *sorted((ROOT / "docs").glob("*.md")),
+        *sorted((ROOT / "docs" / "adr").glob("*.md")),
+    ]
+    for public_file in public_files:
+        text = public_file.read_text(encoding="utf-8")
+        leaked_refs = [ref for ref in DISALLOWED_PUBLIC_DOC_REFS if ref in text]
+        if leaked_refs:
+            fail(
+                f"{public_file.relative_to(ROOT)} still references internal docs: "
+                + ", ".join(leaked_refs)
+            )
 
 
 def validation_count(text: str, pattern: str) -> str:
@@ -166,9 +199,14 @@ def check_docker_and_package_surface() -> None:
     require_snippets("Dockerfile", ['CMD ["docflow", "serve"]'])
 
     pyproject = read("pyproject.toml")
+    if '"ROADMAP.md"' not in pyproject:
+        fail("pyproject package data is missing ROADMAP.md")
     for doc in PUBLIC_DOCS:
         if f"docs/{doc}" not in pyproject:
             fail(f"pyproject package data is missing docs/{doc}")
+    for adr in PUBLIC_ADRS:
+        if f"docs/adr/{adr}" not in pyproject:
+            fail(f"pyproject package data is missing docs/adr/{adr}")
     if '"eval/external_benchmarks.json"' not in pyproject:
         fail("pyproject package data is missing eval/external_benchmarks.json")
     for asset in ("chat.png", "library.png", "notes.png", "settings.png"):

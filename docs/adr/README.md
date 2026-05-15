@@ -8,7 +8,7 @@ This directory captures DocFlow's architectural decisions in a lightweight forma
 | --- | --- | --- |
 | [0001](0001-module-boundaries.md) | Module boundaries: ingest / storage / retrieval / api / ui kept orthogonal | Accepted |
 | [0002](0002-local-first-no-telemetry.md) | Local-first, no telemetry, no SaaS fallback | Accepted |
-| [0003](0003-obsidian-plugin-scope.md) | Scope of the in-repo Obsidian plugin | Proposed |
+| [0003](0003-obsidian-plugin-scope.md) | Scope of the in-repo Obsidian plugin | Accepted |
 
 ## How to add a new ADR
 

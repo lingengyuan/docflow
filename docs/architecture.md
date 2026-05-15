@@ -1,6 +1,6 @@
 # Architecture
 
-DocFlow has four main layers. For the *why* behind these boundaries see [ADR 0001](adr/0001-module-boundaries.md); for the privacy / no-fallback contract see [ADR 0002](adr/0002-local-first-no-telemetry.md). Open self-criticism and the path to a higher-quality release are tracked in [`critique-2026-05.md`](critique-2026-05.md) and [`improvement-roadmap.md`](improvement-roadmap.md).
+DocFlow has four main layers. For the *why* behind these boundaries see [ADR 0001](adr/0001-module-boundaries.md); for the privacy / no-fallback contract see [ADR 0002](adr/0002-local-first-no-telemetry.md). Public direction is tracked in the root [ROADMAP](../ROADMAP.md), while measured status lives in [docs/status.md](status.md).
 
 ## API
 

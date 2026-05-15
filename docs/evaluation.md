@@ -81,7 +81,7 @@ This set is useful for project regression only. It uses source filtering for man
 
 `docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
 
-Current committed parsing set: 120 documents covering Markdown tables, long Markdown, Obsidian-flavored Markdown, TXT, mixed-language notes, noisy OCR-like text, code-like files, native PDFs, and DOCX. Latest local run: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
+Current committed parsing set: 120 documents covering Markdown tables, long Markdown, wikilink/frontmatter/callout-style Markdown, TXT, mixed-language notes, noisy OCR-like text, code-like files, native PDFs, and DOCX. Latest local run: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 
 ## Incremental Indexing
 

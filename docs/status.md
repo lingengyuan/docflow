@@ -30,7 +30,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Local answer generation uses deterministic defaults.
 - Retrieval evaluation now covers 84 committed questions and reports Recall@5, MRR@5, nDCG@5, pass rate, and latency summary.
 - Public retrieval regression now covers 547 committed public-domain, United States government, NASA, literature, and civic-history cases without source filtering. It is reproducible from `eval/public_corpus/`, but it is intentionally not a BEIR, MTEB, or C-MTEB score.
-- Parsing regression now covers 120 committed files across Markdown, Obsidian-flavored Markdown, TXT, noisy OCR-like text, code-like text, PDF, and DOCX fixtures.
+- Parsing regression now covers 120 committed files across Markdown, wikilink/frontmatter/callout-style Markdown, TXT, noisy OCR-like text, code-like text, PDF, and DOCX fixtures.
 - Performance smoke now covers parser/chunker behavior for a synthetic long note and a synthetic many-note library in the standard local CI script.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
@@ -40,7 +40,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
 - The latest dependency review raised `python-multipart`, `pillow`, `onnx`, `pytest`, `mlx`, and `mlx-lm` above the current Dependabot fixed versions. Local `pip-audit` and `npm audit` both report no known vulnerabilities.
 - CI now includes Ubuntu Python 3.11/3.12, macOS Python 3.12, Windows Python 3.12, and a dedicated offline doctor job.
-- The browser shell now has a language toggle foundation, keyboard skip link, active navigation state, and PWA shell files.
+- The browser shell now has a language toggle foundation, keyboard skip link, and active navigation state.
 - Browser actions now pass failures through user-facing messages before rendering them, with a static regression check that blocks raw service errors from leaking into normal pages.
 - Public screenshots are regenerated from the bundled demo library so they do not expose local personal paths or private notes.
 - Internal planning notes now live outside the public project surface; the repository no longer ships a public `plans/` directory.

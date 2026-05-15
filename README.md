@@ -102,7 +102,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). Keep changes focused, run tests before 
 
 ## Documentation
 
-[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md) · [Release](docs/release.md) · [Status](docs/status.md) · [ADRs](docs/adr/README.md) · [Self-critique](docs/critique-2026-05.md) · [Roadmap to 90+](docs/improvement-roadmap.md)
+[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md) · [Release](docs/release.md) · [Status](docs/status.md) · [ADRs](docs/adr/README.md) · [Roadmap](ROADMAP.md)
 
 ## License
 
