@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Moved internal critique, improvement-planning, and scoring notes out of the public docs surface.
-- Added an Architecture Decision Record directory (`docs/adr/`) seeded with module-boundary, local-first/no-telemetry, and Obsidian-plugin-scope ADRs.
+- Added an Architecture Decision Record directory (`docs/adr/`) seeded with module-boundary, local-first/no-telemetry, and third-party integration scope ADRs.
 - Added PEP 621 `[project.optional-dependencies]` for `dev`, `vision`, and `mlx`, enabling `pip install "docflow[dev]"` while keeping the existing `requirements-*.txt` files as the canonical CI path.
 - Linked the ADR index and public roadmap from the README and `docs/architecture.md`.
 - Added release packaging automation for GHCR Docker images and Python package artifacts.

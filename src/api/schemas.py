@@ -112,15 +112,6 @@ class KnowledgeOutputRequest(BaseModel):
     user_tags: list[str] | None = None
 
 
-class ObsidianRelatedRequest(BaseModel):
-    note_title: str | None = None
-    note_path: str | None = None
-    note_content: str | None = None
-    selection: str | None = None
-    retrieval_mode: str | None = "hybrid"
-    limit: int = 6
-
-
 class SummarizeRequest(BaseModel):
     file_ids: list[int]
 

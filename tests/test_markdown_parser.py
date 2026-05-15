@@ -1,7 +1,7 @@
 from src.ingest.parsers.markdown_parser import MarkdownParser
 
 
-def test_obsidian_cleanup_preserves_markdown_headings(tmp_path):
+def test_markdown_note_extensions_preserve_headings(tmp_path):
     note = tmp_path / "note.md"
     note.write_text(
         """---

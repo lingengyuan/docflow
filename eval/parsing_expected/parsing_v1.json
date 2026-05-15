@@ -32,12 +32,12 @@
       ]
     },
     {
-      "id": "obsidian_wikilinks",
-      "path": "obsidian_wikilinks.md",
+      "id": "markdown_wikilinks",
+      "path": "markdown_wikilinks.md",
       "required_phrases": [
-        "Obsidian Link Fixture",
+        "Markdown Link Fixture",
         "knowledge cards",
-        "obsidian wikilink retention"
+        "markdown wikilink retention"
       ],
       "chunk_count_min": 1,
       "chunk_count_max": 6,
@@ -46,8 +46,8 @@
       ]
     },
     {
-      "id": "obsidian_callout",
-      "path": "obsidian_callout.md",
+      "id": "markdown_callout",
+      "path": "markdown_callout.md",
       "required_phrases": [
         "Local Review",
         "callout plain text"
@@ -545,11 +545,11 @@
       "metadata_terms": []
     },
     {
-      "id": "obsidian_embeds",
-      "path": "obsidian_embeds.md",
+      "id": "markdown_embeds",
+      "path": "markdown_embeds.md",
       "required_phrases": [
-        "Obsidian Embed Fixture",
-        "Obsidian embed parser evidence",
+        "Markdown Embed Fixture",
+        "Markdown embed parser evidence",
         "source review"
       ],
       "chunk_count_min": 1,
@@ -559,11 +559,11 @@
       ]
     },
     {
-      "id": "obsidian_properties",
-      "path": "obsidian_properties.md",
+      "id": "markdown_properties",
+      "path": "markdown_properties.md",
       "required_phrases": [
-        "Obsidian Properties Fixture",
-        "Obsidian properties parser evidence"
+        "Markdown Properties Fixture",
+        "Markdown properties parser evidence"
       ],
       "chunk_count_min": 1,
       "chunk_count_max": 6,

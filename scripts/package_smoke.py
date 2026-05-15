@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 
@@ -20,8 +22,34 @@ def _latest_wheel(dist_dir: Path) -> Path:
     return wheels[-1]
 
 
+def _clean_build_artifacts(repo: Path) -> None:
+    for path in [repo / "build", repo / "docflow.egg-info"]:
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def _assert_wheel_surface(wheel: Path) -> None:
+    forbidden_entries = [
+        "obsidian-plugin/",
+        "frontend/js/pwa.js",
+        "frontend/sw.js",
+        "frontend/manifest.webmanifest",
+        "src/api/routes/obsidian.py",
+        "src/api/handlers/obsidian_handlers.py",
+    ]
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+    leaked = [
+        name
+        for name in names
+        if any(forbidden in name for forbidden in forbidden_entries)
+    ]
+    if leaked:
+        raise RuntimeError("Wheel includes out-of-scope files: " + ", ".join(leaked[:10]))
+
+
 def main() -> int:
     repo = Path(__file__).resolve().parents[1]
+    _clean_build_artifacts(repo)
     with tempfile.TemporaryDirectory(prefix="docflow-package-smoke-") as tmp_raw:
         tmp = Path(tmp_raw)
         dist_dir = tmp / "dist"
@@ -33,6 +61,7 @@ def main() -> int:
 
         _run([sys.executable, "-m", "build", "--wheel", "--outdir", str(dist_dir)], cwd=repo)
         wheel = _latest_wheel(dist_dir)
+        _assert_wheel_surface(wheel)
         _run(
             [
                 sys.executable,

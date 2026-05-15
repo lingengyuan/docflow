@@ -6,7 +6,7 @@ FolderWatcher — watchdog 文件夹监控，支持多目录 + 递归，自动�
       watch_dirs:
         - path: "~/Documents/DocFlow"
           recursive: false
-        - path: "~/Obsidian/MyVault"
+        - path: "~/Documents/Knowledge"
           recursive: true
           extensions: [".md"]
 """
@@ -25,13 +25,15 @@ from src.ingest.pipeline import IngestPipeline
 
 logger = logging.getLogger(__name__)
 
-# 递归扫描 Obsidian vault 时需要排除的目录名
-_EXCLUDED_DIRS = {".obsidian", ".trash", ".git"}
+# Recursive scans skip hidden app metadata and local trash/git folders.
+_EXCLUDED_DIRS = {".trash", ".git"}
 
 
 def _is_excluded(path: Path) -> bool:
     """路径中包含排除目录则返回 True。"""
-    return bool(_EXCLUDED_DIRS & set(path.parts))
+    return any(part.startswith(".") for part in path.parts) or bool(
+        _EXCLUDED_DIRS & set(path.parts)
+    )
 
 
 @dataclass

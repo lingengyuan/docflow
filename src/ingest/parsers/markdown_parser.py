@@ -1,7 +1,7 @@
 """
-MarkdownParser — 解析 .md 文件，清洗 Obsidian 语法后作为单页文档返回。
+MarkdownParser — 解析 .md 文件，清洗个人笔记常见 Markdown 扩展后作为单页文档返回。
 
-清洗规则（按 obsidian-markdown 语法规范）：
+清洗规则：
   - YAML frontmatter: strip from text, 提取 metadata
   - [[wikilink]]: → 保留文字
   - ![[embed]]: strip
@@ -100,7 +100,7 @@ class MarkdownParser:
             if t not in tags:
                 tags.append(t)
 
-        # 3. 清洗 Obsidian 语法
+        # 3. 清洗个人笔记常见 Markdown 扩展
         text = raw
         text = _COMMENT_RE.sub("", text)  # %%comments%%
         text = _EMBED_RE.sub("", text)  # ![[embeds]]

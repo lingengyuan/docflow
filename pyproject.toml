@@ -56,9 +56,7 @@ include = ["src*", "scripts*"]
   "frontend/app.css",
   "frontend/favicon.svg",
   "frontend/index.html",
-  "frontend/manifest.webmanifest",
   "frontend/styles.css",
-  "frontend/sw.js",
 ]
 "share/docflow/frontend/js" = [
   "frontend/js/app-shell.js",
@@ -76,7 +74,6 @@ include = ["src*", "scripts*"]
   "frontend/js/library.js",
   "frontend/js/notes-review.js",
   "frontend/js/notes.js",
-  "frontend/js/pwa.js",
   "frontend/js/queue-upload.js",
   "frontend/js/settings-bootstrap.js",
   "frontend/js/settings-data.js",
@@ -108,7 +105,7 @@ include = ["src*", "scripts*"]
   "docs/adr/README.md",
   "docs/adr/0001-module-boundaries.md",
   "docs/adr/0002-local-first-no-telemetry.md",
-  "docs/adr/0003-obsidian-plugin-scope.md",
+  "docs/adr/0003-third-party-integration-scope.md",
 ]
 "share/docflow/docs/assets" = [
   "docs/assets/chat.png",

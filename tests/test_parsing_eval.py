@@ -38,6 +38,6 @@ def test_run_parsing_eval_passes_committed_corpus():
         "native_text_pdf",
         "office_docx",
         "markdown_dense_table",
-        "obsidian_properties",
+        "markdown_properties",
         "txt_ocr_noise",
     }

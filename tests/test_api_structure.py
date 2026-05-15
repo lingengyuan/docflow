@@ -53,7 +53,6 @@ def test_phase60_god_modules_are_split_into_focused_files():
         "src/api/handlers/import_handlers.py": 250,
         "src/api/handlers/library_handlers.py": 350,
         "src/api/handlers/maintenance_handlers.py": 80,
-        "src/api/handlers/obsidian_handlers.py": 80,
         "src/api/handlers/query_handlers.py": 500,
         "src/api/handlers/settings_handlers.py": 150,
         "src/api/health_checks.py": 550,

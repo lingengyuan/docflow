@@ -45,7 +45,6 @@ from src.api.handlers.library_handlers import (
     update_file_metadata,
 )
 from src.api.handlers.maintenance_handlers import debug_retrieve
-from src.api.handlers.obsidian_handlers import obsidian_related_notes
 from src.api.handlers.query_handlers import (
     answer_feedback,
     create_conversation,
@@ -75,7 +74,6 @@ from src.api.routes import imports as imports_routes
 from src.api.routes import knowledge as knowledge_routes
 from src.api.routes import library as library_routes
 from src.api.routes import maintenance as maintenance_routes
-from src.api.routes import obsidian as obsidian_routes
 from src.api.routes import query as query_routes
 from src.api.routes import settings as settings_routes
 from src.api.runtime import ApiRuntime, configure_api_runtime, get_api_runtime
@@ -310,14 +308,6 @@ def _register_api_routes() -> None:
             }
         )
     )
-    app.include_router(
-        obsidian_routes.create_router(
-            {
-                "obsidian_related_notes": obsidian_related_notes,
-            }
-        )
-    )
-
 
 _register_api_routes()
 

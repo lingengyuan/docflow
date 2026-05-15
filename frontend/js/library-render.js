@@ -33,26 +33,47 @@ async function refreshFiles(options = {}) {
     const visibleFiles = files.slice(start, start + libraryPageSize);
     document.getElementById('library-count').textContent = `显示 ${files.length} / ${libraryMeta.total_files ?? files.length} 个文件`;
     if (!files.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="py-12">
-        <div class="mx-auto max-w-2xl text-center">
-          <div class="text-sm font-semibold text-on-surface">还没有可查看的资料</div>
-          <div class="mt-1 text-xs text-on-surface-variant/60">先导入示例资料，或把自己的文件加入资料库。</div>
-          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <button onclick="createDemoLibrary()" class="toolbar-btn toolbar-btn-primary">
-              <span class="material-symbols-outlined" style="font-size:16px">auto_awesome</span>
-              导入示例资料
-            </button>
-            <button onclick="document.getElementById('file-input')?.click()" class="toolbar-btn">
-              <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
-              上传文件
-            </button>
-            <button onclick="triggerIngest()" class="toolbar-btn">
-              <span class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
-              扫描本地文件夹
-            </button>
+      const hasActiveFilters = Boolean(
+        libraryFilters.status ||
+        libraryFilters.collection ||
+        libraryFilters.tag ||
+        libraryFilters.favorite ||
+        libraryFilters.kind ||
+        libraryFilters.recent
+      );
+      tbody.innerHTML = hasActiveFilters
+        ? `<tr><td colspan="10" class="py-12">
+          <div class="mx-auto max-w-2xl text-center">
+            <div class="text-sm font-semibold text-on-surface">暂无匹配文件</div>
+            <div class="mt-1 text-xs text-on-surface-variant/60">当前筛选条件下没有资料，可切回全部文件查看。</div>
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button onclick="clearLibraryFilters()" class="toolbar-btn toolbar-btn-primary">
+                <span class="material-symbols-outlined" style="font-size:16px">filter_alt_off</span>
+                查看全部文件
+              </button>
+            </div>
           </div>
-        </div>
-      </td></tr>`;
+        </td></tr>`
+        : `<tr><td colspan="10" class="py-12">
+          <div class="mx-auto max-w-2xl text-center">
+            <div class="text-sm font-semibold text-on-surface">还没有可查看的资料</div>
+            <div class="mt-1 text-xs text-on-surface-variant/60">先导入示例资料，或把自己的文件加入资料库。</div>
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button onclick="createDemoLibrary()" class="toolbar-btn toolbar-btn-primary">
+                <span class="material-symbols-outlined" style="font-size:16px">auto_awesome</span>
+                导入示例资料
+              </button>
+              <button onclick="document.getElementById('file-input')?.click()" class="toolbar-btn">
+                <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
+                上传文件
+              </button>
+              <button onclick="triggerIngest()" class="toolbar-btn">
+                <span class="material-symbols-outlined" style="font-size:16px">folder_sync</span>
+                扫描本地文件夹
+              </button>
+            </div>
+          </div>
+        </td></tr>`;
       renderLibraryPagination(0, 0, 0);
       renderLibraryContext();
       return;

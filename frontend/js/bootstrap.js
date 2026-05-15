@@ -23,7 +23,6 @@ const DOCFLOW_SCRIPT_ORDER = [
   '/js/library-actions.js',
   '/js/history.js',
   '/js/queue-upload.js',
-  '/js/pwa.js',
   '/js/settings-bootstrap.js',
 ];
 

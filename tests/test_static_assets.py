@@ -269,7 +269,6 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "library-actions.js",
         "history.js",
         "queue-upload.js",
-        "pwa.js",
         "settings-bootstrap.js",
     ]
 
@@ -625,15 +624,12 @@ def test_phase81_degraded_answer_quality_is_visible():
     assert "retrieval_quality_from_chunks" in engine
 
 
-def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
+def test_phase63_frontend_has_i18n_and_accessibility_shell():
     html = frontend_source_text()
     i18n = Path("frontend/js/i18n.js").read_text(encoding="utf-8")
     app_shell = Path("frontend/js/app-shell.js").read_text(encoding="utf-8")
-    pwa = Path("frontend/js/pwa.js").read_text(encoding="utf-8")
-    sw = Path("frontend/sw.js").read_text(encoding="utf-8")
-    manifest = Path("frontend/manifest.webmanifest").read_text(encoding="utf-8")
 
-    assert 'href="/manifest.webmanifest"' in html
+    assert 'href="/manifest.webmanifest"' not in html
     assert 'class="skip-link"' in html
     assert 'data-i18n="nav.chat"' in html
     assert 'data-i18n-placeholder="search.placeholder"' in html
@@ -645,9 +641,9 @@ def test_phase63_frontend_has_i18n_accessibility_and_pwa_shell():
     assert "en:" in i18n
     assert "function toggleLocale" in i18n
     assert "setAttribute('aria-current', 'page')" in app_shell
-    assert "serviceWorker" in pwa
-    assert "caches.open(DOCFLOW_CACHE)" in sw
-    assert '"display": "standalone"' in manifest
+    assert not Path("frontend/js/pwa.js").exists()
+    assert not Path("frontend/sw.js").exists()
+    assert not Path("frontend/manifest.webmanifest").exists()
 
 
 def test_phase17_notes_exposes_knowledge_outputs():

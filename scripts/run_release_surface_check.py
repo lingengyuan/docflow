@@ -46,7 +46,7 @@ PUBLIC_ADRS = [
     "README.md",
     "0001-module-boundaries.md",
     "0002-local-first-no-telemetry.md",
-    "0003-obsidian-plugin-scope.md",
+    "0003-third-party-integration-scope.md",
 ]
 
 DISALLOWED_PUBLIC_DOC_REFS = [
@@ -56,6 +56,25 @@ DISALLOWED_PUBLIC_DOC_REFS = [
     "critique-2026-05.md",
     "improvement-roadmap.md",
     "scoring-2026-05.md",
+]
+
+DISALLOWED_TRACKED_PATHS = [
+    "obsidian-plugin/",
+    "frontend/js/pwa.js",
+    "frontend/sw.js",
+    "frontend/manifest.webmanifest",
+    "src/api/routes/obsidian.py",
+    "src/api/handlers/obsidian_handlers.py",
+    "tests/test_obsidian_api.py",
+    "tests/test_obsidian_plugin.py",
+]
+
+DISALLOWED_SCOPE_TERMS = [
+    "obsidian-plugin",
+    "/api/obsidian",
+    "serviceWorker",
+    "manifest.webmanifest",
+    "pwa.js",
 ]
 
 REQUIRED_WORKFLOWS = [
@@ -113,6 +132,16 @@ def check_public_docs() -> None:
     leaked = [path for path in tracked if path.startswith(internal_prefixes)]
     if leaked:
         fail(f"internal planning files are tracked: {', '.join(leaked[:10])}")
+    out_of_scope_paths = [
+        path
+        for path in tracked
+        if any(path == blocked or path.startswith(blocked) for blocked in DISALLOWED_TRACKED_PATHS)
+    ]
+    if out_of_scope_paths:
+        fail(
+            "out-of-scope integration or PWA files are tracked: "
+            + ", ".join(out_of_scope_paths[:10])
+        )
 
     gitignore = read(".gitignore")
     for ignored in ("docs/history/", "output/", "config.yaml", "qdrant_storage/"):
@@ -134,6 +163,22 @@ def check_public_docs() -> None:
             fail(
                 f"{public_file.relative_to(ROOT)} still references internal docs: "
                 + ", ".join(leaked_refs)
+            )
+
+    scanned_files = [
+        ROOT / path
+        for path in tracked
+        if not path.startswith(("docs/history/", "build/", "dist/", "tests/"))
+        and path not in {"scripts/run_release_surface_check.py", "scripts/package_smoke.py"}
+        and Path(path).suffix in {".py", ".js", ".html", ".md", ".toml", ".json", ".yml", ".yaml"}
+    ]
+    for scanned_file in scanned_files:
+        text = scanned_file.read_text(encoding="utf-8")
+        leaked_terms = [term for term in DISALLOWED_SCOPE_TERMS if term in text]
+        if leaked_terms:
+            fail(
+                f"{scanned_file.relative_to(ROOT)} still references out-of-scope terms: "
+                + ", ".join(leaked_terms)
             )
 
 

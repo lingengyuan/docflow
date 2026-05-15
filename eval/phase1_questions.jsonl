@@ -9,7 +9,7 @@
 {"id":"plan_phase1_order","question":"优化计划 Phase 1 先做哪些任务？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["最小评估集","检索调试入口"],"must_find":true}
 {"id":"plan_parent_child_scope","question":"为什么 Parent-Child Chunking 不能只加 parent_id？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["parent","正文","迁移"],"must_find":true}
 {"id":"plan_contextual_prefix_rule","question":"Contextual Prefix 为什么必须默认关闭并保留原文？","expected_files":["docflow-optimization-plan.md"],"expected_terms":["默认关闭","原文","引用"],"must_find":true}
-{"id":"markdown_obsidian_cleanup","question":"Markdown 解析会清理哪些 Obsidian 语法？","expected_files":["README.md"],"expected_terms":["frontmatter","wikilink","callout"],"must_find":true}
+{"id":"markdown_note_syntax_cleanup","question":"Markdown 解析会清理哪些个人笔记扩展语法？","expected_files":["README.md"],"expected_terms":["frontmatter","wikilink","callout"],"must_find":true}
 {"id":"query_router_behavior","question":"QueryRouter 根据什么调整全文检索和向量检索权重？","expected_files":["README.md","docflow-optimization-plan.md"],"expected_terms":["QueryRouter","精确","语义"],"must_find":true}
 {"id":"image_ingest_optional","question":"图片解析是不是必选能力？","expected_files":["README.md"],"expected_terms":["optional","VLM"],"must_find":true}
 {"id":"not_found_case","question":"DocFlow 是否内置了云端协作编辑功能？","expected_files":[],"expected_terms":["云端协作"],"must_find":false}
