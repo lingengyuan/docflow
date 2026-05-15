@@ -29,14 +29,21 @@ class KnowledgeDepthService:
             citation_counts=citation_counts,
             limit=limit,
         )
+        relationship_opportunities = self._relationship_opportunities(
+            store,
+            profiles,
+            limit=limit,
+        )
         return {
             "concepts": concepts,
             "source_trails": source_trails,
             "coverage_gaps": coverage_gaps,
+            "relationship_opportunities": relationship_opportunities,
             "next_actions": self._next_actions(
                 concepts,
                 source_trails,
                 coverage_gaps,
+                relationship_opportunities,
                 limit=limit,
             ),
         }
@@ -186,6 +193,7 @@ class KnowledgeDepthService:
         concepts: list[dict[str, Any]],
         source_trails: list[dict[str, Any]],
         coverage_gaps: list[dict[str, Any]],
+        relationship_opportunities: list[dict[str, Any]],
         *,
         limit: int,
     ) -> list[dict[str, Any]]:
@@ -198,6 +206,16 @@ class KnowledgeDepthService:
                     "title": first["title"],
                     "detail": first["file"]["file_name"],
                     "file_id": first["file"]["id"],
+                }
+            )
+        if relationship_opportunities:
+            first = relationship_opportunities[0]
+            actions.append(
+                {
+                    "type": "relationship",
+                    "title": "连接相关资料",
+                    "detail": " · ".join(first.get("shared_terms") or []),
+                    "file_id": int(first.get("source", {}).get("id") or 0) or None,
                 }
             )
         unscored = next((trail for trail in source_trails if not trail.get("feedback")), None)
@@ -230,6 +248,61 @@ class KnowledgeDepthService:
                 }
             )
         return actions[:limit]
+
+    def _relationship_opportunities(
+        self,
+        store: DocStore,
+        profiles: list[dict[str, Any]],
+        *,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        linked_pairs = self._linked_pairs(store, profiles)
+        opportunities: list[dict[str, Any]] = []
+        for index, left in enumerate(profiles):
+            left_file = left["file"]
+            left_id = int(left_file.get("id") or 0)
+            if not left_id:
+                continue
+            left_terms = set(left.get("term_set") or set())
+            if len(left_terms) < 2:
+                continue
+            for right in profiles[index + 1 :]:
+                right_file = right["file"]
+                right_id = int(right_file.get("id") or 0)
+                if not right_id or left_id == right_id:
+                    continue
+                if (left_id, right_id) in linked_pairs or (right_id, left_id) in linked_pairs:
+                    continue
+                shared = sorted(left_terms & set(right.get("term_set") or set()))
+                if len(shared) < 2:
+                    continue
+                score = len(shared) * 10 + min(
+                    len(left.get("chunks") or []) + len(right.get("chunks") or []),
+                    8,
+                )
+                opportunities.append(
+                    {
+                        "source": left_file,
+                        "target": right_file,
+                        "shared_terms": shared[:6],
+                        "score": min(100, score),
+                    }
+                )
+        opportunities.sort(key=lambda item: int(item["score"]), reverse=True)
+        return opportunities[:limit]
+
+    @staticmethod
+    def _linked_pairs(store: DocStore, profiles: list[dict[str, Any]]) -> set[tuple[int, int]]:
+        pairs: set[tuple[int, int]] = set()
+        for profile in profiles:
+            file_id = int(profile.get("file", {}).get("id") or 0)
+            if not file_id:
+                continue
+            for link in store.list_outbound_links(file_id):
+                target_id = int((link.get("file") or {}).get("id") or 0)
+                if target_id:
+                    pairs.add((file_id, target_id))
+        return pairs
 
     @staticmethod
     def _gap(

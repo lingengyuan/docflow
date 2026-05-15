@@ -20,6 +20,8 @@ class ApiRuntime:
     STREAM_FIRST_CONTENT_TIMEOUT_S: float
     STREAM_IDLE_TIMEOUT_S: float
     STREAM_QUEUE_POLL_S: float
+    FOREGROUND_PAUSE_GRACE_S: float
+    INGEST_PAUSE_CHECK_INTERVAL_MS: int
     MODEL_TIMEOUT_MESSAGE: str
     logger: logging.Logger
     query_service: Any

@@ -692,6 +692,9 @@ def test_phase57_library_exposes_real_knowledge_views():
     assert "相似资料" in html
     assert "知识卡片" in html
     assert "knowledgeOverviewMarkup" in html
+    assert "可连接资料" in html
+    assert "knowledgeRelationshipOpportunityMarkup" in html
+    assert "relationship_opportunities" in html
 
 
 def test_phase58_public_maintenance_surface_is_complete():

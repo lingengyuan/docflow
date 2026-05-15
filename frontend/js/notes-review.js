@@ -12,6 +12,9 @@ function renderKnowledgeReview(review) {
   const concepts = Array.isArray(depth.concepts) ? depth.concepts : [];
   const trails = Array.isArray(depth.source_trails) ? depth.source_trails : [];
   const gaps = Array.isArray(depth.coverage_gaps) ? depth.coverage_gaps : [];
+  const opportunities = Array.isArray(depth.relationship_opportunities)
+    ? depth.relationship_opportunities
+    : [];
   const depthActions = Array.isArray(depth.next_actions) ? depth.next_actions : [];
   const signals = review?.signals || {};
   if (count) count.textContent = queue.length ? `${queue.length} 项` : '';
@@ -30,6 +33,7 @@ function renderKnowledgeReview(review) {
   const conceptMarkup = concepts.slice(0, 4).map(item => knowledgeConceptMarkup(item)).join('');
   const trailMarkup = trails.slice(0, 3).map(item => knowledgeSourceTrailMarkup(item)).join('');
   const gapMarkup = gaps.slice(0, 3).map(item => knowledgeCoverageGapMarkup(item)).join('');
+  const opportunityMarkup = opportunities.slice(0, 3).map(item => knowledgeRelationshipOpportunityMarkup(item)).join('');
   const depthActionMarkup = depthActions.slice(0, 2).map(item => `
     <button ${item.file_id ? `onclick="openFilePreview(${Number(item.file_id)})"` : ''} class="w-full text-left rounded-lg bg-secondary-container/80 px-3 py-2 text-xs text-on-surface hover:bg-secondary-container transition-colors">
       <div class="font-semibold">${escHtml(item.title || '下一步')}</div>
@@ -56,6 +60,10 @@ function renderKnowledgeReview(review) {
     ${trailMarkup ? `<div class="mt-3">
       <div class="mb-2 text-[11px] font-bold text-on-surface-variant/60">来源轨迹</div>
       <div class="flex flex-col gap-2">${trailMarkup}</div>
+    </div>` : ''}
+    ${opportunityMarkup ? `<div class="mt-3">
+      <div class="mb-2 text-[11px] font-bold text-on-surface-variant/60">可连接资料</div>
+      <div class="flex flex-col gap-2">${opportunityMarkup}</div>
     </div>` : ''}
     <div class="mt-3 flex flex-col gap-2">${queueMarkup}</div>
     ${relationshipMarkup ? `<div class="mt-3 flex flex-col gap-2">${relationshipMarkup}</div>` : ''}
@@ -142,5 +150,20 @@ function knowledgeCoverageGapMarkup(item) {
         </div>
         <span class="rounded-full bg-tertiary-container px-2 py-0.5 text-[11px] font-semibold text-tertiary">${Number(item.priority || 0)}</span>
       </div>
+    </button>`;
+}
+
+function knowledgeRelationshipOpportunityMarkup(item) {
+  const source = item.source || {};
+  const target = item.target || {};
+  const terms = Array.isArray(item.shared_terms) ? item.shared_terms.slice(0, 4) : [];
+  return `
+    <button onclick="openFilePreview(${Number(source.id || target.id || 0)})" class="w-full text-left rounded-lg bg-surface-container-low px-3 py-3 hover:bg-surface-container transition-colors">
+      <div class="flex items-center gap-2 text-[11px] font-semibold text-primary">
+        <span class="material-symbols-outlined" style="font-size:14px">hub</span>
+        建议建立资料关联
+      </div>
+      <div class="mt-1 text-xs text-on-surface line-clamp-1">${escHtml(source.file_name || '资料')} ↔ ${escHtml(target.file_name || '资料')}</div>
+      <div class="mt-0.5 text-[11px] text-on-surface-variant/65 line-clamp-1">共同线索：${escHtml(terms.join(' · ') || '内容相近')}</div>
     </button>`;
 }

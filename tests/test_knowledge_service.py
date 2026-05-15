@@ -111,6 +111,7 @@ def test_knowledge_service_builds_active_review_from_usage_signals(tmp_path):
         assert review["relationship_timeline"][0]["label"] == "保存回答引用了来源"
         depth = review["knowledge_depth"]
         assert depth["concepts"]
+        assert depth["relationship_opportunities"] == []
         assert depth["source_trails"][0]["question"] == "How should I review privacy notes?"
         assert depth["source_trails"][0]["files"][0]["id"] == source_id
         assert depth["source_trails"][0]["feedback"]["rating"] == "useful"
@@ -142,6 +143,44 @@ def test_knowledge_depth_flags_cited_sources_without_saved_notes(tmp_path):
         assert depth["coverage_gaps"][0]["file"]["id"] == source_id
         assert depth["source_trails"][0]["citation_count"] == 1
         assert depth["next_actions"][0]["type"] == "coverage_gap"
+    finally:
+        store.close()
+
+
+def test_knowledge_depth_suggests_unlinked_related_sources(tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    try:
+        first_id = _add_file(
+            store,
+            tmp_path,
+            "project-review.md",
+            "retrieval privacy citation review source grounding",
+        )
+        second_id = _add_file(
+            store,
+            tmp_path,
+            "privacy-citations.md",
+            "privacy citation review evidence source trust",
+        )
+
+        review = KnowledgeService().review(store)
+        opportunities = review["knowledge_depth"]["relationship_opportunities"]
+
+        assert opportunities
+        assert {opportunities[0]["source"]["id"], opportunities[0]["target"]["id"]} == {
+            first_id,
+            second_id,
+        }
+        assert "privacy" in opportunities[0]["shared_terms"]
+        assert any(
+            item["type"] == "relationship"
+            for item in review["knowledge_depth"]["next_actions"]
+        )
+
+        store.replace_note_source_links(first_id, [second_id])
+        linked_review = KnowledgeService().review(store)
+
+        assert linked_review["knowledge_depth"]["relationship_opportunities"] == []
     finally:
         store.close()
 

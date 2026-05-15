@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.api import app as api_app
+from src.api.runtime import get_api_runtime
 from src.api.state import AppContext, AppState, LLMSwitchState
 
 
@@ -125,6 +126,10 @@ def test_phase98_api_handlers_use_runtime_context_not_app_impl_module_lookup():
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
     assert '"src/api/runtime.py"' in pyproject
     assert '"src/api/services"' in pyproject
+
+    runtime = get_api_runtime()
+    assert runtime.FOREGROUND_PAUSE_GRACE_S == api_app.FOREGROUND_PAUSE_GRACE_S
+    assert runtime.INGEST_PAUSE_CHECK_INTERVAL_MS == api_app.INGEST_PAUSE_CHECK_INTERVAL_MS
 
 
 def test_phase34_llm_switch_state_is_thread_safe_mapping():
