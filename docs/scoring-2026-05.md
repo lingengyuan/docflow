@@ -4,16 +4,39 @@
 
 ## 总览
 
-| 维度 | Phase 0 前 | Phase 0 后（本 PR） | 90+ 还差什么 | 修复 PR |
-| --- | --- | --- | --- | --- |
-| 产品定位 / 差异化（Product） | 60 | **63** | 双向链接 / 标签 / 图谱 / 间隔重复 中至少 2 项；Obsidian 归属定型 | Phase 6, Phase 7 |
-| 用户体验 / 前端（UX） | 58 | **58** | 前端框架化；`innerHTML` 拼接清零；⌘K + split-view + hover-preview；Playwright/a11y CI | Phase 4, Phase 5 |
-| 检索 / 答题质量（Quality） | 68 | **68** | BEIR 或 C-MTEB 子集结果入仓；faithfulness 评测；10k 文档压测入 `docs/status.md` | Phase 2, Phase 3 |
-| 工程 / 代码质量（Engineering） | 76 | **82** | mypy 全量；coverage 基线门禁；端到端剧本测试；模块拆分量化报告 | Phase 1 |
+| 维度 | Phase 0 前 | Phase 0 后 | Phase 1（部分）后 | 90+ 还差什么 | 修复 PR |
+| --- | --- | --- | --- | --- | --- |
+| 产品定位 / 差异化（Product） | 60 | 63 | **63** | 双向链接 / 标签 / 图谱 / 间隔重复 中至少 2 项；Obsidian 归属定型 | Phase 6, Phase 7 |
+| 用户体验 / 前端（UX） | 58 | 58 | **58** | 前端框架化；`innerHTML` 拼接清零；⌘K + split-view + hover-preview；Playwright/a11y CI | Phase 4, Phase 5 |
+| 检索 / 答题质量（Quality） | 68 | 68 | **68** | BEIR 或 C-MTEB 子集结果入仓；faithfulness 评测；10k 文档压测入 `docs/status.md` | Phase 2, Phase 3 |
+| 工程 / 代码质量（Engineering） | 76 | 82 | **86** | 33 个白名单 mypy 错误清空；coverage 基线门禁；god module 拆分（999/728 → ≤800）；剧本测试 | Phase 1 剩余 |
 
-**当前总均值：67.75 → 67.75（Phase 0 主要修 Engineering & Product 的"可见性"，未修 UX / Quality 的实质问题）。**
+**当前总均值：65.5（Phase 0 前） → 67.75（Phase 0 后） → 68.75（Phase 1 部分后）。**
+仍然没有触动 UX 与 Quality 的实质问题——按反作弊原则，那两个维度只会在对应 Phase 落地时变动。
 
 > 注：表中数字是**主观自评**，不代表外部独立审计结果。低于 90 的项都映射到具体后续 PR；只有该 PR 合并后才能调整对应分数。
+
+## Phase 1（部分）后增量（Engineering 82 → 86，+4）
+
+本 PR 落地了 Phase 1 五项中的三项（roadmap §Phase 1 第 1、2、4 项的"前半"）：
+
+1. **mypy 全量入仓**：`tool.mypy.files = ["src", "main.py"]`，检查文件数 24 → 100；
+   现存 33 个错误通过 `[[tool.mypy.overrides]] ignore_errors = true` 显式白名单。
+   白名单是**只能缩小不能增长**的清单，构成下一批 PR 的具体 backlog。
+2. **CI 收集 coverage**：`pytest-cov` 接入；Ubuntu/3.12 leg 跑 `--cov=src`，
+   `coverage.xml` 作为 artifact 上传。当前基线 ≈ **75%**。
+   按 ADR-0004，先 collect 一段时间再设 `--cov-fail-under`。
+3. **模块大小预算**：`scripts/check_module_sizes.py` 默认 800 LOC，
+   `browser_acceptance.py`(999) 与 `startup.py`(728) 进 grandfathered 上限。
+   新增模块越界即 CI fail。
+
+**为何只 +4 而不是 +8**：
+- 33 个 mypy 错误用白名单挡住，没有真的修 → 不应当全额计分。
+- coverage 只收集、没门禁 → 防退化能力为 0。
+- god module 上限锁死了但没拆 → 改善的是**未来**，不是现在。
+
+Engineering ≥ 90 仍需：白名单清空 + 设 `--cov-fail-under` + `browser_acceptance.py` / `startup.py` 实际拆分。
+
 
 ## 各维度详评（Phase 0 后）
 

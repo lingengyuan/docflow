@@ -124,8 +124,12 @@ def test_phase98_api_handlers_use_runtime_context_not_app_impl_module_lookup():
         assert "get_api_runtime" in source
 
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
-    assert '"src/api/runtime.py"' in pyproject
-    assert '"src/api/services"' in pyproject
+    # Phase 1 engineering hardening: mypy now covers the entire src/ tree (see
+    # docs/adr/0004-engineering-hardening-strategy.md). The API runtime modules
+    # the original assertion guarded are still covered — just transitively, via
+    # the broader scope. The invariant we still want to enforce is that the
+    # files= list is not narrower than the whole src/ tree.
+    assert 'files = ["src", "main.py"]' in pyproject
 
     runtime = get_api_runtime()
     assert runtime.FOREGROUND_PAUSE_GRACE_S == api_app.FOREGROUND_PAUSE_GRACE_S

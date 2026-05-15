@@ -41,10 +41,10 @@ def collect_prepare_results(queue, timeout: float) -> bool:
         return False
 
     with queue._lock:
-        done = [future for future in list(queue._prepare_futures.keys()) if future.done()]
+        completed = [future for future in list(queue._prepare_futures.keys()) if future.done()]
 
     handled_any = False
-    for future in done:
+    for future in completed:
         with queue._lock:
             path = queue._prepare_futures.pop(future, None)
         if path is None:

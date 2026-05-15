@@ -64,7 +64,7 @@ def ingest_prepared_batch(
         qdrant_s = perf_counter() - qdrant_start
     except Exception as e:
         logger.exception("Error embedding ingest batch")
-        results = []
+        results: list[dict] = []
         for prepared in prepared_files:
             pipeline.store.set_status(prepared.path, FileStatus.ERROR, error_msg=str(e))
             metrics = prepared.metrics
@@ -95,7 +95,7 @@ def ingest_prepared_batch(
             }
         )
 
-    results: list[dict] = []
+    results = []
     start = 0
     for prepared in prepared_files:
         end = start + len(prepared.chunks)
