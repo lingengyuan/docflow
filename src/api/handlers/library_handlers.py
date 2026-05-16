@@ -13,6 +13,7 @@ from src.api.schemas import (
     BatchMetadataRequest,
     BatchRebuildRequest,
     FileMetadataRequest,
+    KnowledgeRelationshipRequest,
     SummarizeRequest,
 )
 from src.domain_types import FileStatus
@@ -98,6 +99,37 @@ async def knowledge_review(limit: int = 6):
     if _api().store is None:
         raise HTTPException(503, "Store not ready")
     return _api().knowledge_service.review(_api().store, limit=limit)
+
+
+async def confirm_knowledge_relationship(req: KnowledgeRelationshipRequest):
+    if _api().store is None:
+        raise HTTPException(503, "Store not ready")
+    source_id = int(req.source_file_id)
+    target_id = int(req.target_file_id)
+    if source_id == target_id:
+        raise HTTPException(400, "请选择两份不同资料")
+    source = _api().store.get_file_by_id(source_id)
+    target = _api().store.get_file_by_id(target_id)
+    if source is None or target is None:
+        raise HTTPException(404, "资料不存在")
+    relation = str(req.relation or "manual_relationship").strip()[:40]
+    relation = relation or "manual_relationship"
+    current_targets = [
+        int((link.get("file") or {}).get("id") or 0)
+        for link in _api().store.list_outbound_links(source_id)
+        if str(link.get("relation") or "") == relation
+    ]
+    saved = _api().store.replace_note_source_links(
+        source_id,
+        [*current_targets, target_id],
+        relation,
+    )
+    return {
+        "source": source,
+        "target": target,
+        "relation": relation,
+        "source_links": saved,
+    }
 
 
 async def update_file_metadata(file_id: int, req: FileMetadataRequest):

@@ -92,6 +92,8 @@ class NoteCreateRequest(BaseModel):
     content: str
     collection: str | None = None
     user_tags: list[str] | None = None
+    source_file_ids: list[int] = Field(default_factory=list)
+    source_relation: str | None = "source_note"
 
 
 class AnswerNoteRequest(BaseModel):
@@ -110,6 +112,12 @@ class KnowledgeOutputRequest(BaseModel):
     file_ids: list[int] = Field(default_factory=list)
     collection: str | None = None
     user_tags: list[str] | None = None
+
+
+class KnowledgeRelationshipRequest(BaseModel):
+    source_file_id: int
+    target_file_id: int
+    relation: str | None = "manual_relationship"
 
 
 class SummarizeRequest(BaseModel):

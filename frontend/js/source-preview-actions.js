@@ -23,6 +23,8 @@ async function savePreviewChunkAsNote() {
         content: `# ${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
         collection: ['Saved', 'Sources'].join(' '),
         user_tags: ['source', 'citation'],
+        source_file_ids: [file.id],
+        source_relation: 'source_note',
       }),
     });
     if (!r.ok) throw new Error(await responseUserMessage(r, '保存片段失败，请稍后再试。'));
@@ -30,6 +32,7 @@ async function savePreviewChunkAsNote() {
     if (detail) detail.insertAdjacentHTML('afterbegin', '<div class="mb-2 rounded-lg bg-tertiary-container px-3 py-2 text-[11px] font-bold text-on-tertiary-container">已保存为笔记。</div>');
     setScanButtonState('queued');
     startQueuePolling();
+    if (typeof loadKnowledgeOverview === 'function') loadKnowledgeOverview(file.id);
   } catch (e) {
     const detail = document.getElementById('source-detail-panel');
     const message = userFacingErrorMessage(e.message, '保存片段失败，请稍后再试。');

@@ -17,6 +17,7 @@ from src.api.handlers.library_handlers import (
     batch_rebuild_files,
     batch_update_file_metadata,
     clear_history,
+    confirm_knowledge_relationship,
     knowledge_overview,
     knowledge_review,
     library_meta,
@@ -110,6 +111,7 @@ def register_api_routes(app: FastAPI) -> None:
             {
                 "knowledge_overview": knowledge_overview,
                 "knowledge_review": knowledge_review,
+                "confirm_knowledge_relationship": confirm_knowledge_relationship,
             }
         )
     )

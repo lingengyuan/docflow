@@ -9,4 +9,9 @@ def create_router(handlers: dict) -> APIRouter:
     router = APIRouter()
     router.add_api_route("/api/knowledge/overview", handlers["knowledge_overview"], methods=["GET"])
     router.add_api_route("/api/knowledge/review", handlers["knowledge_review"], methods=["GET"])
+    router.add_api_route(
+        "/api/knowledge/relationships",
+        handlers["confirm_knowledge_relationship"],
+        methods=["POST"],
+    )
     return router

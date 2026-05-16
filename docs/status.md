@@ -50,11 +50,12 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Mypy now covers API schemas, the API runtime access layer, API services, and query modules; API handlers now read runtime state through `src/api/runtime.py` instead of reaching back into `src.api.app_impl`.
 - Runtime configuration now has a typed settings loader for core paths, Qdrant, ingest, LLM, query, and privacy settings. The source and Docker config templates share the same answer-quality keys so Docker does not drift into different thresholds.
 - The Settings page now mounts from a Vite-built Preact component with an explicit design contract, while the existing browser shell keeps the other desktop pages stable during gradual migration.
+- Saved notes, source snippets, generated knowledge outputs, and user-confirmed related documents now write back into the same relationship graph used by the Library and active review panels.
 - External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. No external benchmark score has been archived yet.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 457 passed.
+- Unit/integration tests: 460 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.

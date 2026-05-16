@@ -278,6 +278,8 @@ async function saveSourceChunkAsNote(index) {
         content: `# ${file.file_name}\n\n来源：${file.file_name}\n\n位置：${chunk.section || ''} ${chunk.page_num ? `第 ${chunk.page_num} 页` : ''}\n\n> ${text}`,
         collection: ['Saved', 'Sources'].join(' '),
         user_tags: ['source', 'citation'],
+        source_file_ids: [file.id],
+        source_relation: 'source_note',
       }),
     });
     if (!r.ok) throw new Error(await responseUserMessage(r, '保存片段失败，请稍后再试。'));
@@ -287,6 +289,7 @@ async function saveSourceChunkAsNote(index) {
     }
     setScanButtonState('queued');
     startQueuePolling();
+    loadKnowledgeOverview(file.id);
   } catch (e) {
     const panel = document.getElementById('library-source-review');
     const message = userFacingErrorMessage(e.message, '保存片段失败，请稍后再试。');

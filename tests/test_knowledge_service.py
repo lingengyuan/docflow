@@ -185,6 +185,72 @@ def test_knowledge_depth_suggests_unlinked_related_sources(tmp_path):
         store.close()
 
 
+def test_confirm_relationship_api_turns_suggestion_into_saved_link(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    try:
+        first_id = _add_file(
+            store,
+            tmp_path,
+            "project-review.md",
+            "retrieval privacy citation review source grounding",
+        )
+        second_id = _add_file(
+            store,
+            tmp_path,
+            "privacy-citations.md",
+            "privacy citation review evidence source trust",
+        )
+        third_id = _add_file(
+            store,
+            tmp_path,
+            "trust-evidence.md",
+            "privacy evidence source trust review notes",
+        )
+        monkeypatch.setattr(api_app, "store", store)
+        client = TestClient(api_app.app)
+
+        before = client.get("/api/knowledge/review").json()
+        assert before["knowledge_depth"]["relationship_opportunities"]
+
+        response = client.post(
+            "/api/knowledge/relationships",
+            json={"source_file_id": first_id, "target_file_id": second_id},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source_links"] == [second_id]
+        assert body["relation"] == "manual_relationship"
+        assert store.list_outbound_links(first_id)[0]["file"]["id"] == second_id
+
+        second_response = client.post(
+            "/api/knowledge/relationships",
+            json={"source_file_id": first_id, "target_file_id": third_id},
+        )
+
+        assert second_response.status_code == 200
+        saved_targets = {
+            int(link["file"]["id"])
+            for link in store.list_outbound_links(first_id)
+            if link["relation"] == "manual_relationship"
+        }
+        assert saved_targets == {second_id, third_id}
+
+        after = client.get("/api/knowledge/review").json()
+        remaining_pairs = {
+            (
+                int(item["source"]["id"]),
+                int(item["target"]["id"]),
+            )
+            for item in after["knowledge_depth"]["relationship_opportunities"]
+        }
+        assert (first_id, second_id) not in remaining_pairs
+        assert (first_id, third_id) not in remaining_pairs
+        assert after["relationship_timeline"][0]["label"] == "确认了相关资料"
+    finally:
+        store.close()
+
+
 def test_knowledge_overview_api_uses_current_store(monkeypatch, tmp_path):
     store = DocStore(tmp_path / "docflow.db")
     try:

@@ -100,6 +100,47 @@ def test_create_note_endpoint_writes_markdown_and_queues(monkeypatch, tmp_path):
     assert record["user_tags"] == ["phase13"]
 
 
+def test_create_note_endpoint_can_link_to_source_file(monkeypatch, tmp_path):
+    store = DocStore(tmp_path / "docflow.db")
+    source_path = tmp_path / "source.md"
+    source_path.write_text("Source fact", encoding="utf-8")
+    source_id = store.upsert_file(
+        source_path,
+        source_path.name,
+        DocStore.compute_hash(source_path),
+        status="done",
+        mtime_ns=source_path.stat().st_mtime_ns,
+    )
+
+    class FakeQueue:
+        def submit(self, path: Path):
+            return {"status": "queued", "file": path.name}
+
+    monkeypatch.setattr(api_app, "store", store)
+    monkeypatch.setattr(api_app, "ingest_queue", FakeQueue())
+    monkeypatch.setattr(api_app, "watch_dirs", [WatchDir(path=tmp_path)])
+    client = TestClient(api_app.app)
+
+    response = client.post(
+        "/api/notes",
+        json={
+            "title": "Source Note",
+            "content": "This note should link back to its source.",
+            "collection": "Notes",
+            "source_file_ids": [source_id],
+            "source_relation": "source_note",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source_links"] == [source_id]
+    note_id = body["file"]["id"]
+    backlink = store.list_backlinks(source_id)[0]
+    assert backlink["file"]["id"] == note_id
+    assert backlink["relation"] == "source_note"
+
+
 def test_import_url_endpoint_uses_fetcher_and_queues(monkeypatch, tmp_path):
     store = DocStore(tmp_path / "docflow.db")
     queued = []
@@ -288,6 +329,8 @@ def test_knowledge_output_endpoint_uses_selected_file_chunks(monkeypatch, tmp_pa
     assert "Source text from selected file" in generated["source_text"]
     assert "source.md" in saved
     assert body["source_files"] == ["source.md"]
+    assert body["source_links"] == [file_id]
+    assert store.list_backlinks(file_id)[0]["relation"] == "knowledge_output"
 
 
 def test_knowledge_output_endpoint_requires_source(monkeypatch, tmp_path):

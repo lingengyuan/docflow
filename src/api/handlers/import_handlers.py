@@ -46,12 +46,19 @@ async def create_note(req: NoteCreateRequest):
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    return _write_import_and_enqueue(
+    result = _write_import_and_enqueue(
         "note",
         item,
         collection=req.collection or "Notes",
         user_tags=req.user_tags or ["note"],
     )
+    note_file_id = int((result.get("file") or {}).get("id") or 0)
+    result["source_links"] = _link_file_sources(
+        note_file_id,
+        req.source_file_ids,
+        req.source_relation or "source_note",
+    )
+    return result
 
 
 async def save_answer_note(req: AnswerNoteRequest):
@@ -75,11 +82,7 @@ async def save_answer_note(req: AnswerNoteRequest):
     )
     note_file_id = int((result.get("file") or {}).get("id") or 0)
     source_file_ids = _source_file_ids_from_citations(req.citations or [])
-    result["source_links"] = (
-        _api().store.replace_note_source_links(note_file_id, source_file_ids)
-        if note_file_id and source_file_ids
-        else []
-    )
+    result["source_links"] = _link_file_sources(note_file_id, source_file_ids, "answer_note")
     return result
 
 
@@ -139,12 +142,21 @@ async def create_knowledge_output(req: KnowledgeOutputRequest):
         collection=req.collection or "Knowledge Outputs",
         user_tags=user_tags,
     )
+    knowledge_file_id = int((result.get("file") or {}).get("id") or 0)
+    source_links = _link_file_sources(knowledge_file_id, req.file_ids, "knowledge_output")
     return {
         **result,
         "output_type": output.id,
         "source_files": source_files,
+        "source_links": source_links,
         "preview": generated[:500],
     }
+
+
+def _link_file_sources(note_file_id: int, source_file_ids: list[int], relation: str) -> list[int]:
+    if _api().store is None or not note_file_id or not source_file_ids:
+        return []
+    return _api().store.replace_note_source_links(note_file_id, source_file_ids, relation)
 
 
 def _build_knowledge_output_source(req: KnowledgeOutputRequest) -> tuple[str, list[str]]:

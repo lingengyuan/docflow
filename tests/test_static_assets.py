@@ -902,6 +902,26 @@ def test_phase94_knowledge_depth_surfaces_usage_loops():
     assert "knowledgeConceptMarkup" in ui
 
 
+def test_phase107_knowledge_loop_can_save_relationships_from_ui():
+    notes_ui = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+    library_ui = Path("frontend/js/library-knowledge.js").read_text(encoding="utf-8")
+    source_preview_actions = Path("frontend/js/source-preview-actions.js").read_text(
+        encoding="utf-8"
+    )
+    routes = Path("src/api/routes/knowledge.py").read_text(encoding="utf-8")
+    imports = Path("src/api/handlers/import_handlers.py").read_text(encoding="utf-8")
+
+    assert "confirmKnowledgeRelationship" in notes_ui
+    assert "保存关联" in notes_ui
+    assert "/api/knowledge/relationships" in notes_ui
+    assert "/api/knowledge/relationships" in routes
+    assert "source_file_ids" in library_ui
+    assert "source_relation" in library_ui
+    assert "source_file_ids: [file.id]" in source_preview_actions
+    assert "source_relation: 'source_note'" in source_preview_actions
+    assert "knowledge_output" in imports
+
+
 def test_source_preview_highlights_exact_citation_range():
     text = Path("frontend/js/source-preview.js").read_text(encoding="utf-8")
 

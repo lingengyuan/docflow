@@ -158,12 +158,54 @@ function knowledgeRelationshipOpportunityMarkup(item) {
   const target = item.target || {};
   const terms = Array.isArray(item.shared_terms) ? item.shared_terms.slice(0, 4) : [];
   return `
-    <button onclick="openFilePreview(${Number(source.id || target.id || 0)})" class="w-full text-left rounded-lg bg-surface-container-low px-3 py-3 hover:bg-surface-container transition-colors">
+    <div class="w-full rounded-lg bg-surface-container-low px-3 py-3">
       <div class="flex items-center gap-2 text-[11px] font-semibold text-primary">
         <span class="material-symbols-outlined" style="font-size:14px">hub</span>
         建议建立资料关联
       </div>
       <div class="mt-1 text-xs text-on-surface line-clamp-1">${escHtml(source.file_name || '资料')} ↔ ${escHtml(target.file_name || '资料')}</div>
       <div class="mt-0.5 text-[11px] text-on-surface-variant/65 line-clamp-1">共同线索：${escHtml(terms.join(' · ') || '内容相近')}</div>
-    </button>`;
+      <div class="mt-2 flex items-center gap-2">
+        <button onclick="openFilePreview(${Number(source.id || target.id || 0)})" class="toolbar-btn !h-8" title="查看资料" aria-label="查看资料">
+          <span class="material-symbols-outlined" style="font-size:14px">article</span>
+          查看
+        </button>
+        <button onclick="confirmKnowledgeRelationship(${Number(source.id || 0)}, ${Number(target.id || 0)}, this)" class="toolbar-btn toolbar-btn-primary !h-8" title="保存关联" aria-label="保存关联">
+          <span class="material-symbols-outlined" style="font-size:14px">add_link</span>
+          保存关联
+        </button>
+      </div>
+    </div>`;
+}
+
+async function confirmKnowledgeRelationship(sourceId, targetId, button) {
+  if (!sourceId || !targetId || !button) return;
+  const previous = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner"></span><span class="ml-1.5">保存中…</span>';
+  try {
+    const response = await fetch(`${API}/api/knowledge/relationships`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        source_file_id: sourceId,
+        target_file_id: targetId,
+        relation: 'manual_relationship',
+      }),
+    });
+    if (!response.ok) throw new Error(await responseUserMessage(response, '资料关联保存失败，请稍后再试。'));
+    button.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">done</span><span class="ml-1">已保存</span>';
+    await Promise.all([
+      typeof refreshNotesView === 'function' ? refreshNotesView() : Promise.resolve(),
+      typeof loadKnowledgeOverview === 'function'
+        ? loadKnowledgeOverview(activeLibraryFileId || null)
+        : Promise.resolve(),
+    ]);
+  } catch (e) {
+    button.disabled = false;
+    button.innerHTML = previous;
+    const panel = document.getElementById('knowledge-review-panel');
+    const message = userFacingErrorMessage(e.message, '资料关联保存失败，请稍后再试。');
+    if (panel) panel.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded-lg bg-error/10 px-3 py-2 text-[11px] font-bold text-error">保存失败：${escHtml(message)}</div>`);
+  }
 }

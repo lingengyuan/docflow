@@ -285,6 +285,7 @@ class KnowledgeReviewService:
             "answer_note": "保存回答引用了来源",
             "source_note": "笔记摘录自来源",
             "knowledge_output": "知识产物基于来源",
+            "manual_relationship": "确认了相关资料",
         }
         return labels.get(relation or "answer_note", "连接了来源资料")
 
