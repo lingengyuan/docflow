@@ -26,7 +26,7 @@ Run the checks that match your change:
 .venv/bin/python -m pytest -q
 .venv/bin/python -m ruff check .
 .venv/bin/python -m mypy
-docflow browser-acceptance
+docflow dev browser-acceptance
 docflow doctor --offline
 ```
 

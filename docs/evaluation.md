@@ -4,13 +4,13 @@ DocFlow currently has several validation paths:
 
 ```bash
 .venv/bin/python -m pytest
-docflow eval public --write-results
-docflow eval retrieval --refresh-sources --source-filter --write-results
-docflow eval parsing --write-results
-docflow eval performance --write-results
-docflow eval external --json
-docflow browser-acceptance
-docflow restore-drill
+docflow dev eval public --write-results
+docflow dev eval retrieval --refresh-sources --source-filter --write-results
+docflow dev eval parsing --write-results
+docflow dev eval performance --write-results
+docflow dev eval external --json
+docflow dev browser-acceptance
+docflow admin restore-drill
 ```
 
 ## Current Limitation
@@ -29,7 +29,7 @@ The public-domain regression set below is reproducible from committed files and 
 
 ## Public Reproducible Retrieval Benchmark
 
-`docflow eval public --write-results` refreshes the committed public-domain corpus in `eval/public_corpus/`, runs `eval/public_retrieval_v1.jsonl`, and reports:
+`docflow dev eval public --write-results` refreshes the committed public-domain corpus in `eval/public_corpus/`, runs `eval/public_retrieval_v1.jsonl`, and reports:
 
 - Recall@5
 - MRR@5
@@ -49,7 +49,7 @@ The full public retrieval benchmark uses Qdrant plus embedding model downloads, 
 
 ## External Benchmarks
 
-DocFlow tracks external benchmark readiness in `eval/external_benchmarks.json`. `docflow eval external --json` reports the current status and claim policy.
+DocFlow tracks external benchmark readiness in `eval/external_benchmarks.json`. `docflow dev eval external --json` reports the current status and claim policy.
 
 No external benchmark score has been archived yet. The current committed regression results must therefore stay labeled as DocFlow regression checks, not as BEIR, MTEB, or C-MTEB results.
 
@@ -63,7 +63,7 @@ Release notes may quote an external benchmark only when the benchmark name, task
 
 ## Internal Source-Filtered Regression
 
-`docflow eval retrieval --refresh-sources --source-filter --write-results` refreshes the expected project source files, runs `eval/qa_v1.jsonl`, and reports:
+`docflow dev eval retrieval --refresh-sources --source-filter --write-results` refreshes the expected project source files, runs `eval/qa_v1.jsonl`, and reports:
 
 - Recall@5
 - MRR@5
@@ -79,7 +79,7 @@ This set is useful for project regression only. It uses source filtering for man
 
 ## Parsing Regression
 
-`docflow eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
+`docflow dev eval parsing --write-results` checks the committed corpus in `eval/parsing_corpus/` against expectations in `eval/parsing_expected/`.
 
 Current committed parsing set: 120 documents covering Markdown tables, long Markdown, wikilink/frontmatter/callout-style Markdown, TXT, mixed-language notes, noisy OCR-like text, code-like files, native PDFs, and DOCX. Latest local run: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 
@@ -89,7 +89,7 @@ Current committed parsing set: 120 documents covering Markdown tables, long Mark
 
 ## Performance Smoke
 
-`docflow eval performance --write-results` generates synthetic local Markdown files and measures parser/chunker throughput without downloading models or calling external services. The standard local CI script runs this smoke check. It is a regression guard for long-note and many-note parsing, not a full large-library retrieval or model-latency benchmark.
+`docflow dev eval performance --write-results` generates synthetic local Markdown files and measures parser/chunker throughput without downloading models or calling external services. The standard local CI script runs this smoke check. It is a regression guard for long-note and many-note parsing, not a full large-library retrieval or model-latency benchmark.
 
 Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 

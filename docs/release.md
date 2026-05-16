@@ -22,10 +22,10 @@ Run the release checks from a clean working tree:
 ```bash
 scripts/run_ci.sh
 python scripts/run_release_surface_check.py
-docflow eval public --write-results
-docflow eval retrieval --refresh-sources --source-filter --write-results
-docflow eval parsing --write-results
-docflow browser-acceptance
+docflow dev eval public --write-results
+docflow dev eval retrieval --refresh-sources --source-filter --write-results
+docflow dev eval parsing --write-results
+docflow dev browser-acceptance
 docflow doctor --offline
 ```
 

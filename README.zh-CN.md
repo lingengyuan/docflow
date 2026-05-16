@@ -69,15 +69,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 docker compose up -d qdrant
 docflow demo --create-only
-.venv/bin/python -m pytest -q
-docflow eval public --write-results
-docflow eval retrieval --refresh-sources --source-filter --write-results
-docflow eval parsing --write-results
-docflow eval performance --write-results
-docflow eval external --json
-docflow browser-acceptance
+scripts/run_ci.sh
 docflow doctor --offline
 ```
+
+评估和发布验证命令见 [评估说明](docs/evaluation.md) 与 [发布说明](docs/release.md)。
 
 ### 贡献指南
 

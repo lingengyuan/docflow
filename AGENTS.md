@@ -9,10 +9,10 @@ DocFlow is a local-first Python document Q&A app. `main.py` is the entry point. 
 - `python -m venv .venv && source .venv/bin/activate`: create a virtual environment.
 - `pip install -r requirements.txt`: install pinned dependencies.
 - `docker run -d --name qdrant -p 6333:6333 qdrant/qdrant`: start Qdrant.
-- `python main.py serve`: run the local web app on port 8000.
-- `python main.py scan`: scan configured watched folders from `config.yaml`.
-- `python main.py ingest /path/to/file.pdf`: ingest one file manually.
-- `python main.py benchmark README.md docs/HANDOFF-v3.md`: run a dry-run benchmark.
+- `docflow serve`: run the local web app on port 8000.
+- `docflow scan`: scan configured watched folders from `config.yaml`.
+- `docflow ingest /path/to/file.pdf`: ingest one file manually.
+- `docflow dev eval performance`: run parser and chunker performance smoke checks.
 - `.venv/bin/python -m pytest`: run the full test suite.
 
 ## Project Principles

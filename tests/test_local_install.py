@@ -59,9 +59,7 @@ def test_install_local_apply_runs_plan_steps(tmp_path):
     )
 
     assert result["status"] == "ok"
-    assert [call[0][2:4] for call in calls[:3]] == [
-        ["start", "--check-only"],
-        ["restore-drill", "--json"],
-        ["repair-ids", "--dry-run"],
-    ]
-    assert calls[-1][0][2:4] == ["service", "install"]
+    assert calls[0][0][2:4] == ["start", "--check-only"]
+    assert calls[1][0][2:5] == ["admin", "restore-drill", "--json"]
+    assert calls[2][0][2:5] == ["admin", "repair-ids", "--dry-run"]
+    assert calls[-1][0][2:5] == ["admin", "service", "install"]

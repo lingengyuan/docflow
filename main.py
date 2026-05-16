@@ -3,54 +3,15 @@
 DocFlow 入口。
 
 用法：
-  # 启动 Web 服务（含文件夹监控）
-  python main.py serve
-
-  # 启动前检查，或检查后启动 Web 服务
-  python main.py doctor [--json] [--strict] [--port 8000]
-  python main.py platform [--json]
-  python main.py start [--host 0.0.0.0] [--port 8000] [--check-only] [--json]
-
-  # macOS 后台服务（launchd）
-  python main.py install-local [--apply] [--with-service] [--skip-deps]
-  python main.py service install [--dry-run] [--python /path/to/python]
-  python main.py service status
-  python main.py service uninstall [--dry-run]
-
-  # 手动 ingest 单个文件
-  python main.py ingest /path/to/file.pdf
-  python main.py demo [--create-only] [--json]
-
-  # dry-run benchmark 一个或多个文件
-  python main.py benchmark /path/to/file1.md /path/to/file2.pdf
-
-  # 运行固定评估集（不调用回答 LLM）
-  python main.py eval retrieval
-  python main.py eval parsing
-  python main.py eval performance
-  python main.py eval external
-
-  # 生成并验证真实样本套件
-  python main.py sample-suite
-
-  # 运行浏览器验收检查（需要 Web 服务已启动）
-  python main.py browser-acceptance [--base-url http://127.0.0.1:8000] [--json]
-
-  # 检查 SQLite 与 Qdrant 是否一致
-  python main.py check
-
-  # 从原始文件重建索引，或只重建 Qdrant
-  python main.py rebuild [--qdrant-only] [--dry-run]
-  python main.py repair-ids [--dry-run]
-
-  # 备份、导出 chunk，或查看恢复步骤
-  python main.py backup [--dry-run] [--output backups] [--keep 5]
-  python main.py export-chunks [--output backups/chunks.jsonl]
-  python main.py restore-plan <backup.tar.gz>
-  python main.py restore-drill [--output-dir /tmp/docflow-restore-drill] [--json]
-
-  # 扫描所有 watch_dirs（config.yaml）
-  python main.py scan
+  docflow serve
+  docflow start
+  docflow doctor --offline
+  docflow scan
+  docflow ingest /path/to/file.pdf
+  docflow admin check
+  docflow admin platform
+  docflow dev eval public
+  docflow dev browser-acceptance
 """
 
 import json
@@ -63,6 +24,56 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+USER_COMMANDS = {
+    "serve": "Start the local browser app.",
+    "start": "Check local requirements, then start the browser app.",
+    "doctor": "Check local requirements and offline privacy coverage.",
+    "status": "Show the same local readiness check without starting the app.",
+    "demo": "Create or ingest the bundled demo library.",
+    "scan": "Scan configured watched folders.",
+    "ingest": "Ingest one file.",
+}
+
+ADMIN_COMMANDS = {
+    "platform": "Show local runtime capability details.",
+    "check": "Check SQLite and vector-store consistency.",
+    "rebuild": "Rebuild SQLite/Qdrant indexes.",
+    "repair-ids": "Repair vector-store ID counters.",
+    "backup": "Create or preview a local backup.",
+    "export-chunks": "Export indexed chunks as JSONL.",
+    "restore-plan": "Inspect a backup archive before restoring.",
+    "restore-drill": "Run a disposable backup/restore drill.",
+    "service": "Manage the optional local background service.",
+    "install-local": "Prepare a local source checkout installation.",
+}
+
+DEV_COMMANDS = {
+    "eval": "Run retrieval, parsing, performance, or external-benchmark checks.",
+    "browser-acceptance": "Run browser acceptance checks against a running app.",
+    "sample-suite": "Generate and validate the sample-suite fixtures.",
+    "maturity-eval": "Run the internal planning scorecard.",
+    "dead-code-audit": "Audit the command and release surface for stale entries.",
+}
+
+RETIRED_TOP_LEVEL_COMMANDS = {
+    "browser-acceptance": "docflow dev browser-acceptance",
+    "sample-suite": "docflow dev sample-suite",
+    "maturity-eval": "docflow dev maturity-eval",
+    "restore-drill": "docflow admin restore-drill",
+    "check": "docflow admin check",
+    "rebuild": "docflow admin rebuild",
+    "repair-ids": "docflow admin repair-ids",
+    "backup": "docflow admin backup",
+    "export-chunks": "docflow admin export-chunks",
+    "restore-plan": "docflow admin restore-plan",
+    "service": "docflow admin service",
+    "install-local": "docflow admin install-local",
+    "platform": "docflow admin platform",
+    "eval": "docflow dev eval",
+    "benchmark": "docflow dev eval performance",
+}
 
 
 def serve():
@@ -115,6 +126,10 @@ def platform_command(args: list[str]):
     return run_platform(args)
 
 
+def status_command(args: list[str]):
+    return doctor_command(args)
+
+
 def service_command(args: list[str]):
     from pathlib import Path
 
@@ -141,7 +156,7 @@ def service_command(args: list[str]):
     elif action == "status":
         result = service_status()
     else:
-        print("Usage: python main.py service install|status|uninstall [--dry-run]")
+        print("Usage: docflow admin service install|status|uninstall [--dry-run]")
         return 1
     print_result(result)
     return 0 if result["status"] in {"ok", "dry_run", "loaded", "not_loaded"} else 1
@@ -198,40 +213,39 @@ def scan():
                 print(pipeline.ingest(path))
 
 
-def benchmark(paths: list[str]):
-    from src.ingest.pipeline import IngestPipeline
-
-    pipeline = IngestPipeline.from_config(_config_path())
-    results = [pipeline.benchmark_file(path) for path in paths]
-    print(json.dumps(results, ensure_ascii=False, indent=2))
-
-
 def eval_command(args: list[str]):
+    if _is_help(args):
+        _print_eval_help()
+        return 0
     if args and args[0] == "parsing":
         from scripts.run_parsing_eval import main as run_parsing_eval_main
 
-        sys.argv = [sys.argv[0], *args[1:]]
+        sys.argv = ["docflow dev eval parsing", *args[1:]]
         return run_parsing_eval_main()
     if args and args[0] == "public":
         from scripts.run_public_eval import main as run_public_eval_main
 
-        sys.argv = [sys.argv[0], *args[1:]]
+        sys.argv = ["docflow dev eval public", *args[1:]]
         return run_public_eval_main()
     if args and args[0] == "performance":
         from scripts.run_performance_smoke import main as run_performance_smoke_main
 
-        sys.argv = [sys.argv[0], *args[1:]]
+        sys.argv = ["docflow dev eval performance", *args[1:]]
         return run_performance_smoke_main()
     if args and args[0] == "external":
         from scripts.run_external_benchmark_status import main as run_external_benchmark_status_main
 
-        sys.argv = [sys.argv[0], *args[1:]]
+        sys.argv = ["docflow dev eval external", *args[1:]]
         return run_external_benchmark_status_main()
     if args and args[0] == "retrieval":
         args = args[1:]
+    elif args and not args[0].startswith("-"):
+        print(f"Unknown eval command: {args[0]}")
+        _print_eval_help()
+        return 1
     from scripts.run_eval import main as run_eval_main
 
-    sys.argv = [sys.argv[0], *args]
+    sys.argv = ["docflow dev eval retrieval", *args]
     return run_eval_main()
 
 
@@ -261,6 +275,13 @@ def restore_drill_command(args: list[str]):
 
     sys.argv = [sys.argv[0], *args]
     return run_restore_drill_main()
+
+
+def dead_code_audit(args: list[str]):
+    from scripts.run_dead_code_audit import main as run_dead_code_main
+
+    sys.argv = [sys.argv[0], *args]
+    return run_dead_code_main()
 
 
 def check_index(args: list[str]):
@@ -319,7 +340,7 @@ def restore_plan_command(args: list[str]):
 
     archive_args = [arg for arg in args if not arg.startswith("--")]
     if not archive_args:
-        print("Usage: python main.py restore-plan <backup.tar.gz>")
+        print("Usage: docflow admin restore-plan <backup.tar.gz>")
         return 1
     result = restore_plan(archive_args[0])
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -344,8 +365,105 @@ def _config_path() -> str:
     return str(ensure_config_file("config.yaml"))
 
 
+def _print_command_group(title: str, commands: dict[str, str], prefix: str = "docflow") -> None:
+    print(title)
+    width = max(len(command) for command in commands)
+    for command, description in commands.items():
+        print(f"  {prefix} {command:<{width}}  {description}")
+
+
+def _print_help() -> None:
+    print("DocFlow local personal knowledge workspace")
+    print()
+    _print_command_group("Daily commands:", USER_COMMANDS)
+    print()
+    print("Maintenance and contributor commands are grouped:")
+    print("  docflow admin <command>  Backups, restore drills, index checks, service install")
+    print("  docflow dev <command>    Browser acceptance, sample fixtures, internal audits")
+    print()
+    print("Run `docflow admin --help` or `docflow dev --help` for details.")
+
+
+def _print_group_help(group: str, commands: dict[str, str]) -> None:
+    _print_command_group(f"{group.title()} commands:", commands, prefix=f"docflow {group}")
+
+
+def _print_eval_help() -> None:
+    print("Eval commands:")
+    print("  docflow dev eval public       Run public-domain retrieval checks.")
+    print("  docflow dev eval retrieval    Run internal retrieval regression checks.")
+    print("  docflow dev eval parsing      Run parsing fixture checks.")
+    print("  docflow dev eval performance  Run parser/chunker performance smoke checks.")
+    print("  docflow dev eval external     Show external benchmark claim status.")
+
+
+def _is_help(args: list[str]) -> bool:
+    return not args or args[0] in {"--help", "-h", "help"}
+
+
+def admin_command(args: list[str]) -> int:
+    if _is_help(args):
+        _print_group_help("admin", ADMIN_COMMANDS)
+        return 0
+    action = args[0]
+    rest = args[1:]
+    if action == "platform":
+        return platform_command(rest)
+    if action == "check":
+        return check_index(rest)
+    if action == "rebuild":
+        return rebuild_command(rest)
+    if action == "repair-ids":
+        return repair_ids_command(rest)
+    if action == "backup":
+        return backup_command(rest)
+    if action == "export-chunks":
+        return export_chunks_command(rest)
+    if action == "restore-plan":
+        return restore_plan_command(rest)
+    if action == "restore-drill":
+        return restore_drill_command(rest)
+    if action == "service":
+        return service_command(rest)
+    if action == "install-local":
+        return install_local_command(rest)
+    print(f"Unknown admin command: {action}")
+    _print_group_help("admin", ADMIN_COMMANDS)
+    return 1
+
+
+def dev_command(args: list[str]) -> int:
+    if _is_help(args):
+        _print_group_help("dev", DEV_COMMANDS)
+        return 0
+    action = args[0]
+    rest = args[1:]
+    if action == "eval":
+        return eval_command(rest)
+    if action == "browser-acceptance":
+        return browser_acceptance(rest)
+    if action == "sample-suite":
+        return sample_suite(rest)
+    if action == "maturity-eval":
+        return maturity_eval(rest)
+    if action == "dead-code-audit":
+        return dead_code_audit(rest)
+    print(f"Unknown dev command: {action}")
+    _print_group_help("dev", DEV_COMMANDS)
+    return 1
+
+
+def _retired_command(cmd: str) -> int:
+    replacement = RETIRED_TOP_LEVEL_COMMANDS[cmd]
+    print(f"`docflow {cmd}` has moved. Use `{replacement}`.")
+    return 1
+
+
 def cli() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
+    if cmd in {"--help", "-h", "help"}:
+        _print_help()
+        return 0
     if cmd == "serve":
         serve()
         return 0
@@ -353,15 +471,15 @@ def cli() -> int:
         return doctor_command(sys.argv[2:])
     elif cmd == "start":
         return start_command(sys.argv[2:])
-    elif cmd == "platform":
-        return platform_command(sys.argv[2:])
-    elif cmd == "service":
-        return service_command(sys.argv[2:])
-    elif cmd == "install-local":
-        return install_local_command(sys.argv[2:])
+    elif cmd == "status":
+        return status_command(sys.argv[2:])
+    elif cmd == "admin":
+        return admin_command(sys.argv[2:])
+    elif cmd == "dev":
+        return dev_command(sys.argv[2:])
     elif cmd == "ingest":
         if len(sys.argv) < 3:
-            print("Usage: python main.py ingest <path>")
+            print("Usage: docflow ingest <path>")
             return 1
         ingest(sys.argv[2])
         return 0
@@ -370,34 +488,8 @@ def cli() -> int:
     elif cmd == "scan":
         scan()
         return 0
-    elif cmd == "benchmark":
-        if len(sys.argv) < 3:
-            print("Usage: python main.py benchmark <path> [<path> ...]")
-            return 1
-        benchmark(sys.argv[2:])
-        return 0
-    elif cmd == "eval":
-        return eval_command(sys.argv[2:])
-    elif cmd == "maturity-eval":
-        return maturity_eval(sys.argv[2:])
-    elif cmd == "sample-suite":
-        return sample_suite(sys.argv[2:])
-    elif cmd == "browser-acceptance":
-        return browser_acceptance(sys.argv[2:])
-    elif cmd == "restore-drill":
-        return restore_drill_command(sys.argv[2:])
-    elif cmd == "check":
-        return check_index(sys.argv[2:])
-    elif cmd == "rebuild":
-        return rebuild_command(sys.argv[2:])
-    elif cmd == "repair-ids":
-        return repair_ids_command(sys.argv[2:])
-    elif cmd == "backup":
-        return backup_command(sys.argv[2:])
-    elif cmd == "export-chunks":
-        return export_chunks_command(sys.argv[2:])
-    elif cmd == "restore-plan":
-        return restore_plan_command(sys.argv[2:])
+    elif cmd in RETIRED_TOP_LEVEL_COMMANDS:
+        return _retired_command(cmd)
     else:
         print(f"Unknown command: {cmd}")
         return 1

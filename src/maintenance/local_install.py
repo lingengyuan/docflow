@@ -68,12 +68,12 @@ def build_install_plan(
             _step(
                 "restore_drill",
                 "Run disposable restore drill",
-                [str(app_python), "main.py", "restore-drill", "--json"],
+                [str(app_python), "main.py", "admin", "restore-drill", "--json"],
             ),
             _step(
                 "repair_ids_preview",
                 "Preview vector ID repairs",
-                [str(app_python), "main.py", "repair-ids", "--dry-run"],
+                [str(app_python), "main.py", "admin", "repair-ids", "--dry-run"],
             ),
         ]
     )
@@ -86,6 +86,7 @@ def build_install_plan(
                 [
                     str(app_python),
                     "main.py",
+                    "admin",
                     "service",
                     "install",
                     "--host",
@@ -105,6 +106,7 @@ def build_install_plan(
                 [
                     str(app_python),
                     "main.py",
+                    "admin",
                     "service",
                     "install",
                     "--dry-run",

@@ -41,8 +41,8 @@
 {"id": "cli_serve", "category": "cli", "question": "Which command serves the app?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow serve"], "must_find": true}
 {"id": "cli_offline_doctor", "category": "cli", "question": "Which command runs the offline doctor?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow doctor --offline"], "must_find": true}
 {"id": "cli_demo_create_only", "category": "cli", "question": "Which command creates demo data only?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow demo --create-only"], "must_find": true}
-{"id": "cli_eval_retrieval", "category": "cli", "question": "Which command runs retrieval eval?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow eval retrieval"], "must_find": true}
-{"id": "cli_browser_acceptance", "category": "cli", "question": "Which command runs browser verification?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow browser-acceptance"], "must_find": true}
+{"id": "cli_eval_retrieval", "category": "cli", "question": "Which command runs retrieval eval?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow dev eval retrieval"], "must_find": true}
+{"id": "cli_browser_acceptance", "category": "cli", "question": "Which command runs browser verification?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow dev browser-acceptance"], "must_find": true}
 {"id": "cli_docflow_command", "category": "cli", "question": "Where does CLI documentation mention the serve command?", "expected_files": ["docs/cli.md"], "expected_terms": ["docflow serve"], "must_find": true}
 {"id": "dev_requirements_dev", "category": "development", "question": "Which requirements file is used for development?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-dev.txt"], "must_find": true}
 {"id": "dev_requirements_vision", "category": "development", "question": "Which optional requirements file installs image understanding support?", "expected_files": ["docs/development.md"], "expected_terms": ["requirements-vision.txt"], "must_find": true}

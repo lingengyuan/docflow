@@ -92,7 +92,7 @@ def test_health_returns_ok_when_all_checks_pass(monkeypatch):
         "ocr_runtime",
         "vlm",
     ]
-    assert body["actions"][0]["command"] == "python main.py check --json"
+    assert body["actions"][0]["command"] == "docflow admin check --json"
 
 
 def test_health_is_unavailable_when_critical_dependency_fails(monkeypatch):
@@ -142,7 +142,7 @@ def test_health_catches_check_exceptions(monkeypatch):
     assert body["status"] == "unavailable"
     assert body["checks"]["sqlite"]["status"] == "unavailable"
     assert "database locked" in body["checks"]["sqlite"]["error"]
-    assert any(action["command"] == "python main.py doctor --strict" for action in body["actions"])
+    assert any(action["command"] == "docflow doctor --strict" for action in body["actions"])
 
 
 def test_health_runtime_group_reports_missing_model_cache(monkeypatch):

@@ -389,7 +389,7 @@ def test_phase74_public_eval_is_separate_from_internal_regression():
     assert Path("scripts/run_public_eval.py").exists()
     assert Path("eval/public_retrieval_v1.jsonl").exists()
     assert Path("eval/public_corpus/README.md").exists()
-    assert "docflow eval public" in cli_doc
+    assert "docflow dev eval public" in cli_doc
     assert 'args[0] == "public"' in main_source
     assert "public-domain regression" in readme
     assert "公开可复现检索评估" in readme_zh
@@ -400,17 +400,14 @@ def test_phase74_public_eval_is_separate_from_internal_regression():
 
 
 def test_phase88_performance_smoke_is_documented_and_in_ci():
-    readme = Path("README.md").read_text(encoding="utf-8")
-    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
     evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
     cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
     main_source = Path("main.py").read_text(encoding="utf-8")
     ci_script = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
 
     assert Path("scripts/run_performance_smoke.py").exists()
-    assert "docflow eval performance" in readme
-    assert "docflow eval performance" in readme_zh
-    assert "docflow eval performance" in cli_doc
+    assert "docflow dev eval performance" in evaluation_doc
+    assert "docflow dev eval performance" in cli_doc
     assert "Performance Smoke" in evaluation_doc
     assert 'args[0] == "performance"' in main_source
     assert "run_performance_smoke.py --json" in ci_script
@@ -426,7 +423,7 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
 
     for snippet in [
         "scripts/run_performance_smoke.py --json",
-        "main.py eval parsing --json",
+        "main.py dev eval parsing --json",
         "scripts/run_release_surface_check.py",
         "scripts/package_smoke.py",
     ]:
@@ -437,7 +434,7 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
         "schedule:",
         "qdrant/qdrant",
         "allow_model_download: true",
-        "main.py eval public",
+        "main.py dev eval public",
         "--no-rerank",
         "actions/upload-artifact",
     ]:
@@ -454,8 +451,6 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
 
 def test_phase99_external_benchmark_claims_are_explicitly_unclaimed():
     catalog = Path("eval/external_benchmarks.json").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
-    readme_zh = Path("README.zh-CN.md").read_text(encoding="utf-8")
     evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
     status_doc = Path("docs/status.md").read_text(encoding="utf-8")
     main_source = Path("main.py").read_text(encoding="utf-8")
@@ -473,8 +468,7 @@ def test_phase99_external_benchmark_claims_are_explicitly_unclaimed():
     assert "No external benchmark score has been archived yet" in evaluation_doc
     assert "No external benchmark score has been archived yet" in status_doc
     assert "External benchmark catalog: valid; 0 archived external scores." in status_doc
-    assert "docflow eval external --json" in readme
-    assert "docflow eval external --json" in readme_zh
+    assert "docflow dev eval external --json" in evaluation_doc
     assert 'args[0] == "external"' in main_source
     assert "run_external_benchmark_status.py --json" in run_ci
     assert "run_external_benchmark_status.py --json" in ci_workflow
@@ -857,10 +851,10 @@ def test_phase28_settings_hides_local_install_and_recovery_commands():
 
 
 def test_phase25_browser_acceptance_command_is_documented():
-    readme = Path("README.md").read_text(encoding="utf-8")
+    cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
 
     assert Path("scripts/run_browser_acceptance.py").exists()
-    assert "docflow browser-acceptance" in readme
+    assert "docflow dev browser-acceptance" in cli_doc
 
 
 def test_phase26_ui_redesign_shell_has_real_context_panels():
@@ -967,3 +961,62 @@ def test_phase66_public_surface_hides_internal_planning_artifacts():
         "python main.py restore-drill",
     ]:
         assert forbidden not in changelog
+
+
+def test_phase103_cli_surface_is_grouped_and_audited():
+    main_source = Path("main.py").read_text(encoding="utf-8")
+    cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
+    run_ci = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
+    ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    public_text = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in [
+            "README.md",
+            "README.zh-CN.md",
+            "CONTRIBUTING.md",
+            ".github/PULL_REQUEST_TEMPLATE.md",
+            "docs/cli.md",
+            "docs/evaluation.md",
+            "docs/release.md",
+        ]
+    )
+
+    assert Path("scripts/run_dead_code_audit.py").exists()
+    assert "scripts/run_dead_code_audit.py --json" in run_ci
+    assert "scripts/run_dead_code_audit.py --json" in ci_workflow
+    assert "docflow admin platform" in cli_doc
+    assert "docflow admin check" in cli_doc
+    assert "docflow admin rebuild --dry-run" in cli_doc
+    assert "docflow dev eval public" in cli_doc
+    assert "docflow dev browser-acceptance" in cli_doc
+    assert "docflow dev dead-code-audit" in cli_doc
+    assert "RETIRED_TOP_LEVEL_COMMANDS" in main_source
+    for command in [
+        'cmd == "browser-acceptance"',
+        'cmd == "sample-suite"',
+        'cmd == "maturity-eval"',
+        'cmd == "restore-drill"',
+        'cmd == "repair-ids"',
+        'cmd == "backup"',
+        'cmd == "install-local"',
+        'cmd == "platform"',
+        'cmd == "eval"',
+        'cmd == "benchmark"',
+    ]:
+        assert command not in main_source
+    for retired in [
+        "docflow eval",
+        "docflow platform",
+        "docflow browser-acceptance",
+        "docflow restore-drill",
+        "docflow repair-ids",
+        "docflow rebuild",
+        "docflow sample-suite",
+        "docflow maturity-eval",
+        "python main.py browser-acceptance",
+        "python main.py eval",
+        "python main.py platform",
+        "python main.py repair-ids",
+        "python main.py restore-drill",
+    ]:
+        assert retired not in public_text

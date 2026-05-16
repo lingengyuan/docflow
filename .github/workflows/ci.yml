@@ -47,13 +47,16 @@ jobs:
         run: python scripts/run_performance_smoke.py --json
       - name: Parsing eval
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: python main.py eval parsing --json
+        run: python main.py dev eval parsing --json
       - name: Release surface
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/run_release_surface_check.py
       - name: External benchmark catalog
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/run_external_benchmark_status.py --json
+      - name: Dead-code audit
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/run_dead_code_audit.py --json
       - name: Package smoke
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/package_smoke.py

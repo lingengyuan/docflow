@@ -43,9 +43,9 @@ jobs:
           Path("config.ci-eval.yaml").write_text(text, encoding="utf-8")
           PY
       - name: Parsing eval
-        run: python main.py eval parsing --config config.ci-eval.yaml --json
+        run: python main.py dev eval parsing --config config.ci-eval.yaml --json
       - name: Public retrieval eval
-        run: python main.py eval public --config config.ci-eval.yaml --no-rerank --write-results --json
+        run: python main.py dev eval public --config config.ci-eval.yaml --no-rerank --write-results --json
       - uses: actions/upload-artifact@v5
         if: always()
         with:

@@ -70,7 +70,7 @@ def _check_sqlite(cfg: dict) -> dict:
             "fts_tables": fts_tables,
             "missing_fts_tables": missing_fts_tables,
             "quick_check": "skipped during app runtime",
-            "note": "Use `python main.py doctor --strict` for a full SQLite integrity check.",
+            "note": "Use `docflow doctor --strict` for a full SQLite integrity check.",
         }
     else:
         db_path = Path(cfg["paths"]["db_path"]).expanduser()
@@ -233,11 +233,11 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
         if check.get("status") != "ok":
             if key == "sqlite":
                 actions = [
-                    "运行 python main.py doctor --strict",
-                    "必要时先备份，再运行 python main.py rebuild --dry-run",
+                    "运行 docflow doctor --strict",
+                    "必要时先备份，再运行 docflow admin rebuild --dry-run",
                 ]
             elif key == "qdrant":
-                actions = ["确认 Docker/Qdrant 已启动", "运行 python main.py check --json"]
+                actions = ["确认 Docker/Qdrant 已启动", "运行 docflow admin check --json"]
         return {
             "key": key,
             "label": label,
@@ -319,7 +319,7 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
                     capabilities.get("query", False),
                     "可以检索文档并回答问题。",
                     "SQLite 或 Qdrant 不可用，问答不可用。",
-                    ["运行 python main.py doctor --strict", "确认 Qdrant 正在运行"],
+                    ["运行 docflow doctor --strict", "确认 Qdrant 正在运行"],
                 ),
                 core_item(
                     "ingest",
@@ -328,8 +328,8 @@ def _health_groups(cfg: dict, checks: dict, capabilities: dict) -> dict:
                     "可以解析文件并写入索引。",
                     "SQLite 或 Qdrant 不可用，入库不可用。",
                     [
-                        "运行 python main.py check --json",
-                        "必要时运行 python main.py rebuild --dry-run",
+                        "运行 docflow admin check --json",
+                        "必要时运行 docflow admin rebuild --dry-run",
                     ],
                 ),
                 check_item("sqlite", "SQLite", checks["sqlite"], "本地记录库可用。"),
@@ -420,13 +420,13 @@ def _health_actions(checks: dict, capabilities: dict) -> list[HealthAction]:
         add(
             "检查本地记录库",
             "确认 SQLite 是否可读写；严格检查可能更慢，但能发现索引损坏。",
-            "python main.py doctor --strict",
+            "docflow doctor --strict",
         )
     if checks["qdrant"].get("status") != "ok":
         add(
             "恢复向量库",
             "确认 Docker Desktop 和 qdrant 容器已运行，然后再检查索引一致性。",
-            "docker start qdrant && python main.py check --json",
+            "docker start qdrant && docflow admin check --json",
         )
     if checks["ollama"].get("status") != "ok":
         add(
@@ -455,13 +455,13 @@ def _health_actions(checks: dict, capabilities: dict) -> list[HealthAction]:
         add(
             "检查索引一致性",
             "只读检查 SQLite 和 Qdrant 是否一致。",
-            "python main.py check --json",
+            "docflow admin check --json",
             kind="safe",
         )
         add(
             "预览备份计划",
             "只查看将要备份的内容，不创建新备份。",
-            "python main.py backup --dry-run",
+            "docflow admin backup --dry-run",
             kind="safe",
         )
 

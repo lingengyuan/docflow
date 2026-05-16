@@ -12,6 +12,7 @@ PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 "$PYTHON_BIN" -m pytest -q
 "$PYTHON_BIN" scripts/run_performance_smoke.py --json > /tmp/docflow-performance-smoke.json
 "$PYTHON_BIN" scripts/run_external_benchmark_status.py --json > /tmp/docflow-external-benchmarks.json
+"$PYTHON_BIN" scripts/run_dead_code_audit.py --json > /tmp/docflow-dead-code-audit.json
 "$PYTHON_BIN" scripts/run_release_surface_check.py
 npm run check:frontend
 npm run test:frontend

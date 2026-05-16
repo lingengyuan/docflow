@@ -130,9 +130,9 @@ def restore_plan(archive_path: str | Path) -> dict[str, Any]:
             "Extract this archive into a temporary folder.",
             "Back up the current config.yaml and SQLite database before copying restored files in.",
             "Copy config.yaml and docflow.db from the archive to the intended project paths.",
-            "Run `.venv/bin/python main.py rebuild --qdrant-only` "
+            "Run `docflow admin rebuild --qdrant-only` "
             "to restore Qdrant from SQLite chunks.",
-            "Run `.venv/bin/python main.py check` to confirm SQLite and Qdrant match.",
+            "Run `docflow admin check` to confirm SQLite and Qdrant match.",
         ],
     }
 

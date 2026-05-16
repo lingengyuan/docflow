@@ -12,4 +12,4 @@ if [[ -z "$PYTHON_BIN" ]]; then
   fi
 fi
 
-exec "$PYTHON_BIN" main.py service "$@"
+exec "$PYTHON_BIN" main.py admin service "$@"

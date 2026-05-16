@@ -84,15 +84,12 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 docker compose up -d qdrant
 docflow demo --create-only
-.venv/bin/python -m pytest -q
-docflow eval public --write-results
-docflow eval retrieval --refresh-sources --source-filter --write-results
-docflow eval parsing --write-results
-docflow eval performance --write-results
-docflow eval external --json
-docflow browser-acceptance
+scripts/run_ci.sh
 docflow doctor --offline
 ```
+
+Evaluation and release verification commands live in [Evaluation](docs/evaluation.md) and
+[Release](docs/release.md).
 
 Release builds also support `docker-compose.image.yml` with `ghcr.io/lingengyuan/docflow` after a tagged image is published.
 

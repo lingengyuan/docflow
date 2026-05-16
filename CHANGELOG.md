@@ -13,6 +13,7 @@
 - Added answer feedback and saved-answer backlinks to close more of the personal knowledge loop.
 - Raised vulnerable dependency pins and added Python/frontend dependency audit coverage.
 - Added frontend script checks so browser UI changes have a quick syntax gate.
+- Grouped maintenance and contributor-only commands under `docflow admin ...` and `docflow dev ...`, leaving the public help focused on daily use.
 
 ## 0.58.0 - 2026-05-12
 
