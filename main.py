@@ -51,7 +51,7 @@ ADMIN_COMMANDS = {
 }
 
 DEV_COMMANDS = {
-    "eval": "Run retrieval, parsing, performance, or external-benchmark checks.",
+    "eval": "Run retrieval, parsing, performance, faithfulness, or external checks.",
     "browser-acceptance": "Run browser acceptance checks against a running app.",
     "sample-suite": "Generate and validate the sample-suite fixtures.",
     "maturity-eval": "Run the internal planning scorecard.",
@@ -233,7 +233,22 @@ def eval_command(args: list[str]):
 
         sys.argv = ["docflow dev eval performance", *args[1:]]
         return run_performance_smoke_main()
+    if args and args[0] == "faithfulness":
+        from scripts.run_faithfulness_eval import main as run_faithfulness_eval_main
+
+        sys.argv = ["docflow dev eval faithfulness", *args[1:]]
+        return run_faithfulness_eval_main()
+    if args and args[0] == "large-library":
+        from scripts.run_large_library_benchmark import main as run_large_library_benchmark_main
+
+        sys.argv = ["docflow dev eval large-library", *args[1:]]
+        return run_large_library_benchmark_main()
     if args and args[0] == "external":
+        if len(args) > 1 and args[1] == "run":
+            from scripts.run_external_retrieval_eval import main as run_external_retrieval_main
+
+            sys.argv = ["docflow dev eval external run", *args[2:]]
+            return run_external_retrieval_main()
         from scripts.run_external_benchmark_status import main as run_external_benchmark_status_main
 
         sys.argv = ["docflow dev eval external", *args[1:]]
@@ -395,7 +410,10 @@ def _print_eval_help() -> None:
     print("  docflow dev eval retrieval    Run internal retrieval regression checks.")
     print("  docflow dev eval parsing      Run parsing fixture checks.")
     print("  docflow dev eval performance  Run parser/chunker performance smoke checks.")
+    print("  docflow dev eval faithfulness Run deterministic answer-grounding checks.")
+    print("  docflow dev eval large-library Run desktop large-library smoke benchmark.")
     print("  docflow dev eval external     Show external benchmark claim status.")
+    print("  docflow dev eval external run Run BEIR SciFact-lite retrieval benchmark.")
 
 
 def _is_help(args: list[str]) -> bool:

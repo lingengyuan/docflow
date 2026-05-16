@@ -35,8 +35,10 @@ docflow dev eval public
 docflow dev eval retrieval
 docflow dev eval parsing
 docflow dev eval performance
+docflow dev eval faithfulness
+docflow dev eval large-library
 docflow dev browser-acceptance
 docflow dev dead-code-audit
 ```
 
-`docflow dev eval public` runs the committed public-domain smoke benchmark without source filtering. `docflow dev eval retrieval` runs the larger internal source-filtered project regression set. `docflow dev eval performance` runs a local parser/chunker smoke check for one long synthetic note and a synthetic many-note library.
+`docflow dev eval public` runs the committed public-domain smoke benchmark without source filtering. `docflow dev eval retrieval` runs the larger internal source-filtered project regression set. `docflow dev eval performance` runs a local parser/chunker smoke check for one long synthetic note and a synthetic many-note library. `docflow dev eval faithfulness` checks answer/source consistency cases. `docflow dev eval large-library` runs a synthetic desktop library benchmark. `docflow dev eval external run` runs the archived BEIR SciFact-lite subset.

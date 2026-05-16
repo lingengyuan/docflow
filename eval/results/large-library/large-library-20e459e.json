@@ -1,0 +1,217 @@
+{
+  "schema": "docflow.large_library_benchmark.v1",
+  "generated_at": "2026-05-16T15:10:24.708069+00:00",
+  "git_sha": "20e459e",
+  "source_tree": {
+    "worktree_dirty": true,
+    "status_entries": 21,
+    "note": "Result was generated from the current local source tree. If worktree_dirty is true, the artifact records a pre-commit working-tree run."
+  },
+  "scope": {
+    "documents": 10000,
+    "queries": 20,
+    "mode": "SQLite FTS parser/chunker benchmark",
+    "answer_generation": "not_measured",
+    "note": "This benchmark measures desktop-scale local indexing and source lookup on synthetic Markdown. It does not measure embedding, reranking, or LLM first-token latency."
+  },
+  "indexing": {
+    "documents": 10000,
+    "chunks": 10000,
+    "total_ms": 22325.34,
+    "documents_per_second": 447.9215,
+    "db_bytes": 25575424,
+    "library_bytes": 3507484,
+    "workspace_bytes": 29115676
+  },
+  "query": {
+    "cases": 20,
+    "p50_ms": 49.94,
+    "p95_ms": 97.11,
+    "max_ms": 117.12,
+    "correct_top_file_count": 20,
+    "top_file_accuracy": 1.0,
+    "results": [
+      {
+        "id": "large_library_01",
+        "query": "benchmark-evidence-00037",
+        "total_ms": 49.81,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00037.md",
+        "top_file": "knowledge-note-00037.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_02",
+        "query": "benchmark-evidence-00074",
+        "total_ms": 46.37,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00074.md",
+        "top_file": "knowledge-note-00074.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_03",
+        "query": "benchmark-evidence-00111",
+        "total_ms": 49.21,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00111.md",
+        "top_file": "knowledge-note-00111.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_04",
+        "query": "benchmark-evidence-00148",
+        "total_ms": 42.95,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00148.md",
+        "top_file": "knowledge-note-00148.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_05",
+        "query": "benchmark-evidence-00185",
+        "total_ms": 50.07,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00185.md",
+        "top_file": "knowledge-note-00185.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_06",
+        "query": "benchmark-evidence-00222",
+        "total_ms": 45.88,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00222.md",
+        "top_file": "knowledge-note-00222.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_07",
+        "query": "benchmark-evidence-00259",
+        "total_ms": 48.89,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00259.md",
+        "top_file": "knowledge-note-00259.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_08",
+        "query": "benchmark-evidence-00296",
+        "total_ms": 49.11,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00296.md",
+        "top_file": "knowledge-note-00296.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_09",
+        "query": "benchmark-evidence-00333",
+        "total_ms": 96.06,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00333.md",
+        "top_file": "knowledge-note-00333.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_10",
+        "query": "benchmark-evidence-00370",
+        "total_ms": 45.85,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00370.md",
+        "top_file": "knowledge-note-00370.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_11",
+        "query": "benchmark-evidence-00407",
+        "total_ms": 59.08,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00407.md",
+        "top_file": "knowledge-note-00407.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_12",
+        "query": "benchmark-evidence-00444",
+        "total_ms": 117.12,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00444.md",
+        "top_file": "knowledge-note-00444.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_13",
+        "query": "benchmark-evidence-00481",
+        "total_ms": 61.91,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00481.md",
+        "top_file": "knowledge-note-00481.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_14",
+        "query": "benchmark-evidence-00518",
+        "total_ms": 56.23,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00518.md",
+        "top_file": "knowledge-note-00518.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_15",
+        "query": "benchmark-evidence-00555",
+        "total_ms": 55.73,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00555.md",
+        "top_file": "knowledge-note-00555.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_16",
+        "query": "benchmark-evidence-00592",
+        "total_ms": 55.63,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00592.md",
+        "top_file": "knowledge-note-00592.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_17",
+        "query": "benchmark-evidence-00629",
+        "total_ms": 39.02,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00629.md",
+        "top_file": "knowledge-note-00629.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_18",
+        "query": "benchmark-evidence-00666",
+        "total_ms": 45.95,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00666.md",
+        "top_file": "knowledge-note-00666.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_19",
+        "query": "benchmark-evidence-00703",
+        "total_ms": 53.99,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00703.md",
+        "top_file": "knowledge-note-00703.md",
+        "passed": true
+      },
+      {
+        "id": "large_library_20",
+        "query": "benchmark-evidence-00740",
+        "total_ms": 51.7,
+        "hit_count": 5,
+        "expected_top_file": "knowledge-note-00740.md",
+        "top_file": "knowledge-note-00740.md",
+        "passed": true
+      }
+    ]
+  },
+  "passed": true
+}

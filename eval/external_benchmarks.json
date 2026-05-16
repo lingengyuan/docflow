@@ -1,6 +1,6 @@
 {
   "schema": "docflow.external_benchmark_catalog.v1",
-  "updated_at": "2026-05-15",
+  "updated_at": "2026-05-16",
   "claim_policy": [
     "DocFlow's committed public regression set is not an external benchmark.",
     "Do not claim BEIR, MTEB, or C-MTEB scores until the corresponding benchmark run is completed and archived.",
@@ -13,7 +13,20 @@
       "scope": "Heterogeneous information retrieval benchmark for zero-shot retrieval evaluation.",
       "primary_source": "https://arxiv.org/abs/2104.08663",
       "implementation": "https://github.com/UKPLab/beir",
-      "docflow_status": "not_run",
+      "docflow_status": "archived",
+      "archived_result": "eval/results/external/beir-scifact-lite-20e459e.json",
+      "archived_scope": "BEIR SciFact test split subset, 20 queries, 79 indexed documents, 3 distractors per query, no source filtering.",
+      "archived_model_config": "DocFlow default embedding stack from config.yaml, no rerank.",
+      "archived_runtime": "Local macOS validation machine with Qdrant and cached Qwen/Qwen3-Embedding-0.6B model.",
+      "archived_metrics": {
+        "recall_at_5": 0.95,
+        "mrr_at_5": 0.95,
+        "ndcg_at_5": 0.95,
+        "pass_rate": 1.0,
+        "retrieval_p50_ms": 315.66,
+        "retrieval_p95_ms": 700.93
+      },
+      "claim_note": "Archived subset only; not a full BEIR leaderboard score.",
       "required_before_claim": [
         "dataset/task list",
         "retrieval configuration",

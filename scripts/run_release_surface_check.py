@@ -144,7 +144,7 @@ def check_public_docs() -> None:
         )
 
     gitignore = read(".gitignore")
-    for ignored in ("docs/history/", "output/", "config.yaml", "qdrant_storage/"):
+    for ignored in ("docs/history/", "output/", ".cache/", "config.yaml", "qdrant_storage/"):
         if ignored not in gitignore:
             fail(f".gitignore no longer protects {ignored}")
 
@@ -221,7 +221,8 @@ def check_status_alignment() -> None:
         "docs/status.md",
         [
             "not a broad public benchmark",
-            "No external benchmark score has been archived yet",
+            "BEIR SciFact-lite",
+            "Archived subset only",
             "Offline doctor: 0 unexpected outbound connections",
             "DocFlow is not published to PyPI yet",
         ],
@@ -259,6 +260,16 @@ def check_docker_and_package_surface() -> None:
             fail(f"pyproject package data is missing docs/adr/{adr}")
     if '"eval/external_benchmarks.json"' not in pyproject:
         fail("pyproject package data is missing eval/external_benchmarks.json")
+    if '"eval/answer_faithfulness_v1.jsonl"' not in pyproject:
+        fail("pyproject package data is missing eval/answer_faithfulness_v1.jsonl")
+    for artifact in (
+        "eval/results/external/beir-scifact-lite-20e459e.json",
+        "eval/results/external/beir-scifact-lite-latest.json",
+        "eval/results/large-library/large-library-20e459e.json",
+        "eval/results/large-library/large-library-latest.json",
+    ):
+        if f'"{artifact}"' not in pyproject:
+            fail(f"pyproject package data is missing {artifact}")
     for asset in ("chat.png", "library.png", "notes.png", "settings.png"):
         if f"docs/assets/{asset}" not in pyproject:
             fail(f"pyproject package data is missing docs/assets/{asset}")
@@ -273,6 +284,8 @@ def check_workflows() -> None:
             "mypy",
             "pytest",
             "scripts/run_performance_smoke.py --json",
+            "main.py dev eval faithfulness --json",
+            "main.py dev eval large-library --documents 200 --queries 5 --json",
             "scripts/run_external_benchmark_status.py --json",
             "scripts/run_dead_code_audit.py --json",
             "main.py dev eval parsing --json",

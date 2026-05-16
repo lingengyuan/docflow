@@ -517,7 +517,7 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
     assert "GitHub CI now runs" in status_doc
 
 
-def test_phase99_external_benchmark_claims_are_explicitly_unclaimed():
+def test_phase99_external_benchmark_claims_are_explicitly_bounded():
     catalog = Path("eval/external_benchmarks.json").read_text(encoding="utf-8")
     evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
     status_doc = Path("docs/status.md").read_text(encoding="utf-8")
@@ -532,16 +532,21 @@ def test_phase99_external_benchmark_claims_are_explicitly_unclaimed():
     for benchmark in ["BEIR", "MTEB", "C-MTEB"]:
         assert benchmark in catalog
         assert benchmark in evaluation_doc
+    assert '"docflow_status": "archived"' in catalog
     assert '"docflow_status": "not_run"' in catalog
-    assert "No external benchmark score has been archived yet" in evaluation_doc
-    assert "No external benchmark score has been archived yet" in status_doc
-    assert "External benchmark catalog: valid; 0 archived external scores." in status_doc
+    assert "BEIR SciFact-lite" in evaluation_doc
+    assert "BEIR SciFact-lite" in status_doc
+    assert "Archived subset only" in status_doc
+    assert "not a full BEIR leaderboard score" in evaluation_doc
+    assert "External benchmark catalog: valid; 1 archived external score." in status_doc
     assert "docflow dev eval external --json" in evaluation_doc
+    assert "docflow dev eval external run" in evaluation_doc
     assert 'args[0] == "external"' in main_source
     assert "run_external_benchmark_status.py --json" in run_ci
     assert "run_external_benchmark_status.py --json" in ci_workflow
     assert "eval/external_benchmarks.json" in pyproject
-    assert "No external benchmark score has been archived yet" in release_check
+    assert "eval/results/external/beir-scifact-lite-20e459e.json" in pyproject
+    assert "BEIR SciFact-lite" in release_check
 
 
 def test_phase75_release_install_surface_is_documented():

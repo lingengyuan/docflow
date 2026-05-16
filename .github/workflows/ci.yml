@@ -45,6 +45,12 @@ jobs:
       - name: Performance smoke
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/run_performance_smoke.py --json
+      - name: Faithfulness eval
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python main.py dev eval faithfulness --json
+      - name: Large-library smoke
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python main.py dev eval large-library --documents 200 --queries 5 --json
       - name: Parsing eval
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python main.py dev eval parsing --json

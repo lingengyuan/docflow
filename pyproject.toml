@@ -115,8 +115,17 @@ include = ["src*", "scripts*"]
   "docs/assets/settings.png",
 ]
 "share/docflow/eval" = [
+  "eval/answer_faithfulness_v1.jsonl",
   "eval/external_benchmarks.json",
   "eval/public_retrieval_v1.jsonl",
+]
+"share/docflow/eval/results/external" = [
+  "eval/results/external/beir-scifact-lite-20e459e.json",
+  "eval/results/external/beir-scifact-lite-latest.json",
+]
+"share/docflow/eval/results/large-library" = [
+  "eval/results/large-library/large-library-20e459e.json",
+  "eval/results/large-library/large-library-latest.json",
 ]
 "share/docflow/eval/public_corpus" = [
   "eval/public_corpus/README.md",

@@ -51,19 +51,24 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Runtime configuration now has a typed settings loader for core paths, Qdrant, ingest, LLM, query, and privacy settings. The source and Docker config templates share the same answer-quality keys so Docker does not drift into different thresholds.
 - The Settings page now mounts from a Vite-built Preact component with an explicit design contract, while the existing browser shell keeps the other desktop pages stable during gradual migration.
 - Saved notes, source snippets, generated knowledge outputs, and user-confirmed related documents now write back into the same relationship graph used by the Library and active review panels.
-- External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. No external benchmark score has been archived yet.
+- External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. A BEIR SciFact-lite subset result is now archived with its result artifact and claim boundary.
+- Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, and insufficient-evidence answers.
+- A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 460 passed.
+- Unit/integration tests: 464 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
 - Public eval: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, P50 213.92 ms, P95 271.26 ms. This is a committed public-domain regression check, not a broad public benchmark.
-- External benchmark catalog: valid; 0 archived external scores.
+- External benchmark: BEIR SciFact-lite subset with 20 questions, Recall@5 0.95, MRR@5 0.95, nDCG@5 0.95, P50 315.66 ms, P95 700.93 ms, 79 indexed documents, no source filtering. Archived subset only; not a full BEIR leaderboard score.
+- External benchmark catalog: valid; 1 archived external score.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
+- Faithfulness eval: 5/5 passed across supported, uncited, fabricated-source, wrong-source, and insufficient-evidence cases.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
+- Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, P95 97.11 ms, workspace 29,115,676 bytes. This measures local parser/chunker/SQLite source lookup only, not embedding, reranking, or answer first-token latency.
 - Release surface check: passed.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 
@@ -72,9 +77,9 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - The answer-level source check verifies citation coverage and source-content overlap, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
-- Parser/chunker performance smoke and parsing eval are now in the standard GitHub CI path, but full large-library retrieval, embedding, and model-answer benchmarks are still not part of every pull-request CI run.
+- Parser/chunker performance smoke, parsing eval, faithfulness eval, and a 200-document large-library smoke are now in the standard GitHub CI path, but full 10,000-document large-library retrieval, embedding, and model-answer benchmarks are still not part of every pull-request CI run.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
-- Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, but a broad BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making external quality claims.
+- Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite result gives one external subset check. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 - DocFlow is not published to PyPI yet. Source checkout and Docker remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 

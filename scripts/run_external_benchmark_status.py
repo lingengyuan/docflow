@@ -39,19 +39,31 @@ def load_catalog(path: Path = DEFAULT_CATALOG) -> dict[str, Any]:
 def summary(catalog: dict[str, Any]) -> dict[str, Any]:
     benchmarks = catalog["benchmarks"]
     archived = [item for item in benchmarks if item["docflow_status"] == "archived"]
+    benchmark_summaries = []
+    for item in benchmarks:
+        benchmark: dict[str, Any] = {
+            "id": item["id"],
+            "name": item["name"],
+            "status": item["docflow_status"],
+            "source": item["primary_source"],
+        }
+        for optional in (
+            "archived_result",
+            "archived_scope",
+            "archived_model_config",
+            "archived_runtime",
+            "archived_metrics",
+            "claim_note",
+        ):
+            if optional in item:
+                benchmark[optional] = item[optional]
+        benchmark_summaries.append(benchmark)
+
     return {
         "schema": catalog["schema"],
         "updated_at": catalog.get("updated_at"),
         "external_benchmark_scores": len(archived),
-        "benchmarks": [
-            {
-                "id": item["id"],
-                "name": item["name"],
-                "status": item["docflow_status"],
-                "source": item["primary_source"],
-            }
-            for item in benchmarks
-        ],
+        "benchmarks": benchmark_summaries,
         "claim_policy": catalog.get("claim_policy", []),
     }
 

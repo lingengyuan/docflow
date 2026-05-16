@@ -1,0 +1,1451 @@
+{
+  "schema": "docflow.external_retrieval_eval.v1",
+  "generated_at": "2026-05-16T15:19:36.554915+00:00",
+  "git_sha": "20e459e",
+  "source_tree": {
+    "worktree_dirty": true,
+    "status_entries": 21,
+    "note": "Result was generated from the current local source tree. If worktree_dirty is true, the artifact records a pre-commit working-tree run."
+  },
+  "benchmark": {
+    "id": "beir_scifact_lite",
+    "suite": "BEIR",
+    "dataset": "SciFact",
+    "split": "test",
+    "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+    "source_zip_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+    "query_limit": 20,
+    "distractors_per_query": 3,
+    "source_filter": false,
+    "claim_scope": "Archived BEIR SciFact subset result; not a full BEIR leaderboard score."
+  },
+  "cases": 20,
+  "corpus_documents": 79,
+  "passed": 20,
+  "failed": 0,
+  "include_rerank": false,
+  "metrics": {
+    "eligible_cases": 20,
+    "recall_at_5": 0.95,
+    "mrr_at_5": 0.95,
+    "ndcg_at_5": 0.95,
+    "pass_rate": 1.0
+  },
+  "performance": {
+    "cases": 20,
+    "retrieval_total_ms_p50": 315.66,
+    "retrieval_total_ms_p95": 700.93,
+    "retrieval_total_ms_max": 3663.21,
+    "cases_per_second": 2.0902,
+    "ingest_total_ms": 528398.96,
+    "indexed_files": 79,
+    "indexed_chunks": 158,
+    "db_bytes": 2002944
+  },
+  "results": [
+    {
+      "id": "beir_scifact_1",
+      "category": "external_beir_scifact",
+      "question": "0-dimensional biomaterials show inductive properties.",
+      "expected_files": [
+        "scifact-31715818.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-31715818.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-159469.md",
+          "section": "HTRF: A Technology Tailored for Drug Discovery –A Review of Theoretical Aspects and Recent Applications",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-169264.md",
+          "section": "Analysis of SiO2 nanoparticles binding proteins in rat blood and brain homogenate",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4983.md",
+          "section": "Microstructural development of human newborn cerebral white matter assessed in vivo by diffusion tensor magnetic resonance imaging.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-6076903.md",
+          "section": "Regulation of ADMP and BMP2/4/7 at Opposite Embryonic Poles Generates a Self-Regulating Morphogenetic Field",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4381486.md",
+          "section": "Haematopoietic stem cells do not asymmetrically segregate chromosomes or retain BrdU",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-159469.md",
+        "scifact-169264.md",
+        "scifact-4983.md",
+        "scifact-6076903.md",
+        "scifact-4381486.md"
+      ],
+      "top_qdrant_ids": [
+        97,
+        104,
+        41,
+        30,
+        39
+      ],
+      "timings": {
+        "embed_ms": 3359.07,
+        "vector_ms": 8.39,
+        "fts_ms": 291.82,
+        "rerank_ms": 0.0,
+        "total_ms": 3663.21
+      }
+    },
+    {
+      "id": "beir_scifact_3",
+      "category": "external_beir_scifact",
+      "question": "1,000 genomes project enables mapping of genetic sequence variation consisting of rare variants with larger penetrance effects than common variants.",
+      "expected_files": [
+        "scifact-14717500.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-14717500.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-14717500.md",
+          "section": "Rare Variants Create Synthetic Genome-Wide Associations",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4414547.md",
+          "section": "Mosaic PPM1D mutations are associated with predisposition to breast and ovarian cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-14717500.md",
+          "section": "Rare Variants Create Synthetic Genome-Wide Associations",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-54440.md",
+          "section": "Empirical Bayesian models for analysing molecular serotyping microarrays",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18670.md",
+          "section": "The DNA Methylome of Human Peripheral Blood Mononuclear Cells",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-14717500.md",
+        "scifact-4414547.md",
+        "scifact-14717500.md",
+        "scifact-54440.md",
+        "scifact-18670.md"
+      ],
+      "top_qdrant_ids": [
+        3,
+        28,
+        1,
+        55,
+        46
+      ],
+      "timings": {
+        "embed_ms": 266.44,
+        "vector_ms": 7.19,
+        "fts_ms": 8.8,
+        "rerank_ms": 0.0,
+        "total_ms": 282.66
+      }
+    },
+    {
+      "id": "beir_scifact_5",
+      "category": "external_beir_scifact",
+      "question": "1/2000 in UK have abnormal PrP positivity.",
+      "expected_files": [
+        "scifact-13734012.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-13734012.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 20,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-323335.md",
+          "section": "Long-term outcome of patients with asystole induced by head-up tilt test.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4414547.md",
+          "section": "Mosaic PPM1D mutations are associated with predisposition to breast and ovarian cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-263364.md",
+          "section": "Genetic Variation in the Interleukin-28B Gene Is Associated with Spontaneous Clearance and Progression of Hepatitis C Virus in Moroccan Patients",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-13734012.md",
+        "scifact-13734012.md",
+        "scifact-323335.md",
+        "scifact-4414547.md",
+        "scifact-263364.md"
+      ],
+      "top_qdrant_ids": [
+        5,
+        6,
+        155,
+        29,
+        130
+      ],
+      "timings": {
+        "embed_ms": 230.82,
+        "vector_ms": 6.7,
+        "fts_ms": 5.39,
+        "rerank_ms": 0.0,
+        "total_ms": 243.25
+      }
+    },
+    {
+      "id": "beir_scifact_13",
+      "category": "external_beir_scifact",
+      "question": "5% of perinatal mortality is due to low birth weight.",
+      "expected_files": [
+        "scifact-1606628.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-1606628.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 17,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-1606628.md",
+          "section": "Estimates of global prevalence of childhood underweight in 1990 and 2015.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-1606628.md",
+          "section": "Estimates of global prevalence of childhood underweight in 1990 and 2015.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-92308.md",
+          "section": "Loss of immune escape mutations during persistent HCV infection in pregnancy enhances replication of vertically transmitted viruses",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-301866.md",
+          "section": "Long-term immune deficiency after allogeneic stem cell transplantation: B-cell deficiency is associated with late infections.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-313403.md",
+          "section": "High-Infiltration of Tumor-Associated Macrophages Predicts Unfavorable Clinical Outcome for Node-Negative Breast Cancer",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-1606628.md",
+        "scifact-1606628.md",
+        "scifact-92308.md",
+        "scifact-301866.md",
+        "scifact-313403.md"
+      ],
+      "top_qdrant_ids": [
+        7,
+        9,
+        68,
+        141,
+        150
+      ],
+      "timings": {
+        "embed_ms": 269.35,
+        "vector_ms": 8.11,
+        "fts_ms": 8.74,
+        "rerank_ms": 0.0,
+        "total_ms": 286.82
+      }
+    },
+    {
+      "id": "beir_scifact_36",
+      "category": "external_beir_scifact",
+      "question": "A deficiency of vitamin B12 increases blood levels of homocysteine.",
+      "expected_files": [
+        "scifact-5152028.md",
+        "scifact-11705328.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-5152028.md",
+        "scifact-11705328.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 15,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-11705328.md",
+          "section": "Randomized trial of folic acid supplementation and serum homocysteine levels.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-5152028.md",
+          "section": "Folic acid improves endothelial function in coronary artery disease via mechanisms largely independent of homocysteine lowering.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-275294.md",
+          "section": "Environmental factors that influence the cutaneous production of vitamin D",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18174210.md",
+          "section": "Increased Microerythrocyte Count in Homozygous α+-Thalassaemia Contributes to Protection against Severe Malarial Anaemia",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-11705328.md",
+        "scifact-5152028.md",
+        "scifact-275294.md",
+        "scifact-13734012.md",
+        "scifact-18174210.md"
+      ],
+      "top_qdrant_ids": [
+        13,
+        10,
+        134,
+        6,
+        14
+      ],
+      "timings": {
+        "embed_ms": 295.76,
+        "vector_ms": 8.87,
+        "fts_ms": 7.42,
+        "rerank_ms": 0.0,
+        "total_ms": 312.43
+      }
+    },
+    {
+      "id": "beir_scifact_42",
+      "category": "external_beir_scifact",
+      "question": "A high microerythrocyte count raises vulnerability to severe anemia in homozygous alpha (+)- thalassemia trait subjects.",
+      "expected_files": [
+        "scifact-18174210.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-18174210.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-18174210.md",
+          "section": "Increased Microerythrocyte Count in Homozygous α+-Thalassaemia Contributes to Protection against Severe Malarial Anaemia",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18174210.md",
+          "section": "Increased Microerythrocyte Count in Homozygous α+-Thalassaemia Contributes to Protection against Severe Malarial Anaemia",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-301866.md",
+          "section": "Long-term immune deficiency after allogeneic stem cell transplantation: B-cell deficiency is associated with late infections.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-5836.md",
+          "section": "Induction of myelodysplasia by myeloid-derived suppressor cells.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-18174210.md",
+        "scifact-18174210.md",
+        "scifact-301866.md",
+        "scifact-13734012.md",
+        "scifact-5836.md"
+      ],
+      "top_qdrant_ids": [
+        14,
+        16,
+        140,
+        6,
+        43
+      ],
+      "timings": {
+        "embed_ms": 530.55,
+        "vector_ms": 7.0,
+        "fts_ms": 6.97,
+        "rerank_ms": 0.0,
+        "total_ms": 545.02
+      }
+    },
+    {
+      "id": "beir_scifact_48",
+      "category": "external_beir_scifact",
+      "question": "A total of 1,000 people in the UK are asymptomatic carriers of vCJD infection.",
+      "expected_files": [
+        "scifact-13734012.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-13734012.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-13734012.md",
+          "section": "Prevalent abnormal prion protein in human appendixes after bovine spongiform encephalopathy epizootic: large scale survey",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-253672.md",
+          "section": "Probable person to person transmission of novel avian influenza A (H7N9) virus in Eastern China, 2013: epidemiological investigation",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-301866.md",
+          "section": "Long-term immune deficiency after allogeneic stem cell transplantation: B-cell deficiency is associated with late infections.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-263364.md",
+          "section": "Genetic Variation in the Interleukin-28B Gene Is Associated with Spontaneous Clearance and Progression of Hepatitis C Virus in Moroccan Patients",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-13734012.md",
+        "scifact-13734012.md",
+        "scifact-253672.md",
+        "scifact-301866.md",
+        "scifact-263364.md"
+      ],
+      "top_qdrant_ids": [
+        6,
+        5,
+        128,
+        141,
+        129
+      ],
+      "timings": {
+        "embed_ms": 428.84,
+        "vector_ms": 7.47,
+        "fts_ms": 6.79,
+        "rerank_ms": 0.0,
+        "total_ms": 443.52
+      }
+    },
+    {
+      "id": "beir_scifact_49",
+      "category": "external_beir_scifact",
+      "question": "ADAR1 binds to Dicer to cleave pre-miRNA.",
+      "expected_files": [
+        "scifact-5953485.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-5953485.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 23,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-5953485.md",
+          "section": "ADAR1 Forms a Complex with Dicer to Promote MicroRNA Processing and RNA-Induced Gene Silencing",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-153744.md",
+          "section": "Down-regulation of a host microRNA by a Herpesvirus saimiri noncoding RNA.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-323030.md",
+          "section": "Dynamics of adherens junctions in epithelial establishment, maintenance, and remodeling",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-164985.md",
+          "section": "Fra-1 protooncogene regulates IL-6 expression in macrophages and promotes the generation of M2d macrophages",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-72159.md",
+          "section": "induction of early IFN-inducible genes in the absence of type",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-5953485.md",
+        "scifact-153744.md",
+        "scifact-323030.md",
+        "scifact-164985.md",
+        "scifact-72159.md"
+      ],
+      "top_qdrant_ids": [
+        18,
+        94,
+        154,
+        100,
+        61
+      ],
+      "timings": {
+        "embed_ms": 306.83,
+        "vector_ms": 6.55,
+        "fts_ms": 5.04,
+        "rerank_ms": 0.0,
+        "total_ms": 318.9
+      }
+    },
+    {
+      "id": "beir_scifact_50",
+      "category": "external_beir_scifact",
+      "question": "AIRE is expressed in some skin tumors.",
+      "expected_files": [
+        "scifact-12580014.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-12580014.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 20,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-12580014.md",
+          "section": "Keratin-dependent regulation of Aire and gene expression in skin tumor keratinocytes",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-301838.md",
+          "section": "Rank Signaling Links the Development of Invariant γδ T Cell Progenitors and Aire+ Medullary Epithelium",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-293661.md",
+          "section": "Targeting arginine metabolism pathway to treat arginine-dependent cancers.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-279052.md",
+          "section": "Genomic imprinting in development, growth, behavior and stem cells.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-5956380.md",
+          "section": "Exome sequencing identifies somatic gain-of-function PPM1D mutations in brainstem gliomas",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-12580014.md",
+        "scifact-301838.md",
+        "scifact-293661.md",
+        "scifact-279052.md",
+        "scifact-5956380.md"
+      ],
+      "top_qdrant_ids": [
+        19,
+        138,
+        137,
+        135,
+        26
+      ],
+      "timings": {
+        "embed_ms": 236.32,
+        "vector_ms": 6.43,
+        "fts_ms": 4.93,
+        "rerank_ms": 0.0,
+        "total_ms": 247.94
+      }
+    },
+    {
+      "id": "beir_scifact_51",
+      "category": "external_beir_scifact",
+      "question": "ALDH1 expression is associated with better breast cancer outcomes.",
+      "expected_files": [
+        "scifact-45638119.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-45638119.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 21,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-45638119.md",
+          "section": "ALDH1 is a marker of normal and malignant human mammary stem cells and a predictor of poor clinical outcome.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-313403.md",
+          "section": "High-Infiltration of Tumor-Associated Macrophages Predicts Unfavorable Clinical Outcome for Node-Negative Breast Cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4414547.md",
+          "section": "Mosaic PPM1D mutations are associated with predisposition to breast and ovarian cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-308862.md",
+          "section": "Duration of androgen suppression in the treatment of prostate cancer.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-213017.md",
+          "section": "PML induces compaction, TRF2 depletion and DNA damage signaling at telomeres and promotes their alternative lengthening.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-45638119.md",
+        "scifact-313403.md",
+        "scifact-4414547.md",
+        "scifact-308862.md",
+        "scifact-213017.md"
+      ],
+      "top_qdrant_ids": [
+        21,
+        149,
+        29,
+        144,
+        115
+      ],
+      "timings": {
+        "embed_ms": 230.71,
+        "vector_ms": 7.5,
+        "fts_ms": 5.73,
+        "rerank_ms": 0.0,
+        "total_ms": 244.3
+      }
+    },
+    {
+      "id": "beir_scifact_53",
+      "category": "external_beir_scifact",
+      "question": "ALDH1 expression is associated with poorer prognosis in breast cancer.",
+      "expected_files": [
+        "scifact-45638119.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-45638119.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 20,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-45638119.md",
+          "section": "ALDH1 is a marker of normal and malignant human mammary stem cells and a predictor of poor clinical outcome.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-313403.md",
+          "section": "High-Infiltration of Tumor-Associated Macrophages Predicts Unfavorable Clinical Outcome for Node-Negative Breast Cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4414547.md",
+          "section": "Mosaic PPM1D mutations are associated with predisposition to breast and ovarian cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18810195.md",
+          "section": "Tyr26 phosphorylation of PGAM1 provides a metabolic advantage to tumours by stabilizing the active conformation",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-213017.md",
+          "section": "PML induces compaction, TRF2 depletion and DNA damage signaling at telomeres and promotes their alternative lengthening.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-45638119.md",
+        "scifact-313403.md",
+        "scifact-4414547.md",
+        "scifact-18810195.md",
+        "scifact-213017.md"
+      ],
+      "top_qdrant_ids": [
+        21,
+        149,
+        29,
+        36,
+        115
+      ],
+      "timings": {
+        "embed_ms": 217.77,
+        "vector_ms": 7.06,
+        "fts_ms": 4.9,
+        "rerank_ms": 0.0,
+        "total_ms": 230.0
+      }
+    },
+    {
+      "id": "beir_scifact_54",
+      "category": "external_beir_scifact",
+      "question": "AMP-activated protein kinase (AMPK) activation increases inflammation-related fibrosis in the lungs.",
+      "expected_files": [
+        "scifact-49556906.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-49556906.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 15,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-49556906.md",
+          "section": "Metformin reverses established lung fibrosis in a bleomycin model",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-219475.md",
+          "section": "Gr-1+CD11b+ myeloid cells tip the balance of immune protection to tumor promotion in the premetastatic lung.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-213017.md",
+          "section": "PML induces compaction, TRF2 depletion and DNA damage signaling at telomeres and promotes their alternative lengthening.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-79447.md",
+          "section": "Arteriolar function in visceral adipose tissue is impaired in human obesity.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-118568.md",
+          "section": "Acute administration of recombinant Angiopoietin-1 ameliorates multiple-organ dysfunction syndrome and improves survival in murine sepsis.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-49556906.md",
+        "scifact-219475.md",
+        "scifact-213017.md",
+        "scifact-79447.md",
+        "scifact-118568.md"
+      ],
+      "top_qdrant_ids": [
+        22,
+        117,
+        116,
+        63,
+        82
+      ],
+      "timings": {
+        "embed_ms": 321.52,
+        "vector_ms": 6.62,
+        "fts_ms": 7.26,
+        "rerank_ms": 0.0,
+        "total_ms": 335.65
+      }
+    },
+    {
+      "id": "beir_scifact_56",
+      "category": "external_beir_scifact",
+      "question": "APOE4 expression in iPSC-derived neurons increases AlphaBeta production and tau phosphorylation causing GABA neuron degeneration.",
+      "expected_files": [
+        "scifact-4709641.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-4709641.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-4709641.md",
+          "section": "Gain of toxic Apolipoprotein E4 effects in Human iPSC-Derived Neurons Is Ameliorated by a Small-Molecule Structure Corrector",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-306311.md",
+          "section": "Control of glutamate clearance and synaptic efficacy by glial coverage of neurons.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-106301.md",
+          "section": "Cardiac neural crest cells contribute to the dormant multipotent stem cell in the mammalian heart",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-33370.md",
+          "section": "Targeting A20 Decreases Glioma Stem Cell Survival and Tumor Growth",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-6076903.md",
+          "section": "Regulation of ADMP and BMP2/4/7 at Opposite Embryonic Poles Generates a Self-Regulating Morphogenetic Field",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-4709641.md",
+        "scifact-306311.md",
+        "scifact-106301.md",
+        "scifact-33370.md",
+        "scifact-6076903.md"
+      ],
+      "top_qdrant_ids": [
+        24,
+        143,
+        76,
+        50,
+        30
+      ],
+      "timings": {
+        "embed_ms": 326.69,
+        "vector_ms": 6.83,
+        "fts_ms": 6.69,
+        "rerank_ms": 0.0,
+        "total_ms": 340.46
+      }
+    },
+    {
+      "id": "beir_scifact_57",
+      "category": "external_beir_scifact",
+      "question": "APOE4 expression in iPSC-derived neurons increases AlphaBeta production and tau phosphorylation, delaying GABA neuron degeneration.",
+      "expected_files": [
+        "scifact-4709641.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-4709641.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-4709641.md",
+          "section": "Gain of toxic Apolipoprotein E4 effects in Human iPSC-Derived Neurons Is Ameliorated by a Small-Molecule Structure Corrector",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-306311.md",
+          "section": "Control of glutamate clearance and synaptic efficacy by glial coverage of neurons.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-106301.md",
+          "section": "Cardiac neural crest cells contribute to the dormant multipotent stem cell in the mammalian heart",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-33370.md",
+          "section": "Targeting A20 Decreases Glioma Stem Cell Survival and Tumor Growth",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-6076903.md",
+          "section": "Regulation of ADMP and BMP2/4/7 at Opposite Embryonic Poles Generates a Self-Regulating Morphogenetic Field",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-4709641.md",
+        "scifact-306311.md",
+        "scifact-106301.md",
+        "scifact-33370.md",
+        "scifact-6076903.md"
+      ],
+      "top_qdrant_ids": [
+        24,
+        143,
+        76,
+        50,
+        30
+      ],
+      "timings": {
+        "embed_ms": 329.03,
+        "vector_ms": 6.56,
+        "fts_ms": 5.37,
+        "rerank_ms": 0.0,
+        "total_ms": 341.21
+      }
+    },
+    {
+      "id": "beir_scifact_70",
+      "category": "external_beir_scifact",
+      "question": "Activation of PPM1D suppresses p53 function.",
+      "expected_files": [
+        "scifact-5956380.md",
+        "scifact-4414547.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-5956380.md",
+        "scifact-4414547.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-5956380.md",
+          "section": "Exome sequencing identifies somatic gain-of-function PPM1D mutations in brainstem gliomas",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4414547.md",
+          "section": "Mosaic PPM1D mutations are associated with predisposition to breast and ovarian cancer",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-164189.md",
+          "section": "Chk1 inhibits replication factory activation but allows dormant origin firing in existing factories",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-306006.md",
+          "section": "The stimulatory potency of T cell antigens is influenced by the formation of the immunological synapse.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-49556906.md",
+          "section": "Metformin reverses established lung fibrosis in a bleomycin model",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-5956380.md",
+        "scifact-4414547.md",
+        "scifact-164189.md",
+        "scifact-306006.md",
+        "scifact-49556906.md"
+      ],
+      "top_qdrant_ids": [
+        26,
+        29,
+        98,
+        142,
+        23
+      ],
+      "timings": {
+        "embed_ms": 207.95,
+        "vector_ms": 6.68,
+        "fts_ms": 4.65,
+        "rerank_ms": 0.0,
+        "total_ms": 219.54
+      }
+    },
+    {
+      "id": "beir_scifact_72",
+      "category": "external_beir_scifact",
+      "question": "Activator-inhibitor pairs are provided dorsally by Admpchordin.",
+      "expected_files": [
+        "scifact-6076903.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-6076903.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-6076903.md",
+          "section": "Regulation of ADMP and BMP2/4/7 at Opposite Embryonic Poles Generates a Self-Regulating Morphogenetic Field",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-164189.md",
+          "section": "Chk1 inhibits replication factory activation but allows dormant origin firing in existing factories",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-116792.md",
+          "section": "The mammalian target of rapamycin signaling pathway mediates epileptogenesis in a model of temporal lobe epilepsy.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-323030.md",
+          "section": "Dynamics of adherens junctions in epithelial establishment, maintenance, and remodeling",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-317204.md",
+          "section": "Murine Dishevelled 3 Functions in Redundant Pathways with Dishevelled 1 and 2 in Normal Cardiac Outflow Tract, Cochlea, and Neural Tube Development",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-6076903.md",
+        "scifact-164189.md",
+        "scifact-116792.md",
+        "scifact-323030.md",
+        "scifact-317204.md"
+      ],
+      "top_qdrant_ids": [
+        30,
+        98,
+        79,
+        154,
+        153
+      ],
+      "timings": {
+        "embed_ms": 342.97,
+        "vector_ms": 7.13,
+        "fts_ms": 4.98,
+        "rerank_ms": 0.0,
+        "total_ms": 355.35
+      }
+    },
+    {
+      "id": "beir_scifact_75",
+      "category": "external_beir_scifact",
+      "question": "Active H. pylori urease has a polymeric structure that compromises two subunits, UreA and UreB.",
+      "expected_files": [
+        "scifact-4387784.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-4387784.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 18,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-4387784.md",
+          "section": "Structure of the proton-gated urea channel from the gastric pathogen Helicobacter pylori",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18810195.md",
+          "section": "Tyr26 phosphorylation of PGAM1 provides a metabolic advantage to tumours by stabilizing the active conformation",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-152245.md",
+          "section": "Effects of an opal termination codon preceding the nsP4 gene sequence in the O'Nyong-Nyong virus genome on Anopheles gambiae infectivity.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-7912.md",
+          "section": "BC1 RNA, the transcript from a master gene for ID element amplification, is able to prime its own reverse transcription.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-54440.md",
+          "section": "Empirical Bayesian models for analysing molecular serotyping microarrays",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-4387784.md",
+        "scifact-18810195.md",
+        "scifact-152245.md",
+        "scifact-7912.md",
+        "scifact-54440.md"
+      ],
+      "top_qdrant_ids": [
+        32,
+        36,
+        91,
+        45,
+        56
+      ],
+      "timings": {
+        "embed_ms": 339.33,
+        "vector_ms": 7.07,
+        "fts_ms": 5.63,
+        "rerank_ms": 0.0,
+        "total_ms": 352.3
+      }
+    },
+    {
+      "id": "beir_scifact_94",
+      "category": "external_beir_scifact",
+      "question": "Albendazole is used to treat lymphatic filariasis.",
+      "expected_files": [
+        "scifact-1215116.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-1215116.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 20,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-1215116.md",
+          "section": "“Rapid-Impact Interventions”: How a Policy of Integrated Control for Africa's Neglected Tropical Diseases Could Benefit the Poor",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-49556906.md",
+          "section": "Metformin reverses established lung fibrosis in a bleomycin model",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-207972.md",
+          "section": "Interaction of an adenovirus E3 14.7-kilodalton protein with a novel tumor necrosis factor alpha-inducible cellular protein containing leucine zipper domains.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18174210.md",
+          "section": "Increased Microerythrocyte Count in Homozygous α+-Thalassaemia Contributes to Protection against Severe Malarial Anaemia",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-18174210.md",
+          "section": "Increased Microerythrocyte Count in Homozygous α+-Thalassaemia Contributes to Protection against Severe Malarial Anaemia",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-1215116.md",
+        "scifact-49556906.md",
+        "scifact-207972.md",
+        "scifact-18174210.md",
+        "scifact-18174210.md"
+      ],
+      "top_qdrant_ids": [
+        34,
+        22,
+        113,
+        15,
+        16
+      ],
+      "timings": {
+        "embed_ms": 220.87,
+        "vector_ms": 6.56,
+        "fts_ms": 5.29,
+        "rerank_ms": 0.0,
+        "total_ms": 232.99
+      }
+    },
+    {
+      "id": "beir_scifact_99",
+      "category": "external_beir_scifact",
+      "question": "Alizarin forms hydrogen bonds with residues involved in PGAM1 substrate binding.",
+      "expected_files": [
+        "scifact-18810195.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-18810195.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 22,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-18810195.md",
+          "section": "Tyr26 phosphorylation of PGAM1 provides a metabolic advantage to tumours by stabilizing the active conformation",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-5953485.md",
+          "section": "ADAR1 Forms a Complex with Dicer to Promote MicroRNA Processing and RNA-Induced Gene Silencing",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-140874.md",
+          "section": "CTCF binding at the H19 imprinting control region mediates maternally inherited higher-order chromatin conformation to restrict enhancer access to Igf2.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-4387784.md",
+          "section": "Structure of the proton-gated urea channel from the gastric pathogen Helicobacter pylori",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-207972.md",
+          "section": "Interaction of an adenovirus E3 14.7-kilodalton protein with a novel tumor necrosis factor alpha-inducible cellular protein containing leucine zipper domains.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-18810195.md",
+        "scifact-5953485.md",
+        "scifact-140874.md",
+        "scifact-4387784.md",
+        "scifact-207972.md"
+      ],
+      "top_qdrant_ids": [
+        36,
+        18,
+        88,
+        33,
+        114
+      ],
+      "timings": {
+        "embed_ms": 316.98,
+        "vector_ms": 6.7,
+        "fts_ms": 5.63,
+        "rerank_ms": 0.0,
+        "total_ms": 329.68
+      }
+    },
+    {
+      "id": "beir_scifact_100",
+      "category": "external_beir_scifact",
+      "question": "All hematopoietic stem cells segregate their chromosomes randomly.",
+      "expected_files": [
+        "scifact-4381486.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "scifact-4381486.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 17,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "scifact-4381486.md",
+          "section": "Haematopoietic stem cells do not asymmetrically segregate chromosomes or retain BrdU",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-243694.md",
+          "section": "Blood stem cells emerge from aortic endothelium by a novel type of cell transition",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-92499.md",
+          "section": "The journey of developing hematopoietic stem cells.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-5836.md",
+          "section": "Induction of myelodysplasia by myeloid-derived suppressor cells.",
+          "page_num": 1
+        },
+        {
+          "file_name": "scifact-106301.md",
+          "section": "Cardiac neural crest cells contribute to the dormant multipotent stem cell in the mammalian heart",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "scifact-4381486.md",
+        "scifact-243694.md",
+        "scifact-92499.md",
+        "scifact-5836.md",
+        "scifact-106301.md"
+      ],
+      "top_qdrant_ids": [
+        38,
+        124,
+        69,
+        42,
+        77
+      ],
+      "timings": {
+        "embed_ms": 231.24,
+        "vector_ms": 6.19,
+        "fts_ms": 5.39,
+        "rerank_ms": 0.0,
+        "total_ms": 243.05
+      }
+    }
+  ]
+}

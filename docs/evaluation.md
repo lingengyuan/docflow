@@ -8,7 +8,10 @@ docflow dev eval public --write-results
 docflow dev eval retrieval --refresh-sources --source-filter --write-results
 docflow dev eval parsing --write-results
 docflow dev eval performance --write-results
+docflow dev eval faithfulness --json
+docflow dev eval large-library --documents 10000 --queries 20 --write-results
 docflow dev eval external --json
+docflow dev eval external run --query-limit 20 --distractors-per-query 3 --write-results
 docflow dev browser-acceptance
 docflow admin restore-drill
 ```
@@ -22,6 +25,8 @@ DocFlow uses measured checks as external quality evidence:
 - Parsing regression checks.
 - Incremental indexing checks.
 - Parser/chunker performance smoke checks.
+- Answer faithfulness checks.
+- Desktop large-library synthetic benchmarks.
 - Reproducibility checks.
 - Offline privacy checks.
 
@@ -51,7 +56,11 @@ The full public retrieval benchmark uses Qdrant plus embedding model downloads, 
 
 DocFlow tracks external benchmark readiness in `eval/external_benchmarks.json`. `docflow dev eval external --json` reports the current status and claim policy.
 
-No external benchmark score has been archived yet. The current committed regression results must therefore stay labeled as DocFlow regression checks, not as BEIR, MTEB, or C-MTEB results.
+`docflow dev eval external run --query-limit 20 --distractors-per-query 3 --write-results` runs the archived BEIR SciFact-lite subset. This command intentionally downloads the public SciFact dataset when it is not already cached; it is not part of DocFlow's default offline local-use path. The latest archived artifact is `eval/results/external/beir-scifact-lite-20e459e.json`.
+
+Latest archived BEIR SciFact-lite subset: 20 questions, Recall@5 0.95, MRR@5 0.95, nDCG@5 0.95, retrieval P50 315.66 ms and P95 700.93 ms, with 79 indexed documents and no source filtering.
+
+This is an external subset result, not a full BEIR leaderboard score. The committed public and internal regression results must therefore stay labeled as DocFlow regression checks, not as broad BEIR, MTEB, or C-MTEB results.
 
 Reference baselines:
 
@@ -93,11 +102,19 @@ Current committed parsing set: 120 documents covering Markdown tables, long Mark
 
 Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 
+## Large-Library Benchmark
+
+`docflow dev eval large-library --documents 10000 --queries 20 --write-results` generates a synthetic desktop-scale Markdown library and measures local indexing plus SQLite source lookup. Each query must return the expected synthetic note as the top result to pass. It does not measure embedding, reranking, LLM answer generation, or first-token latency.
+
+Latest local run: passed; 10,000 documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, query P95 97.11 ms, workspace 29,115,676 bytes. The archived artifact is `eval/results/large-library/large-library-20e459e.json`.
+
 ## Citation Alignment
 
 `tests/test_citation_alignment.py`, `tests/test_claim_support.py`, `tests/test_query_service.py`, and stream conversation tests cover source coordinates, retrieved chunk validation, inline citation cleanup, structured `[[cite:chunk_id]]` markers, invalid marker rejection, duplicate marker handling, legacy citation compatibility, streamed-answer finalization before history is saved, sentence-level checks that flag answer claims without verified source markers, and deterministic source-content overlap checks that flag cited claims whose cited snippets do not share meaningful content terms.
 
 The claim-support check is deterministic citation and source-content coverage. It proves whether each displayed claim carries a verified source marker and whether the cited snippets share meaningful surface terms with the claim. It does not replace human review, semantic entailment, or a broad factuality benchmark.
+
+`docflow dev eval faithfulness --json` runs a small deterministic answer-grounding fixture. It covers supported claims, uncited claims, fabricated source markers, wrong-source citations, and insufficient-evidence answers. Latest local run: 5/5 passed.
 
 ## Internal Planning Report
 

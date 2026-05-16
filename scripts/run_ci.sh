@@ -11,6 +11,9 @@ PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 "$PYTHON_BIN" -m mypy
 "$PYTHON_BIN" -m pytest -q
 "$PYTHON_BIN" scripts/run_performance_smoke.py --json > /tmp/docflow-performance-smoke.json
+"$PYTHON_BIN" main.py dev eval faithfulness --json > /tmp/docflow-faithfulness-eval.json
+"$PYTHON_BIN" main.py dev eval large-library --documents 200 --queries 5 --json \
+  > /tmp/docflow-large-library-smoke.json
 "$PYTHON_BIN" scripts/run_external_benchmark_status.py --json > /tmp/docflow-external-benchmarks.json
 "$PYTHON_BIN" scripts/run_dead_code_audit.py --json > /tmp/docflow-dead-code-audit.json
 "$PYTHON_BIN" scripts/run_release_surface_check.py
