@@ -1,10 +1,13 @@
 {
   "scripts": {
     "audit:frontend": "npm audit --audit-level=moderate --fetch-retries=5 --fetch-retry-mintimeout=20000",
-    "build:frontend": "vite build",
+    "build:frontend": "vite build && vite build --config vite.settings.config.ts",
     "build:css": "tailwindcss -c tailwind.config.js -i ./frontend/tailwind.css -o ./frontend/styles.css --minify",
     "check:frontend": "node scripts/check_frontend_files.mjs",
     "test:frontend": "vitest run"
+  },
+  "dependencies": {
+    "preact": "10.29.1"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "0.1.1",

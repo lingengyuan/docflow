@@ -64,7 +64,7 @@ docflow serve
 
 ## Frontend Styles
 
-The browser shell is split into a small `frontend/index.html`, reusable markup in `frontend/partials/`, product styles in `frontend/app.css`, and focused JavaScript files in `frontend/js/`. Stream parsing is built from TypeScript in `frontend/src/` and tested with Vitest.
+The browser shell is split into a small `frontend/index.html`, reusable markup in `frontend/partials/`, product styles in `frontend/app.css`, and focused JavaScript files in `frontend/js/`. New component slices live in `frontend/src/` and are built with Vite into committed browser assets; the Settings page is the first migrated slice. Stream parsing is also built from TypeScript and tested with Vitest.
 
 Committed CSS and generated frontend assets are enough to run the app. Rebuild styles or frontend generated assets only after related changes:
 

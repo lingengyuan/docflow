@@ -86,6 +86,7 @@ include = ["src*", "scripts*"]
   "frontend/js/theme.js",
 ]
 "share/docflow/frontend/js/generated" = [
+  "frontend/js/generated/settings-app.js",
   "frontend/js/generated/stream-parser.js",
 ]
 "share/docflow/frontend/partials" = [

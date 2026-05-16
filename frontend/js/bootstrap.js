@@ -5,6 +5,7 @@ const DOCFLOW_SCRIPT_ORDER = [
   '/js/i18n.js',
   '/js/theme.js',
   '/js/app-shell.js',
+  '/js/generated/settings-app.js',
   '/js/settings.js',
   '/js/settings-models.js',
   '/js/settings-data.js',

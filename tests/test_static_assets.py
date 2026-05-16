@@ -16,7 +16,12 @@ def frontend_source_text() -> str:
     scripts = "\n".join(
         path.read_text(encoding="utf-8") for path in sorted(Path("frontend/js").rglob("*.js"))
     )
-    return f"{html}\n{partials}\n{scripts}"
+    sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(Path("frontend/src").rglob("*"))
+        if path.suffix in {".ts", ".tsx"}
+    )
+    return f"{html}\n{partials}\n{scripts}\n{sources}"
 
 
 def test_favicon_svg_is_served():
@@ -149,7 +154,11 @@ def test_phase15_app_shell_has_notes_and_settings():
     assert 'id="nav-settings"' in html
     assert 'id="view-source"' in html
     assert 'id="view-notes"' in html
-    assert 'id="view-settings"' in html
+    assert (
+        'id="view-settings"' in html
+        or "viewId: 'view-settings'" in html
+        or 'viewId: "view-settings"' in html
+    )
     assert "createNoteFromNotesView" in html
     assert "importUrlFromNotesView" in html
     assert "refreshSettings" in html
@@ -252,6 +261,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "i18n.js",
         "theme.js",
         "app-shell.js",
+        "generated/settings-app.js",
         "settings.js",
         "settings-models.js",
         "settings-data.js",
@@ -316,6 +326,58 @@ def test_phase69_frontend_shell_is_split_and_testable():
 
     tailwind_config = Path("tailwind.config.js").read_text(encoding="utf-8")
     assert "./frontend/js/**/*.js" in tailwind_config
+    assert "./frontend/src/**/*.{ts,tsx}" in tailwind_config
+
+
+def test_phase106_settings_view_has_component_boundary_and_design_contract():
+    partial = Path("frontend/partials/app.html").read_text(encoding="utf-8")
+    settings_source = Path("frontend/src/settings-app.tsx").read_text(encoding="utf-8")
+    design_source = Path("frontend/src/design-system.ts").read_text(encoding="utf-8")
+    generated = Path("frontend/js/generated/settings-app.js").read_text(encoding="utf-8")
+    package = Path("package.json").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert 'id="settings-view-root"' in partial
+    assert 'id="view-settings"' not in partial
+    assert "function SettingsView()" in settings_source
+    assert "function PreferencePanel()" in settings_source
+    assert "settingsViewContract" in design_source
+    assert "DocFlowSettingsApp" in generated
+    assert "vite.settings.config.ts" in Path("tsconfig.json").read_text(encoding="utf-8")
+    assert '"preact": "10.29.1"' in package
+    assert "frontend/js/generated/settings-app.js" in pyproject
+
+
+def test_phase106_settings_component_keeps_user_surface_clean():
+    settings_source = Path("frontend/src/settings-app.tsx").read_text(encoding="utf-8")
+    design_source = Path("frontend/src/design-system.ts").read_text(encoding="utf-8")
+    generated = Path("frontend/js/generated/settings-app.js").read_text(encoding="utf-8")
+    public_text = f"{settings_source}\n{generated}"
+
+    for required_id in [
+        "settings-title",
+        "health-icon",
+        "health-details",
+        "settings-sources-list",
+        "settings-model-list",
+        "settings-insights-list",
+        "settings-storage-list",
+        "theme-toggle-btn",
+    ]:
+        assert required_id in public_text
+        assert required_id in design_source
+
+    for forbidden in [
+        "python main.py",
+        "install-local",
+        "restore-drill",
+        "repair-ids",
+        "dry-run",
+        "browser-acceptance",
+        "维护命令",
+        "恢复建议",
+    ]:
+        assert forbidden not in public_text
 
 
 def test_phase70_theme_tokens_focus_and_live_regions_exist():
@@ -327,7 +389,11 @@ def test_phase70_theme_tokens_focus_and_live_regions_exist():
     assert "--color-primary:" in app_css
     assert 'button:focus-visible' in app_css
     assert "colorVar" in tailwind_config
-    assert 'id="theme-toggle-btn"' in html
+    assert (
+        'id="theme-toggle-btn"' in html
+        or 'buttonId="theme-toggle-btn"' in html
+        or 'buttonId: "theme-toggle-btn"' in html
+    )
     assert "function toggleTheme" in html
     assert 'aria-live="polite"' in html
     assert "desktop_viewports_stay_usable" in Path("src/quality/browser_acceptance.py").read_text(

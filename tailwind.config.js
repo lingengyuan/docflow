@@ -4,7 +4,12 @@ const colorVar = variable => ({ opacityValue }) => {
 };
 
 module.exports = {
-  content: ["./frontend/index.html", "./frontend/partials/**/*.html", "./frontend/js/**/*.js"],
+  content: [
+    "./frontend/index.html",
+    "./frontend/partials/**/*.html",
+    "./frontend/js/**/*.js",
+    "./frontend/src/**/*.{ts,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
