@@ -16,6 +16,7 @@ DocFlow 入口。
 
 import json
 import logging
+import os
 import sys
 
 logging.basicConfig(
@@ -203,7 +204,7 @@ def scan():
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     pipeline = IngestPipeline.from_config(config_path)
-    for wd in _parse_watch_dirs(cfg):
+    for wd in _parse_watch_dirs(cfg, config_path=config_path):
         exts = wd.extensions if wd.extensions else pipeline.registry.supported_extensions
         for ext in exts:
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"
@@ -362,7 +363,7 @@ def _arg_value(args: list[str], name: str, default: str | None = None) -> str | 
 def _config_path() -> str:
     from src.maintenance.startup import ensure_config_file
 
-    return str(ensure_config_file("config.yaml"))
+    return str(ensure_config_file(os.getenv("DOCFLOW_CONFIG", "config.yaml")))
 
 
 def _print_command_group(title: str, commands: dict[str, str], prefix: str = "docflow") -> None:

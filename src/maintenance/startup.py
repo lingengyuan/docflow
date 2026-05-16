@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import yaml
 
+from src.config import ConfigError, DocFlowSettings
 from src.maintenance.offline_doctor import (
     _run_offline_runtime_checks as _run_offline_runtime_checks,
 )
@@ -74,6 +76,11 @@ def load_config(config_path: str | Path) -> tuple[dict, Path]:
     return cfg, path
 
 
+def load_settings(config_path: str | Path) -> DocFlowSettings:
+    path = ensure_config_file(config_path)
+    return DocFlowSettings.from_file(path)
+
+
 def _default_example_path(config_path: Path) -> Path:
     sibling = config_path.with_name("config.example.yaml")
     if sibling.exists():
@@ -104,31 +111,74 @@ def _resolve_config_path(value: str | Path, base_dir: Path) -> Path:
 
 def check_config(config_path: str | Path) -> dict:
     try:
-        cfg, path = load_config(config_path)
-    except Exception as exc:
+        settings = load_settings(config_path)
+    except (OSError, ConfigError, ValueError, TypeError) as exc:
         return {
             "status": "unavailable",
             "path": str(Path(config_path).expanduser()),
             "error": str(exc),
             "actions": ["Fix config.yaml before starting DocFlow."],
         }
-
-    missing = []
-    for dotted in ("paths.db_path", "qdrant.host", "qdrant.port"):
-        current = cfg
-        for part in dotted.split("."):
-            if not isinstance(current, dict) or part not in current:
-                missing.append(dotted)
-                break
-            current = current[part]
-
-    status = "ok" if not missing else "unavailable"
+    if not settings.paths.watch_dirs:
+        return {
+            "status": "unavailable",
+            "path": str(settings.config_path),
+            "missing": ["paths.watch_dirs"],
+            "error": "Missing required config value: paths.watch_dirs",
+            "actions": ["Add at least one watched folder to config.yaml."],
+        }
     return {
-        "status": status,
-        "path": str(path),
-        "missing": missing,
-        "actions": ["Restore required config.yaml keys."] if missing else [],
+        "status": "ok",
+        "path": str(settings.config_path),
+        "missing": [],
+        "db_path": str(settings.paths.db_path),
+        "qdrant": {
+            "host": settings.qdrant.host,
+            "port": settings.qdrant.port,
+            "collection": settings.qdrant.collection,
+        },
+        "actions": [],
     }
+
+
+def runtime_config(settings: DocFlowSettings) -> dict[str, Any]:
+    cfg = {
+        key: dict(value) if isinstance(value, dict) else value
+        for key, value in settings.raw.items()
+    }
+    cfg["paths"] = {
+        **cfg.get("paths", {}),
+        "db_path": str(settings.paths.db_path),
+        "id_counter": str(settings.paths.id_counter),
+        "watch_dirs": [
+            {
+                "path": str(item.path),
+                "recursive": item.recursive,
+                "extensions": list(item.extensions),
+            }
+            for item in settings.paths.watch_dirs
+        ],
+        "supported_extensions": list(settings.paths.supported_extensions),
+    }
+    cfg["qdrant"] = {
+        **cfg.get("qdrant", {}),
+        "host": settings.qdrant.host,
+        "port": settings.qdrant.port,
+        "collection": settings.qdrant.collection,
+    }
+    cfg["ollama"] = {
+        **cfg.get("ollama", {}),
+        "base_url": settings.ollama.base_url,
+        "ocr_model": settings.ollama.ocr_model,
+        "llm_model": settings.ollama.llm_model,
+        "llm_model_enhanced": settings.ollama.llm_model_enhanced,
+    }
+    cfg["privacy"] = {
+        **cfg.get("privacy", {}),
+        "allow_model_download": settings.privacy.allow_model_download,
+        "allowed_hosts": list(settings.privacy.allowed_hosts),
+    }
+    return cfg
 
 
 def ensure_qdrant(cfg: dict, runner=_run_command) -> dict:
@@ -152,7 +202,8 @@ def build_startup_report(
     }
 
     if checks["config"]["status"] == "ok":
-        cfg, _ = load_config(config_path)
+        settings = load_settings(config_path)
+        cfg = runtime_config(settings)
         qdrant_result = ensure_qdrant(cfg)["result"] if try_start_qdrant else check_qdrant(cfg)
         checks.update(
             {

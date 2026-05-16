@@ -8,8 +8,8 @@ import logging
 import os
 from pathlib import Path
 
-import yaml
-
+from src.config import DocFlowSettings
+from src.config_query import QuerySettings
 from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest.store import DocStore
 from src.query.answer_quality import (
@@ -31,7 +31,6 @@ from src.query.engine_helpers import (
 )
 from src.query.generator import Answer, AnswerGenerator
 from src.query.retriever import HybridRetriever
-from src.query.settings import INSUFFICIENT_EVIDENCE_MESSAGE, QuerySettings
 
 logger = logging.getLogger(__name__)
 
@@ -49,42 +48,35 @@ class QueryEngine:
 
     @classmethod
     def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> QueryEngine:
-        with open(config_path, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
-
-        db_path = Path(cfg["paths"]["db_path"]).expanduser()
-        reranker_cfg = cfg.get("reranker", {})
-        privacy_cfg = cfg.get("privacy", {})
-        allow_model_download = bool(privacy_cfg.get("allow_model_download", False))
+        settings = DocFlowSettings.from_file(config_path)
+        cfg = settings.raw
         embedding_config = embedding_backend_config_from_dict(cfg, config_path)
         retriever = HybridRetriever(
-            qdrant_host=cfg["qdrant"]["host"],
-            qdrant_port=cfg["qdrant"]["port"],
-            collection_name=cfg["qdrant"].get("collection", "docflow"),
-            reranker_model=reranker_cfg.get("model", "Qwen/Qwen3-Reranker-0.6B"),
-            reranker_instruction=reranker_cfg.get("instruction", ""),
-            db_path=db_path,
+            qdrant_host=settings.qdrant.host,
+            qdrant_port=settings.qdrant.port,
+            collection_name=settings.qdrant.collection,
+            reranker_model=settings.reranker.model,
+            reranker_instruction=settings.reranker.instruction,
+            db_path=settings.paths.db_path,
             store=store,
             embedding_config=embedding_config,
-            allow_model_download=allow_model_download,
+            allow_model_download=settings.privacy.allow_model_download,
         )
-        llm_cfg = cfg.get("llm", {})
-        query_cfg = cfg.get("query", {})
         generator = AnswerGenerator(
-            backend=llm_cfg.get("backend", cfg.get("llm_backend", "local")),
-            ollama_base_url=cfg["ollama"]["base_url"],
-            ollama_model=llm_cfg.get("ollama_model", cfg["ollama"]["llm_model"]),
-            mlx_model_name=llm_cfg.get("mlx_model", "mlx-community/Qwen3-4B-4bit"),
-            mlx_model_enhanced=llm_cfg.get("mlx_model_enhanced", "mlx-community/Qwen3-8B-4bit"),
-            claude_model=llm_cfg.get("claude_model", "claude-sonnet-4-6"),
-            claude_api_key=llm_cfg.get("claude_api_key", os.getenv("ANTHROPIC_API_KEY", "")),
-            seed=query_cfg.get("seed", 42),
-            temperature=float(query_cfg.get("temperature", 0.0)),
-            top_p=float(query_cfg.get("top_p", 1.0)),
-            max_tokens=int(query_cfg.get("max_tokens", 2048)),
-            allow_model_download=allow_model_download,
+            backend=settings.llm.backend,
+            ollama_base_url=settings.ollama.base_url,
+            ollama_model=settings.llm.ollama_model,
+            mlx_model_name=settings.llm.mlx_model,
+            mlx_model_enhanced=settings.llm.mlx_model_enhanced,
+            claude_model=settings.llm.claude_model,
+            claude_api_key=settings.llm.claude_api_key or os.getenv("ANTHROPIC_API_KEY", ""),
+            seed=settings.query.seed,
+            temperature=settings.query.temperature,
+            top_p=settings.query.top_p,
+            max_tokens=settings.query.max_tokens,
+            allow_model_download=settings.privacy.allow_model_download,
         )
-        return cls(retriever, generator, settings=QuerySettings.from_config(cfg))
+        return cls(retriever, generator, settings=settings.query)
 
     def query(
         self,
@@ -106,7 +98,7 @@ class QueryEngine:
         answer_chunks, related_notes = split_answer_and_related(chunks, self.settings)
         if not has_sufficient_evidence(answer_chunks, self.settings):
             return Answer(
-                text=INSUFFICIENT_EVIDENCE_MESSAGE,
+                text=self.settings.insufficient_evidence_message,
                 citations=[],
                 related_notes=related_notes,
                 quality=insufficient_evidence_quality(),
@@ -124,7 +116,7 @@ class QueryEngine:
             logger.warning(
                 "[query] answer generation failed; returning retrieved snippets", exc_info=True
             )
-            answer = fallback_answer(answer_chunks, exc)
+            answer = fallback_answer(answer_chunks, exc, self.settings)
             answer.related_notes = related_notes
             return answer
 
@@ -156,11 +148,11 @@ class QueryEngine:
             if include_related:
                 return (
                     [],
-                    iter([INSUFFICIENT_EVIDENCE_MESSAGE]),
+                    iter([self.settings.insufficient_evidence_message]),
                     [],
                     insufficient_evidence_quality(),
                 )
-            return [], iter([INSUFFICIENT_EVIDENCE_MESSAGE])
+            return [], iter([self.settings.insufficient_evidence_message])
         quality = retrieval_quality_from_chunks(answer_chunks)
         token_gen = self._safe_generate_stream(
             question,
@@ -232,7 +224,7 @@ class QueryEngine:
         answer_chunks, related_notes = split_answer_and_related(all_chunks, self.settings)
         if not has_sufficient_evidence(answer_chunks, self.settings):
             return Answer(
-                text=INSUFFICIENT_EVIDENCE_MESSAGE,
+                text=self.settings.insufficient_evidence_message,
                 citations=[],
                 related_notes=related_notes,
                 research_steps=steps,
@@ -249,7 +241,7 @@ class QueryEngine:
                 "[query] deep research generation failed; returning retrieved snippets",
                 exc_info=True,
             )
-            answer = fallback_answer(answer_chunks, exc)
+            answer = fallback_answer(answer_chunks, exc, self.settings)
         answer.related_notes = related_notes
         answer.research_steps = steps
         answer.quality = build_answer_quality(answer_chunks, answer.quality)
@@ -294,7 +286,7 @@ class QueryEngine:
             if quality is not None:
                 quality.clear()
                 quality.update(local_model_unavailable_quality(exc))
-            yield fallback_answer(chunks, exc).text
+            yield fallback_answer(chunks, exc, self.settings).text
 
     @staticmethod
     def default_quality() -> dict:

@@ -22,6 +22,7 @@ ingest:
   microbatch_max_files: 8
   microbatch_max_chunks: 128
   microbatch_linger_ms: 75
+  pause_check_interval_ms: 500
   adaptive_batch_char_budget: 32768
   adaptive_batch_max: 64
   embedding_cache: true
@@ -77,6 +78,7 @@ query:
   default_answer_chunks: 5
   min_answer_chunks: 3
   max_research_steps: 4
+  fallback_mode: "visible_snippet_fallback"
 
 privacy:
   allow_model_download: false

@@ -5,11 +5,11 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import yaml
 from fastapi import FastAPI
 
 from src.api.model_tasks import ModelTaskTimeout
 from src.api.runtime import get_api_runtime
+from src.config import DocFlowSettings
 from src.ingest.pipeline import IngestPipeline
 from src.ingest.queue import IngestQueue
 from src.ingest.store import DocStore
@@ -50,18 +50,15 @@ def _warmup_models():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     api = _api()
-    with open(api.CONFIG_PATH, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+    settings = DocFlowSettings.from_file(api.CONFIG_PATH)
 
-    llm_cfg = cfg.get("llm", {})
-    ingest_cfg = cfg.get("ingest", {})
-    backend = llm_cfg.get("backend", "local")
+    backend = settings.llm.backend
     if backend == "mlx":
         llm_options = list(
             dict.fromkeys(
                 [
-                    llm_cfg.get("mlx_model", ""),
-                    llm_cfg.get("mlx_model_enhanced", ""),
+                    settings.llm.mlx_model,
+                    settings.llm.mlx_model_enhanced,
                 ]
             )
         )
@@ -69,8 +66,7 @@ async def lifespan(app: FastAPI):
         llm_options = list(
             dict.fromkeys(
                 [
-                    llm_cfg.get("claude_model", ""),
-                    llm_cfg.get("claude_model_enhanced", ""),
+                    settings.llm.claude_model,
                 ]
             )
         )
@@ -78,21 +74,18 @@ async def lifespan(app: FastAPI):
         llm_options = list(
             dict.fromkeys(
                 [
-                    llm_cfg.get("ollama_model", cfg["ollama"]["llm_model"]),
-                    llm_cfg.get(
-                        "ollama_model_enhanced", cfg["ollama"].get("llm_model_enhanced", "")
-                    ),
+                    settings.llm.ollama_model,
+                    settings.llm.ollama_model_enhanced,
                 ]
             )
         )
     api.llm_options = [m for m in llm_options if m]
     api.app_state.llm_options = api.llm_options
 
-    db_path = Path(cfg["paths"]["db_path"]).expanduser()
-    api.watch_dirs = api._parse_watch_dirs(cfg)
+    api.watch_dirs = api._parse_watch_dirs(settings.raw, config_path=settings.config_path)
     api.app_state.watch_dirs = api.watch_dirs
 
-    api.store = DocStore(db_path)
+    api.store = DocStore(settings.paths.db_path)
     api.app_state.store = api.store
 
     n_reset = api.store.reset_processing_files()
@@ -110,16 +103,14 @@ async def lifespan(app: FastAPI):
         api.pipeline,
         on_done=None,
         ml_executor=None,
-        parse_workers=ingest_cfg.get("parse_workers", 2),
-        microbatch_max_files=ingest_cfg.get("microbatch_max_files", 8),
-        microbatch_max_chunks=ingest_cfg.get("microbatch_max_chunks", 128),
-        microbatch_linger_ms=ingest_cfg.get("microbatch_linger_ms", 75),
+        parse_workers=settings.ingest.parse_workers,
+        microbatch_max_files=settings.ingest.microbatch_max_files,
+        microbatch_max_chunks=settings.ingest.microbatch_max_chunks,
+        microbatch_linger_ms=settings.ingest.microbatch_linger_ms,
         should_pause_background=lambda: api.model_tasks.is_foreground_active(
             grace_s=api.FOREGROUND_PAUSE_GRACE_S
         ),
-        pause_check_interval_ms=ingest_cfg.get(
-            "pause_check_interval_ms", api.INGEST_PAUSE_CHECK_INTERVAL_MS
-        ),
+        pause_check_interval_ms=settings.ingest.pause_check_interval_ms,
     )
     api.ingest_queue.start()
     api.app_state.ingest_queue = api.ingest_queue
@@ -159,7 +150,7 @@ async def lifespan(app: FastAPI):
             if r["qdrant_ids"]:
                 try:
                     qdrant.delete(
-                        collection_name=cfg["qdrant"].get("collection", "docflow"),
+                        collection_name=settings.qdrant.collection,
                         points_selector=r["qdrant_ids"],
                     )
                 except Exception as e:

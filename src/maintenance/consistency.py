@@ -47,7 +47,7 @@ def collect_watch_files(config_path: str | Path = "config.yaml") -> list[Path]:
         cfg = yaml.safe_load(f)
     pipeline = IngestPipeline.from_config(config_path)
     paths: list[Path] = []
-    for wd in _parse_watch_dirs(cfg):
+    for wd in _parse_watch_dirs(cfg, config_path=config_path):
         exts = wd.extensions if wd.extensions else pipeline.registry.supported_extensions
         for ext in exts:
             pattern = f"**/*{ext}" if wd.recursive else f"*{ext}"

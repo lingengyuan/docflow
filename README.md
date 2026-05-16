@@ -75,7 +75,7 @@ docflow doctor --offline
 
 ## Configuration
 
-DocFlow generates `config.yaml` from `config.example.yaml` on first run. Configure watched folders, supported extensions, SQLite path, Qdrant connection, embedding model, local model backend, and privacy settings there.
+DocFlow generates `config.yaml` from `config.example.yaml` on first run. Configure watched folders, supported extensions, SQLite path, Qdrant connection, embedding model, local model backend, privacy settings, and answer-quality thresholds there.
 
 ## Development
 

@@ -60,7 +60,7 @@ docflow doctor --offline
 
 ### 配置
 
-DocFlow 首次运行会从 `config.example.yaml` 创建 `config.yaml`。监听目录、支持文件类型、SQLite 路径、Qdrant 连接、Embedding 模型、本地模型后端和隐私设置都在这里配置。
+DocFlow 首次运行会从 `config.example.yaml` 创建 `config.yaml`。监听目录、支持文件类型、SQLite 路径、Qdrant 连接、Embedding 模型、本地模型后端、隐私设置和回答质量阈值都在这里配置。
 
 ### 开发与测试
 

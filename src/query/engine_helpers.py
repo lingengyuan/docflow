@@ -9,7 +9,7 @@ from src.query.answer_quality import (
     retrieval_quality_from_chunks,
 )
 from src.query.generator import Answer, citation_from_chunk
-from src.query.settings import INSUFFICIENT_EVIDENCE_MESSAGE, RELATED_NOTES_LIMIT, QuerySettings
+from src.query.settings import QuerySettings
 
 
 def split_answer_and_related(
@@ -68,8 +68,9 @@ def related_notes(
     answer_chunks: list[dict],
     related_chunks: list[dict],
     extra_exclude_keys: set[str] | None = None,
-    limit: int = RELATED_NOTES_LIMIT,
+    limit: int | None = None,
 ) -> list[dict]:
+    limit = QuerySettings().related_notes_limit if limit is None else int(limit)
     cited_keys = {
         chunk.get("file_path") or chunk.get("file_name")
         for chunk in answer_chunks
@@ -123,10 +124,15 @@ def has_sufficient_evidence(
     return True
 
 
-def fallback_answer(chunks: list[dict], exc: Exception) -> Answer:
+def fallback_answer(
+    chunks: list[dict],
+    exc: Exception,
+    settings: QuerySettings | None = None,
+) -> Answer:
+    settings = settings or QuerySettings()
     if not chunks:
         return Answer(
-            text=INSUFFICIENT_EVIDENCE_MESSAGE,
+            text=settings.insufficient_evidence_message,
             citations=[],
             quality=insufficient_evidence_quality(),
         )

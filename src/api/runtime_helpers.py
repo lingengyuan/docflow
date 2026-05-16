@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import yaml
 
 from src.api.runtime import get_api_runtime
+from src.config import ConfigError, DocFlowSettings
+from src.config import WatchDirSettings as RuntimeWatchDirSettings
 from src.ingest.watcher import WatchDir
 from src.model_cache import (
     assert_model_download_allowed,
@@ -26,30 +28,24 @@ def _api():
     return get_api_runtime()
 
 
-def _parse_watch_dirs(cfg: dict) -> list[WatchDir]:
-    """解析 config.yaml 中的 watch_dirs 配置（列表或兼容旧版单字符串）。"""
-    paths_cfg = cfg.get("paths", {})
-    raw = paths_cfg.get("watch_dirs", paths_cfg.get("watch_dir"))
-    if raw is None:
-        raw = "~/Documents/DocFlow"
+def _parse_watch_dirs(
+    cfg: dict,
+    config_path: str | Path | None = None,
+) -> list[WatchDir]:
+    """Parse configured watch folders through the typed runtime settings."""
+    resolved_config_path = Path(config_path).expanduser() if config_path else _api().CONFIG_PATH
+    settings = DocFlowSettings.from_mapping(cfg, resolved_config_path)
+    if not settings.paths.watch_dirs:
+        raise ConfigError("Missing required config value: paths.watch_dirs")
+    return [_watch_dir_from_settings(item) for item in settings.paths.watch_dirs]
 
-    if isinstance(raw, str):
-        # 兼容旧版单目录配置
-        return [WatchDir(path=Path(raw).expanduser(), recursive=False)]
 
-    result: list[WatchDir] = []
-    for entry in raw:
-        if isinstance(entry, str):
-            result.append(WatchDir(path=Path(entry).expanduser(), recursive=False))
-        else:
-            result.append(
-                WatchDir(
-                    path=Path(entry["path"]).expanduser(),
-                    recursive=entry.get("recursive", False),
-                    extensions=entry.get("extensions", []),
-                )
-            )
-    return result
+def _watch_dir_from_settings(item: RuntimeWatchDirSettings) -> WatchDir:
+    return WatchDir(
+        path=item.path,
+        recursive=item.recursive,
+        extensions=list(item.extensions),
+    )
 
 
 def _configured_model_names(cfg: dict) -> dict[str, str]:

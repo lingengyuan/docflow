@@ -16,8 +16,7 @@ import logging
 from pathlib import Path
 from time import perf_counter
 
-import yaml
-
+from src.config import DocFlowSettings
 from src.domain_types import FileStatus
 from src.embedding_backend import embedding_backend_config_from_dict
 from src.ingest import pipeline_batch, pipeline_context, pipeline_vectors
@@ -58,44 +57,38 @@ class IngestPipeline:
 
     @classmethod
     def from_config(cls, config_path: str | Path, store: DocStore | None = None) -> IngestPipeline:
-        with open(config_path, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
-
-        db_path = Path(cfg["paths"]["db_path"]).expanduser()
-        ingest_cfg = cfg.get("ingest", {})
+        settings = DocFlowSettings.from_file(config_path)
+        cfg = settings.raw
         embedding_config = embedding_backend_config_from_dict(cfg, config_path)
 
         registry = ParserRegistry.from_config(cfg)
         chunker = StructuredChunker(
-            chunk_size=cfg["chunking"]["chunk_size"],
-            chunk_overlap=cfg["chunking"]["chunk_overlap"],
+            chunk_size=settings.chunking.chunk_size,
+            chunk_overlap=settings.chunking.chunk_overlap,
         )
-        id_counter = Path(cfg["paths"].get("id_counter", "qdrant_id_counter.txt")).expanduser()
         embedder = Embedder(
-            qdrant_host=cfg["qdrant"]["host"],
-            qdrant_port=cfg["qdrant"]["port"],
-            collection_name=cfg["qdrant"].get("collection", "docflow"),
-            batch_size=cfg["embedding"]["batch_size"],
-            id_counter_path=id_counter,
-            adaptive_batch_char_budget=ingest_cfg.get("adaptive_batch_char_budget"),
-            adaptive_batch_max=ingest_cfg.get("adaptive_batch_max"),
+            qdrant_host=settings.qdrant.host,
+            qdrant_port=settings.qdrant.port,
+            collection_name=settings.qdrant.collection,
+            batch_size=settings.embedding.batch_size,
+            id_counter_path=settings.paths.id_counter,
+            adaptive_batch_char_budget=settings.ingest.adaptive_batch_char_budget,
+            adaptive_batch_max=settings.ingest.adaptive_batch_max,
             embedding_config=embedding_config,
         )
-        shared_store = store or DocStore(db_path)
+        shared_store = store or DocStore(settings.paths.db_path)
 
         return cls(
             registry,
             chunker,
             embedder,
             shared_store,
-            use_embedding_cache=ingest_cfg.get("embedding_cache", True),
-            contextual_prefix_enabled=ingest_cfg.get("contextual_prefix", False),
-            contextual_prefix_mode=ingest_cfg.get("contextual_prefix_mode", "metadata"),
-            contextual_prefix_model=ingest_cfg.get(
-                "contextual_prefix_model", cfg.get("ollama", {}).get("llm_model", "")
-            ),
-            ollama_base_url=cfg.get("ollama", {}).get("base_url", "http://localhost:11434"),
-            parent_context_chars=ingest_cfg.get("parent_context_chars", 2048),
+            use_embedding_cache=settings.ingest.embedding_cache,
+            contextual_prefix_enabled=settings.ingest.contextual_prefix,
+            contextual_prefix_mode=settings.ingest.contextual_prefix_mode,
+            contextual_prefix_model=settings.ingest.contextual_prefix_model,
+            ollama_base_url=settings.ollama.base_url,
+            parent_context_chars=settings.ingest.parent_context_chars,
         )
 
     def _parse_document(self, path: Path) -> tuple[ParsedDocument, str, float]:

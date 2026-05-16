@@ -73,8 +73,13 @@ def test_build_startup_report_marks_qdrant_as_blocker(monkeypatch, tmp_path):
     config_path.write_text(
         yaml.safe_dump(
             {
-                "paths": {"db_path": str(tmp_path / "docflow.db")},
+                "paths": {
+                    "watch_dirs": [{"path": "data/watch", "recursive": True}],
+                    "db_path": str(tmp_path / "docflow.db"),
+                },
                 "qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"},
+                "embedding": {"model": "Qwen/Qwen3-Embedding-0.6B"},
+                "chunking": {"chunk_size": 512, "chunk_overlap": 51},
                 "ollama": {"base_url": "http://localhost:11434"},
             }
         ),
@@ -98,6 +103,75 @@ def test_build_startup_report_marks_qdrant_as_blocker(monkeypatch, tmp_path):
     assert report["can_start"] is False
     assert report["startup_blockers"] == ["qdrant"]
     assert "start qdrant" in report["actions"]
+
+
+def test_check_config_requires_watch_dirs(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "paths": {
+                    "db_path": "data/docflow.db",
+                    "id_counter": "data/qdrant_id_counter.txt",
+                },
+                "qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"},
+                "embedding": {"model": "Qwen/Qwen3-Embedding-0.6B"},
+                "chunking": {"chunk_size": 512, "chunk_overlap": 51},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = startup.check_config(config_path)
+
+    assert result["status"] == "unavailable"
+    assert result["missing"] == ["paths.watch_dirs"]
+    assert "paths.watch_dirs" in result["error"]
+
+
+def test_startup_report_uses_config_relative_sqlite_path(monkeypatch, tmp_path):
+    config_path = tmp_path / "config.yaml"
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    watch_dir = data_dir / "watch"
+    watch_dir.mkdir()
+    db_path = data_dir / "docflow.db"
+    db_path.write_text("not a sqlite database", encoding="utf-8")
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "paths": {
+                    "watch_dirs": [{"path": "data/watch", "recursive": True}],
+                    "db_path": "data/docflow.db",
+                    "id_counter": "data/qdrant_id_counter.txt",
+                },
+                "qdrant": {"host": "localhost", "port": 6333, "collection": "docflow"},
+                "embedding": {"model": "Qwen/Qwen3-Embedding-0.6B"},
+                "chunking": {"chunk_size": 512, "chunk_overlap": 51},
+                "ollama": {"base_url": "http://localhost:11434"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        startup, "check_python_dependencies", lambda: {"status": "ok", "actions": []}
+    )
+    monkeypatch.setattr(
+        startup, "check_qdrant", lambda cfg: {"status": "ok", "actions": []}
+    )
+    monkeypatch.setattr(
+        startup, "check_ollama", lambda cfg: {"status": "degraded", "actions": [], "optional": True}
+    )
+    monkeypatch.setattr(
+        startup, "check_app_port", lambda port, host="127.0.0.1": {"status": "ok", "actions": []}
+    )
+
+    report = startup.build_startup_report(config_path)
+
+    sqlite_check = report["checks"]["sqlite"]
+    assert sqlite_check["path"] == str(db_path)
+    assert sqlite_check["status"] == "unavailable"
+    assert "file is not a database" in sqlite_check["error"]
 
 
 def test_offline_report_records_zero_unexpected_hosts(monkeypatch):

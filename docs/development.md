@@ -82,6 +82,13 @@ Normal browser UI must feel like a finished personal knowledge product. Develope
 
 - Runtime dependencies must live in the API application context; do not add new module-level state for the same object.
 - New query behavior should be configurable through the `query:` section when it affects relevance, answer limits, or refusal thresholds.
+- `config.example.yaml` and `config.docker.yaml` must carry the same user-facing quality settings. Docker may change service hosts and model backend, but it must not silently use different answer thresholds.
+- Query quality settings mean:
+  - `min_rerank_score`: how strong the best reranked match must be before DocFlow writes a full answer.
+  - `min_vector_score`: the equivalent floor when vector score is the available signal.
+  - `default_answer_chunks` / `min_answer_chunks`: how many source chunks are allowed to support an answer before the rest becomes related material.
+  - `related_notes_limit`: how many extra related sources may be shown without being treated as direct evidence.
+  - `fallback_mode`: must stay visibly degraded; model failures may show source snippets, but must not look like a normal answer.
 - SQLite schema changes belong in store migration code and need tests that prove an existing database can open after the change.
 - Config changes should keep old defaults working. If a rebuild or reindex is unavoidable, document that clearly before release.
 - Vector-store changes must say whether existing Qdrant collections are compatible, need a `rebuild --qdrant-only`, or require a full reindex.
