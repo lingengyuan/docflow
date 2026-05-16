@@ -169,7 +169,12 @@ def check_public_docs() -> None:
         ROOT / path
         for path in tracked
         if not path.startswith(("docs/history/", "build/", "dist/", "tests/"))
-        and path not in {"scripts/run_release_surface_check.py", "scripts/package_smoke.py"}
+        and path
+        not in {
+            "scripts/run_release_surface_check.py",
+            "scripts/run_dead_code_audit.py",
+            "scripts/package_smoke.py",
+        }
         and Path(path).suffix in {".py", ".js", ".html", ".md", ".toml", ".json", ".yml", ".yaml"}
     ]
     for scanned_file in scanned_files:
