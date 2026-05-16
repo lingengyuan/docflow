@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -17,69 +16,24 @@ from src.query.answer_quality import (
     grounded_quality,
     insufficient_evidence_quality,
     local_model_unavailable_quality,
-    quality_with_claim_support,
     retrieval_quality_from_chunks,
 )
-from src.query.generator import Answer, AnswerGenerator, citation_from_chunk
+from src.query.engine_helpers import (
+    answer_quality as build_answer_quality,
+)
+from src.query.engine_helpers import (
+    chunk_key,
+    fallback_answer,
+    has_sufficient_evidence,
+    is_table_query,
+    research_queries,
+    split_answer_and_related,
+)
+from src.query.generator import Answer, AnswerGenerator
 from src.query.retriever import HybridRetriever
-
-TABLE_KEYWORDS = {
-    "表格",
-    "数据",
-    "统计",
-    "总计",
-    "合计",
-    "金额",
-    "数量",
-    "比例",
-    "table",
-    "data",
-    "total",
-    "sum",
-    "amount",
-    "count",
-    "ratio",
-    "percent",
-}
+from src.query.settings import INSUFFICIENT_EVIDENCE_MESSAGE, QuerySettings
 
 logger = logging.getLogger(__name__)
-
-INSUFFICIENT_EVIDENCE_MESSAGE = (
-    "在现有文档中未找到足够可靠的信息。请扩大提问范围、换个问法，或确认相关文件已经完成入库。"
-)
-MIN_RERANK_SCORE = 0.12
-MIN_VECTOR_SCORE = 0.40
-RELATED_NOTES_LIMIT = 4
-DEFAULT_ANSWER_CHUNKS = 5
-MIN_ANSWER_CHUNKS = 3
-MAX_RESEARCH_STEPS = 4
-
-
-@dataclass(frozen=True)
-class QuerySettings:
-    min_rerank_score: float = MIN_RERANK_SCORE
-    min_vector_score: float = MIN_VECTOR_SCORE
-    related_notes_limit: int = RELATED_NOTES_LIMIT
-    default_answer_chunks: int = DEFAULT_ANSWER_CHUNKS
-    min_answer_chunks: int = MIN_ANSWER_CHUNKS
-    max_research_steps: int = MAX_RESEARCH_STEPS
-    table_keywords: frozenset[str] = field(default_factory=lambda: frozenset(TABLE_KEYWORDS))
-
-    @classmethod
-    def from_config(cls, cfg: dict) -> QuerySettings:
-        query_cfg = cfg.get("query", {})
-        table_keywords = query_cfg.get("table_keywords")
-        return cls(
-            min_rerank_score=float(query_cfg.get("min_rerank_score", MIN_RERANK_SCORE)),
-            min_vector_score=float(query_cfg.get("min_vector_score", MIN_VECTOR_SCORE)),
-            related_notes_limit=int(query_cfg.get("related_notes_limit", RELATED_NOTES_LIMIT)),
-            default_answer_chunks=int(
-                query_cfg.get("default_answer_chunks", DEFAULT_ANSWER_CHUNKS)
-            ),
-            min_answer_chunks=int(query_cfg.get("min_answer_chunks", MIN_ANSWER_CHUNKS)),
-            max_research_steps=int(query_cfg.get("max_research_steps", MAX_RESEARCH_STEPS)),
-            table_keywords=frozenset(table_keywords or TABLE_KEYWORDS),
-        )
 
 
 class QueryEngine:
@@ -141,7 +95,7 @@ class QueryEngine:
         retrieval_query: str | None = None,
     ) -> Answer:
         effective_query = retrieval_query or question
-        prefer_tables = self._is_table_query(effective_query, self.settings)
+        prefer_tables = is_table_query(effective_query, self.settings)
         chunks = self.retriever.retrieve(
             query=effective_query,
             file_filter=file_filter,
@@ -149,8 +103,8 @@ class QueryEngine:
             prefer_tables=prefer_tables,
             related_k=self.settings.related_notes_limit,
         )
-        answer_chunks, related_notes = self._split_answer_and_related(chunks)
-        if not self._has_sufficient_evidence(answer_chunks, self.settings):
+        answer_chunks, related_notes = split_answer_and_related(chunks, self.settings)
+        if not has_sufficient_evidence(answer_chunks, self.settings):
             return Answer(
                 text=INSUFFICIENT_EVIDENCE_MESSAGE,
                 citations=[],
@@ -164,13 +118,13 @@ class QueryEngine:
                 conversation_context=conversation_context,
             )
             answer.related_notes = related_notes
-            answer.quality = self._answer_quality(answer_chunks, answer.quality)
+            answer.quality = build_answer_quality(answer_chunks, answer.quality)
             return answer
         except Exception as exc:
             logger.warning(
                 "[query] answer generation failed; returning retrieved snippets", exc_info=True
             )
-            answer = self._fallback_answer(answer_chunks, exc)
+            answer = fallback_answer(answer_chunks, exc)
             answer.related_notes = related_notes
             return answer
 
@@ -186,7 +140,7 @@ class QueryEngine:
     ):
         """返回 (chunks, token_generator)，先做检索再流式生成。"""
         effective_query = retrieval_query or question
-        prefer_tables = self._is_table_query(effective_query, self.settings)
+        prefer_tables = is_table_query(effective_query, self.settings)
         chunks = self.retriever.retrieve(
             query=effective_query,
             file_filter=file_filter,
@@ -196,9 +150,9 @@ class QueryEngine:
             related_k=self.settings.related_notes_limit if include_related else 0,
         )
         answer_chunks, related_notes = (
-            self._split_answer_and_related(chunks) if include_related else (chunks, [])
+            split_answer_and_related(chunks, self.settings) if include_related else (chunks, [])
         )
-        if not self._has_sufficient_evidence(answer_chunks, self.settings):
+        if not has_sufficient_evidence(answer_chunks, self.settings):
             if include_related:
                 return (
                     [],
@@ -239,13 +193,13 @@ class QueryEngine:
         max_steps: int = 3,
         conversation_context: list[dict] | None = None,
     ) -> Answer:
-        step_queries = self._research_queries(question, max_steps=max_steps)
+        step_queries = research_queries(question, self.settings, max_steps=max_steps)
         all_chunks: list[dict] = []
         steps: list[dict] = []
         seen_keys: set[str] = set()
 
         for index, step_query in enumerate(step_queries, 1):
-            prefer_tables = self._is_table_query(step_query, self.settings)
+            prefer_tables = is_table_query(step_query, self.settings)
             chunks = self.retriever.retrieve(
                 query=step_query,
                 file_filter=file_filter,
@@ -256,7 +210,7 @@ class QueryEngine:
             added = 0
             top_files: list[str] = []
             for chunk in chunks:
-                key = self._chunk_key(chunk)
+                key = chunk_key(chunk)
                 if key in seen_keys:
                     continue
                 seen_keys.add(key)
@@ -275,8 +229,8 @@ class QueryEngine:
                 }
             )
 
-        answer_chunks, related_notes = self._split_answer_and_related(all_chunks)
-        if not self._has_sufficient_evidence(answer_chunks, self.settings):
+        answer_chunks, related_notes = split_answer_and_related(all_chunks, self.settings)
+        if not has_sufficient_evidence(answer_chunks, self.settings):
             return Answer(
                 text=INSUFFICIENT_EVIDENCE_MESSAGE,
                 citations=[],
@@ -295,133 +249,26 @@ class QueryEngine:
                 "[query] deep research generation failed; returning retrieved snippets",
                 exc_info=True,
             )
-            answer = self._fallback_answer(answer_chunks, exc)
+            answer = fallback_answer(answer_chunks, exc)
         answer.related_notes = related_notes
         answer.research_steps = steps
-        answer.quality = self._answer_quality(answer_chunks, answer.quality)
+        answer.quality = build_answer_quality(answer_chunks, answer.quality)
         return answer
-
-    def _split_answer_and_related(self, chunks: list[dict]) -> tuple[list[dict], list[dict]]:
-        if not chunks:
-            return [], []
-        related_limit = self.settings.related_notes_limit
-        if len(chunks) > related_limit + self.settings.min_answer_chunks:
-            answer_limit = len(chunks) - related_limit
-        else:
-            answer_limit = min(len(chunks), self.settings.default_answer_chunks)
-        answer_chunks = chunks[:answer_limit]
-        related_chunks = chunks[answer_limit:]
-        return answer_chunks, self._related_notes(
-            answer_chunks,
-            related_chunks,
-            limit=related_limit,
-        )
-
-    def _research_queries(self, question: str, max_steps: int = 3) -> list[str]:
-        clean = " ".join(str(question or "").split())
-        if not clean:
-            return []
-        limit = max(1, min(int(max_steps or 3), self.settings.max_research_steps))
-        candidates = [
-            clean,
-            f"{clean}\n关键事实 证据 背景",
-            f"{clean}\n对比 差异 风险 结论",
-            f"{clean}\n时间线 原因 影响",
-        ]
-        result: list[str] = []
-        seen: set[str] = set()
-        for item in candidates:
-            if item in seen:
-                continue
-            seen.add(item)
-            result.append(item)
-            if len(result) >= limit:
-                break
-        return result
-
-    @staticmethod
-    def _chunk_key(chunk: dict) -> str:
-        if chunk.get("qdrant_id") is not None:
-            return f"q:{chunk.get('qdrant_id')}"
-        return "|".join(
-            str(chunk.get(key, ""))
-            for key in ("file_path", "file_name", "page_num", "section", "text", "raw_text")
-        )
-
-    @staticmethod
-    def _related_notes(
-        answer_chunks: list[dict],
-        related_chunks: list[dict],
-        extra_exclude_keys: set[str] | None = None,
-        limit: int = RELATED_NOTES_LIMIT,
-    ) -> list[dict]:
-        cited_keys = {
-            chunk.get("file_path") or chunk.get("file_name")
-            for chunk in answer_chunks
-            if chunk.get("file_path") or chunk.get("file_name")
-        }
-        cited_keys.update(extra_exclude_keys or set())
-        notes: list[dict] = []
-        seen: set[str] = set()
-        for chunk in related_chunks:
-            key = chunk.get("file_path") or chunk.get("file_name")
-            if not key or key in cited_keys or key in seen:
-                continue
-            seen.add(key)
-            score = chunk.get("rerank_score", chunk.get("rrf_score", chunk.get("score", 0.0)))
-            text = chunk.get("text") or chunk.get("raw_text") or chunk.get("parent_text") or ""
-            notes.append(
-                {
-                    "file_name": chunk.get("file_name", ""),
-                    "file_path": chunk.get("file_path", ""),
-                    "page_num": chunk.get("page_num", 0),
-                    "section": chunk.get("section", ""),
-                    "snippet": text[:220],
-                    "score": round(float(score or 0.0), 4),
-                    "chunk_type": chunk.get("chunk_type", "text"),
-                }
-            )
-            if len(notes) >= limit:
-                break
-        return notes
 
     @staticmethod
     def _is_table_query(question: str, settings: QuerySettings | None = None) -> bool:
-        settings = settings or QuerySettings()
-        q_lower = question.lower()
-        return any(kw in q_lower for kw in settings.table_keywords)
+        return is_table_query(question, settings)
 
     @staticmethod
     def _has_sufficient_evidence(
         chunks: list[dict],
         settings: QuerySettings | None = None,
     ) -> bool:
-        settings = settings or QuerySettings()
-        if not chunks:
-            return False
-        top = chunks[0]
-        if top.get("rerank_score") is not None and not top.get("rerank_fallback"):
-            return float(top.get("rerank_score") or 0) >= settings.min_rerank_score
-        vec_score = top.get("vec_score")
-        if vec_score is not None and float(vec_score or 0) > 0:
-            return float(vec_score) >= settings.min_vector_score
-        return True
+        return has_sufficient_evidence(chunks, settings)
 
     @staticmethod
     def _fallback_answer(chunks: list[dict], exc: Exception) -> Answer:
-        if not chunks:
-            return Answer(
-                text=INSUFFICIENT_EVIDENCE_MESSAGE,
-                citations=[],
-                quality=insufficient_evidence_quality(),
-            )
-
-        text = (
-            "已找到相关文档片段，但本地回答模型暂时不可用。"
-            "请先查看下方引用片段；稍后可重试完整回答。"
-        )
-        citations = [citation_from_chunk(chunk) for chunk in chunks]
-        return Answer(text=text, citations=citations, quality=local_model_unavailable_quality(exc))
+        return fallback_answer(chunks, exc)
 
     def _safe_generate_stream(
         self,
@@ -447,7 +294,7 @@ class QueryEngine:
             if quality is not None:
                 quality.clear()
                 quality.update(local_model_unavailable_quality(exc))
-            yield self._fallback_answer(chunks, exc).text
+            yield fallback_answer(chunks, exc).text
 
     @staticmethod
     def default_quality() -> dict:
@@ -455,8 +302,4 @@ class QueryEngine:
 
     @staticmethod
     def _answer_quality(chunks: list[dict], answer_quality: dict | None) -> dict:
-        quality = retrieval_quality_from_chunks(chunks)
-        claim_support = (answer_quality or {}).get("claim_support")
-        if isinstance(claim_support, dict):
-            return quality_with_claim_support(quality, claim_support)
-        return quality
+        return build_answer_quality(chunks, answer_quality)

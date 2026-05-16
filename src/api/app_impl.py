@@ -11,51 +11,10 @@ import sys
 import types
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, Response
-from fastapi.staticfiles import StaticFiles
 
-from src.api.handlers.import_handlers import (
-    create_demo_library,
-    create_knowledge_output,
-    create_note,
-    import_url,
-    save_answer_note,
-    upload_file,
-)
-from src.api.handlers.library_handlers import (
-    batch_favorite,
-    batch_rebuild_files,
-    batch_update_file_metadata,
-    clear_history,
-    knowledge_overview,
-    knowledge_review,
-    library_meta,
-    list_favorites,
-    list_file_chunks,
-    list_files,
-    list_history,
-    preview_file,
-    preview_file_head,
-    queue_status,
-    search_history,
-    storage_usage,
-    summarize_files,
-    toggle_favorite,
-    trigger_ingest,
-    update_file_metadata,
-)
-from src.api.handlers.maintenance_handlers import debug_retrieve
-from src.api.handlers.query_handlers import (
-    answer_feedback,
-    create_conversation,
-    delete_conversation,
-    list_conversation_messages,
-    list_conversations,
-    query,
-    query_stream,
-    research,
-)
-from src.api.handlers.settings_handlers import get_llm, health, list_sources, set_llm
+from src.api.app_routes import register_api_routes
+from src.api.app_static import STATIC_DIR as STATIC_DIR
+from src.api.app_static import mount_static_frontend
 from src.api.health_checks import (
     _aggregate_health_status,
     _check_models,
@@ -70,12 +29,6 @@ from src.api.health_checks import (
 )
 from src.api.lifecycle import lifespan
 from src.api.model_tasks import ModelTaskController
-from src.api.routes import imports as imports_routes
-from src.api.routes import knowledge as knowledge_routes
-from src.api.routes import library as library_routes
-from src.api.routes import maintenance as maintenance_routes
-from src.api.routes import query as query_routes
-from src.api.routes import settings as settings_routes
 from src.api.runtime import ApiRuntime, configure_api_runtime, get_api_runtime
 from src.api.runtime_helpers import (
     _app_data_paths,
@@ -106,7 +59,6 @@ from src.ingest.imports import (
 )
 from src.knowledge_outputs import get_knowledge_output_type, knowledge_output_tags
 from src.maintenance.startup import ensure_config_file
-from src.resources import resource_path
 
 __all__ = [
     "app",
@@ -227,114 +179,8 @@ def _sync_app_state() -> None:
 app = FastAPI(title="DocFlow", lifespan=lifespan)
 
 
-# ---------------------------------------------------------------------------
-# API handlers
-# ---------------------------------------------------------------------------
-
-
-def _register_api_routes() -> None:
-    app.include_router(
-        query_routes.create_router(
-            {
-                "query": query,
-                "research": research,
-                "query_stream": query_stream,
-                "answer_feedback": answer_feedback,
-                "list_conversations": list_conversations,
-                "create_conversation": create_conversation,
-                "list_conversation_messages": list_conversation_messages,
-                "delete_conversation": delete_conversation,
-            }
-        )
-    )
-    app.include_router(
-        library_routes.create_router(
-            {
-                "trigger_ingest": trigger_ingest,
-                "queue_status": queue_status,
-                "list_files": list_files,
-                "library_meta": library_meta,
-                "storage_usage": storage_usage,
-                "update_file_metadata": update_file_metadata,
-                "batch_favorite": batch_favorite,
-                "batch_update_file_metadata": batch_update_file_metadata,
-                "batch_rebuild_files": batch_rebuild_files,
-                "preview_file": preview_file,
-                "preview_file_head": preview_file_head,
-                "list_file_chunks": list_file_chunks,
-                "list_history": list_history,
-                "search_history": search_history,
-                "clear_history": clear_history,
-                "list_favorites": list_favorites,
-                "toggle_favorite": toggle_favorite,
-                "summarize_files": summarize_files,
-            }
-        )
-    )
-    app.include_router(
-        imports_routes.create_router(
-            {
-                "import_url": import_url,
-                "create_note": create_note,
-                "save_answer_note": save_answer_note,
-                "create_knowledge_output": create_knowledge_output,
-                "upload_file": upload_file,
-                "create_demo_library": create_demo_library,
-            }
-        )
-    )
-    app.include_router(
-        knowledge_routes.create_router(
-            {
-                "knowledge_overview": knowledge_overview,
-                "knowledge_review": knowledge_review,
-            }
-        )
-    )
-    app.include_router(
-        settings_routes.create_router(
-            {
-                "get_llm": get_llm,
-                "set_llm": set_llm,
-                "list_sources": list_sources,
-                "health": health,
-            }
-        )
-    )
-    app.include_router(
-        maintenance_routes.create_router(
-            {
-                "debug_retrieve": debug_retrieve,
-            }
-        )
-    )
-
-_register_api_routes()
-
-
-# ---------------------------------------------------------------------------
-# Static files (frontend)
-# ---------------------------------------------------------------------------
-
-STATIC_DIR = resource_path("frontend")
-if STATIC_DIR.exists():
-
-    @app.get("/favicon.ico", include_in_schema=False)
-    async def favicon_ico():
-        return FileResponse(str(STATIC_DIR / "favicon.svg"), media_type="image/svg+xml")
-
-    @app.head("/favicon.ico", include_in_schema=False)
-    async def favicon_ico_head():
-        favicon_path = STATIC_DIR / "favicon.svg"
-        return Response(
-            status_code=200,
-            headers={
-                "content-length": str(favicon_path.stat().st_size),
-                "content-type": "image/svg+xml",
-            },
-        )
-
-    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")
+register_api_routes(app)
+mount_static_frontend(app)
 
 
 _STATE_FIELD_NAMES = {

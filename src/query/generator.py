@@ -8,58 +8,29 @@ AnswerGenerator — 基于检索结果生成带引用的答案。
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from src import net
 from src.knowledge_outputs import get_knowledge_output_type
-from src.model_cache import resolve_model_load_reference
+from src.query import generator_backends as backend_calls
+from src.query.citations import (
+    Citation,
+    apply_structured_citations,
+    citation_from_chunk,
+    sanitize_inline_citations,
+    validate_citations,
+)
 from src.query.claim_support import audit_answer_claim_support
-
-SYSTEM_PROMPT = """你是一个专业的文档问答助手。请严格基于提供的文档片段回答问题。
-
-规则：
-1. 每个关键事实必须附带片段引用，格式为 [[cite:chunk_id]]
-2. 若文档中未找到答案，明确回答"在现有文档中未找到相关信息"，不要编造
-3. 回答使用中文，简洁专业
-4. 若多个文档有相关信息，综合后回答并分别标注来源
-5. 只能使用文档片段中给出的 chunk_id，不要编造引用
-6. 最近对话只用于理解追问语境，事实依据仍必须来自文档片段"""
-
-SUMMARIZE_PROMPT = """你是一个专业的文档摘要助手。请基于提供的文档片段生成结构化摘要。
-
-输出格式（Markdown）：
-1. **文档主题**：1-2句话概括文档核心内容
-2. **核心要点**：3-5个要点，每点一行（使用 - 列表）
-3. **关键数据/结论**：提取重要数字、日期、结论（如无则省略此节）
-
-规则：使用中文，简洁专业，严格基于文档内容，不要编造。"""
-
-KNOWLEDGE_OUTPUT_SYSTEM_PROMPT = """你是一个本地知识工作流助手。
-请把用户提供的资料整理成可保存、可复用的 Markdown 知识产物。
-
-规则：
-1. 严格基于资料内容，不要编造事实、日期、结论或来源
-2. 资料不足时明确写出哪些部分资料不足
-3. 输出使用中文 Markdown
-4. 不要输出寒暄、免责声明或模型思考过程"""
-
-
-@dataclass
-class Citation:
-    file_name: str
-    page_num: int
-    snippet: str
-    score: float
-    file_path: str = ""
-    section: str = ""
-    chunk_id: str = ""
-    document_id: str = ""
-    qdrant_id: int | None = None
-    char_start: int = 0
-    char_end: int = 0
+from src.query.generator_context import (
+    build_context,
+    build_conversation_context,
+    build_user_message,
+)
+from src.query.generator_prompts import (
+    KNOWLEDGE_OUTPUT_SYSTEM_PROMPT,
+    SUMMARIZE_PROMPT,
+    SYSTEM_PROMPT,
+)
 
 
 @dataclass
@@ -118,7 +89,7 @@ class AnswerGenerator:
         """为单个文件生成结构化摘要（Markdown 格式）。"""
         if not chunks:
             return f"## {file_name}\n\n无法获取文档内容。"
-        context = self._build_context(chunks)
+        context = build_context(chunks)
         user_msg = f"文件名：{file_name}\n\n文档内容片段：\n{context}"
         if self.backend == "claude":
             text = self._call_with_system(SUMMARIZE_PROMPT, user_msg)
@@ -155,8 +126,8 @@ class AnswerGenerator:
         if not chunks:
             return Answer(text="在现有文档中未找到相关信息。", citations=[])
 
-        context = self._build_context(chunks)
-        user_msg = self._build_user_message(query, context, conversation_context)
+        context = build_context(chunks)
+        user_msg = build_user_message(query, context, conversation_context)
 
         if self.backend == "claude":
             answer_text = self._call_with_system(SYSTEM_PROMPT, user_msg)
@@ -185,18 +156,7 @@ class AnswerGenerator:
 
     @staticmethod
     def _build_context(chunks: list[dict]) -> str:
-        parts = []
-        for i, c in enumerate(chunks, 1):
-            section = f" > {c['section']}" if c.get("section") else ""
-            qdrant_id = c.get("qdrant_id")
-            chunk_id = c.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else "")
-            cite_hint = f"引用格式: [[cite:{chunk_id}]]\n" if chunk_id else ""
-            parts.append(
-                f"[片段{i}] 来源: {c['file_name']}, 第{c['page_num']}页{section}\n"
-                f"chunk_id: {chunk_id or '无'}\n"
-                f"{cite_hint}{c['text']}"
-            )
-        return "\n\n---\n\n".join(parts)
+        return build_context(chunks)
 
     @classmethod
     def _build_user_message(
@@ -205,75 +165,27 @@ class AnswerGenerator:
         context: str,
         conversation_context: list[dict] | None = None,
     ) -> str:
-        conversation = cls._build_conversation_context(conversation_context or [])
-        if conversation:
-            return f"最近对话：\n{conversation}\n\n当前问题：{query}\n\n文档片段：\n{context}"
-        return f"问题：{query}\n\n文档片段：\n{context}"
+        return build_user_message(query, context, conversation_context)
 
     @staticmethod
     def _build_conversation_context(messages: list[dict]) -> str:
-        parts = []
-        labels = {"user": "用户", "assistant": "DocFlow"}
-        for message in messages:
-            role = labels.get(message.get("role", ""), message.get("role", ""))
-            content = " ".join(str(message.get("content", "")).split())
-            if not role or not content:
-                continue
-            parts.append(f"{role}：{content}")
-        return "\n".join(parts)
+        return build_conversation_context(messages)
 
     # ------------------------------------------------------------------
     # Ollama (local)
     # ------------------------------------------------------------------
 
     def _call_ollama_with_system(self, system_prompt: str, user_msg: str) -> str:
-        options = self._ollama_options()
-        payload = {
-            "model": self.ollama_model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_msg},
-            ],
-            "stream": False,
-            "options": options,
-        }
-        response = net.post(
-            f"{self.ollama_base_url}/api/chat",
-            json=payload,
-            timeout=net.Timeout(600.0, connect=5.0),
-        )
-        response.raise_for_status()
-        result = response.json()
-        return result["message"]["content"].strip()
+        return backend_calls.call_ollama_with_system(self, system_prompt, user_msg)
 
     def _stream_ollama_with_system(self, system_prompt: str, user_msg: str, cancel_event=None):
         """Yield token strings as they arrive from Ollama."""
-        options = self._ollama_options()
-        payload = {
-            "model": self.ollama_model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_msg},
-            ],
-            "stream": True,
-            "options": options,
-        }
-        with net.stream(
-            "POST",
-            f"{self.ollama_base_url}/api/chat",
-            json=payload,
-            timeout=net.Timeout(600.0, connect=5.0),
-        ) as resp:
-            resp.raise_for_status()
-            for line in resp.iter_lines():
-                if cancel_event is not None and cancel_event.is_set():
-                    break
-                if not line:
-                    continue
-                chunk = json.loads(line)
-                token = chunk.get("message", {}).get("content", "")
-                if token:
-                    yield token
+        yield from backend_calls.stream_ollama_with_system(
+            self,
+            system_prompt,
+            user_msg,
+            cancel_event=cancel_event,
+        )
 
     def generate_stream(
         self,
@@ -288,8 +200,8 @@ class AnswerGenerator:
         if not chunks:
             yield "在现有文档中未找到相关信息。"
             return
-        context = self._build_context(chunks)
-        user_msg = self._build_user_message(query, context, conversation_context)
+        context = build_context(chunks)
+        user_msg = build_user_message(query, context, conversation_context)
         if self.backend == "mlx":
             yield from self._stream_mlx(SYSTEM_PROMPT, user_msg, cancel_event=cancel_event)
         elif self.backend == "claude":
@@ -314,204 +226,30 @@ class AnswerGenerator:
         )
 
     def _ollama_options(self) -> dict:
-        options = {
-            "think": False,
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-        }
-        if self.seed is not None:
-            options["seed"] = self.seed
-        return options
+        return backend_calls.ollama_options(self)
 
     def _mlx_generation_kwargs(self) -> dict:
-        from mlx_lm.sample_utils import make_sampler
-
-        kwargs = {
-            "max_tokens": self.max_tokens,
-            "sampler": make_sampler(temp=self.temperature, top_p=self.top_p),
-        }
-        if self.seed is not None:
-            import mlx.core as mx
-
-            mx.random.seed(self.seed)
-        return kwargs
+        return backend_calls.mlx_generation_kwargs(self)
 
     def _load_mlx_model(self, model_name: str | None = None) -> None:
         """加载（或切换）MLX LLM 模型。必须在 ml_executor 线程内调用。"""
-        from mlx_lm import load
-
-        target = model_name or self.mlx_model_name
-        if self._mlx_model is None or target != self.mlx_model_name:
-            model_ref = resolve_model_load_reference(
-                target,
-                self.allow_model_download,
-                purpose="answer",
-            )
-            loaded = load(model_ref)
-            self._mlx_model = loaded[0]
-            self._mlx_tokenizer = loaded[1]
-            self.mlx_model_name = target
+        backend_calls.load_mlx_model(self, model_name)
 
     def _build_prompt_nothink(self, system: str, user: str) -> str:
         """构建 enable_thinking=False prompt，注入空 think 块，跳过推理过程。"""
-        if self._mlx_tokenizer is None:
-            raise RuntimeError("MLX tokenizer is not loaded")
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ]
-        return self._mlx_tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True,
-            enable_thinking=False,  # 注入 <think>\n\n</think>\n\n 前缀
-        )
+        return backend_calls.build_prompt_nothink(self, system, user)
 
     def _stream_mlx(self, system: str, user: str, cancel_event=None):
         """通过 mlx_lm.stream_generate 逐 token yield。"""
-        from mlx_lm import stream_generate
-
-        prompt = self._build_prompt_nothink(system, user)
-        generation_kwargs = self._mlx_generation_kwargs()
-        if self._mlx_model is None or self._mlx_tokenizer is None:
-            raise RuntimeError("MLX model is not loaded")
-        for response in stream_generate(
-            self._mlx_model,
-            self._mlx_tokenizer,
-            prompt=prompt,
-            **generation_kwargs,
-        ):
-            if cancel_event is not None and cancel_event.is_set():
-                break
-            if response.text:
-                yield response.text
+        yield from backend_calls.stream_mlx(self, system, user, cancel_event=cancel_event)
 
     def _call_mlx(self, system: str, user: str) -> str:
         """非流式 MLX 生成（用于 summarize / generate）。"""
-        from mlx_lm import generate as mlx_generate
-
-        prompt = self._build_prompt_nothink(system, user)
-        generation_kwargs = self._mlx_generation_kwargs()
-        if self._mlx_model is None or self._mlx_tokenizer is None:
-            raise RuntimeError("MLX model is not loaded")
-        return mlx_generate(
-            self._mlx_model,
-            self._mlx_tokenizer,
-            prompt=prompt,
-            verbose=False,
-            **generation_kwargs,
-        )
+        return backend_calls.call_mlx(self, system, user)
 
     # ------------------------------------------------------------------
     # Claude API
     # ------------------------------------------------------------------
 
     def _call_with_system(self, system_prompt: str, user_msg: str) -> str:
-        if not self.claude_api_key:
-            raise RuntimeError("Claude backend requires claude_api_key or ANTHROPIC_API_KEY")
-        try:
-            import anthropic
-        except ImportError as e:
-            raise RuntimeError("Claude backend requires the 'anthropic' package") from e
-        if self._anthropic_client is None:
-            self._anthropic_client = anthropic.Anthropic(api_key=self.claude_api_key)
-        message = self._anthropic_client.messages.create(
-            model=self.claude_model,
-            max_tokens=2048,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        return message.content[0].text.strip()
-
-
-def citation_from_chunk(chunk: dict) -> Citation:
-    qdrant_id = chunk.get("qdrant_id")
-    chunk_id = str(chunk.get("chunk_id") or (f"q:{qdrant_id}" if qdrant_id is not None else ""))
-    document_id = str(
-        chunk.get("document_id") or chunk.get("file_path") or chunk.get("file_name") or ""
-    )
-    matched_text = (
-        chunk.get("matched_text")
-        or chunk.get("child_text")
-        or chunk.get("raw_text")
-        or chunk.get("text")
-        or ""
-    )
-    parent_text = chunk.get("text") or chunk.get("parent_text") or matched_text
-    char_start = parent_text.find(matched_text) if matched_text else 0
-    if char_start < 0:
-        char_start = 0
-    char_end = char_start + len(matched_text)
-    return Citation(
-        file_name=chunk["file_name"],
-        file_path=chunk.get("file_path", ""),
-        page_num=chunk["page_num"],
-        snippet=matched_text[:200],
-        score=chunk.get("rerank_score", chunk.get("rrf_score", chunk.get("score", 0.0))),
-        section=chunk.get("section", ""),
-        chunk_id=chunk_id,
-        document_id=document_id,
-        qdrant_id=int(qdrant_id) if qdrant_id is not None else None,
-        char_start=char_start,
-        char_end=char_end,
-    )
-
-
-def validate_citations(citations: list[Citation], chunks: list[dict]) -> list[Citation]:
-    valid_chunk_ids = {
-        str(
-            chunk.get("chunk_id")
-            or (f"q:{chunk.get('qdrant_id')}" if chunk.get("qdrant_id") is not None else "")
-        )
-        for chunk in chunks
-    }
-    valid_chunk_ids.discard("")
-    return [
-        citation
-        for citation in citations
-        if not citation.chunk_id or citation.chunk_id in valid_chunk_ids
-    ]
-
-
-INLINE_CITATION_RE = re.compile(r"\[来源:\s*([^,\]，]+)(?:[,，]\s*第?(\d+)页)?\]")
-STRUCTURED_CITATION_RE = re.compile(r"\[\[cite:([^\]]+)\]\]")
-
-
-def apply_structured_citations(text: str, citations: list[Citation]) -> tuple[str, list[Citation]]:
-    citation_by_id = {citation.chunk_id: citation for citation in citations if citation.chunk_id}
-    used_ids: list[str] = []
-
-    def replace(match: re.Match[str]) -> str:
-        chunk_id = match.group(1).strip()
-        citation = citation_by_id.get(chunk_id)
-        if citation is None:
-            return "[未验证来源]"
-        if chunk_id not in used_ids:
-            used_ids.append(chunk_id)
-        return f"[来源: {citation.file_name}, 第{citation.page_num}页]"
-
-    cleaned = STRUCTURED_CITATION_RE.sub(replace, text)
-    if not used_ids and cleaned == text:
-        return text, citations
-    used_citations = [
-        citation_by_id[chunk_id] for chunk_id in used_ids if chunk_id in citation_by_id
-    ]
-    return cleaned, used_citations
-
-
-def sanitize_inline_citations(text: str, citations: list[Citation]) -> str:
-    verified = {
-        (citation.file_name, str(citation.page_num))
-        for citation in citations
-        if citation.file_name and citation.page_num
-    }
-    verified_files = {citation.file_name for citation in citations if citation.file_name}
-
-    def replace(match: re.Match[str]) -> str:
-        file_name = match.group(1).strip()
-        page_num = (match.group(2) or "").strip()
-        if (file_name, page_num) in verified or (not page_num and file_name in verified_files):
-            return match.group(0)
-        return "[未验证来源]"
-
-    return INLINE_CITATION_RE.sub(replace, text)
+        return backend_calls.call_claude_with_system(self, system_prompt, user_msg)

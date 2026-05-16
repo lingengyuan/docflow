@@ -8,17 +8,18 @@ from src.api.state import AppContext, AppState, LLMSwitchState
 
 
 def test_phase34_api_routes_are_registered_from_route_modules():
-    source = Path("src/api/app_impl.py").read_text(encoding="utf-8")
+    app_source = Path("src/api/app_impl.py").read_text(encoding="utf-8")
+    route_source = Path("src/api/app_routes.py").read_text(encoding="utf-8")
 
-    assert "query_routes.create_router" in source
-    assert "library_routes.create_router" in source
-    assert "imports_routes.create_router" in source
-    assert "settings_routes.create_router" in source
-    assert "maintenance_routes.create_router" in source
-    assert '@app.get("/api/' not in source
-    assert '@app.post("/api/' not in source
-    assert '@app.patch("/api/' not in source
-    assert '@app.delete("/api/' not in source
+    assert "query_routes.create_router" in route_source
+    assert "library_routes.create_router" in route_source
+    assert "imports_routes.create_router" in route_source
+    assert "settings_routes.create_router" in route_source
+    assert "maintenance_routes.create_router" in route_source
+    assert '@app.get("/api/' not in app_source
+    assert '@app.post("/api/' not in app_source
+    assert '@app.patch("/api/' not in app_source
+    assert '@app.delete("/api/' not in app_source
 
     for path in [
         "src/api/routes/query.py",
@@ -29,6 +30,8 @@ def test_phase34_api_routes_are_registered_from_route_modules():
         "src/api/services/query_service.py",
         "src/api/services/import_service.py",
         "src/api/services/health_service.py",
+        "src/api/app_routes.py",
+        "src/api/app_static.py",
     ]:
         assert Path(path).exists()
 
@@ -47,15 +50,19 @@ def test_phase52_public_entrypoints_are_small_facades():
 
 def test_phase60_god_modules_are_split_into_focused_files():
     limits = {
-        "src/api/app_impl.py": 500,
+        "src/api/app_impl.py": 350,
+        "src/api/app_routes.py": 180,
+        "src/api/app_static.py": 80,
         "src/api/lifecycle.py": 250,
         "src/api/runtime_helpers.py": 250,
         "src/api/handlers/import_handlers.py": 250,
         "src/api/handlers/library_handlers.py": 350,
         "src/api/handlers/maintenance_handlers.py": 80,
-        "src/api/handlers/query_handlers.py": 500,
+        "src/api/handlers/query_handlers.py": 350,
+        "src/api/handlers/query_stream_handlers.py": 240,
         "src/api/handlers/settings_handlers.py": 150,
-        "src/api/health_checks.py": 550,
+        "src/api/health_checks.py": 250,
+        "src/api/health_status.py": 350,
         "src/ingest/store_impl.py": 80,
         "src/ingest/store_db.py": 260,
         "src/ingest/store_files.py": 450,
@@ -77,6 +84,23 @@ def test_phase60_god_modules_are_split_into_focused_files():
         "src/query/debug.py": 180,
         "src/query/router.py": 140,
         "src/query/reranker.py": 140,
+        "src/query/engine.py": 350,
+        "src/query/engine_helpers.py": 180,
+        "src/query/settings.py": 90,
+        "src/query/generator.py": 350,
+        "src/query/generator_backends.py": 220,
+        "src/query/citations.py": 150,
+        "src/query/generator_context.py": 80,
+        "src/query/generator_prompts.py": 60,
+        "src/maintenance/startup.py": 350,
+        "src/maintenance/startup_checks.py": 350,
+        "src/maintenance/offline_doctor.py": 350,
+        "src/quality/browser_acceptance.py": 180,
+        "src/quality/browser_acceptance_plan.py": 160,
+        "src/quality/browser_acceptance_checks.py": 350,
+        "src/quality/browser_acceptance_a11y.py": 220,
+        "src/quality/browser_acceptance_mutation.py": 350,
+        "src/quality/browser_acceptance_report.py": 130,
     }
 
     for path, limit in limits.items():

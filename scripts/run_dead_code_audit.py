@@ -96,8 +96,10 @@ MAINTENANCE_MODULES = {
     "demo.py": "demo library creation",
     "launchd.py": "optional macOS local service",
     "local_install.py": "source checkout install plan",
+    "offline_doctor.py": "offline network verification",
     "platform.py": "runtime capability status",
     "startup.py": "startup, doctor, offline doctor",
+    "startup_checks.py": "startup dependency and service checks",
 }
 
 

@@ -365,7 +365,9 @@ def test_phase73_trusted_answer_evidence_is_visible_and_data_backed():
     html = frontend_source_text()
     evidence_service = Path("src/api/services/evidence_service.py").read_text(encoding="utf-8")
     schemas = Path("src/api/schemas.py").read_text(encoding="utf-8")
-    query_handlers = Path("src/api/handlers/query_handlers.py").read_text(encoding="utf-8")
+    query_stream_handlers = Path("src/api/handlers/query_stream_handlers.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "citationEvidencePill" in html
     assert "renderEvidenceSummary" in html
@@ -375,7 +377,7 @@ def test_phase73_trusted_answer_evidence_is_visible_and_data_backed():
     assert "source_age_days" in evidence_service
     assert "detect_conflicts" in evidence_service
     assert "evidence: dict" in schemas
-    assert 'q.put(("evidence"' in query_handlers
+    assert 'q.put(("evidence"' in query_stream_handlers
 
 
 def test_phase74_public_eval_is_separate_from_internal_regression():
@@ -507,6 +509,7 @@ def test_phase78_package_artifacts_include_runtime_resources():
     run_ci = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
     package_smoke = Path("scripts/package_smoke.py").read_text(encoding="utf-8")
     app_impl = Path("src/api/app_impl.py").read_text(encoding="utf-8")
+    app_static = Path("src/api/app_static.py").read_text(encoding="utf-8")
     startup = Path("src/maintenance/startup.py").read_text(encoding="utf-8")
     development_doc = Path("docs/development.md").read_text(encoding="utf-8")
     release_doc = Path("docs/release.md").read_text(encoding="utf-8")
@@ -519,7 +522,7 @@ def test_phase78_package_artifacts_include_runtime_resources():
     assert '"eval/public_retrieval_v1.jsonl"' in pyproject
     assert '"eval/public_corpus/wizard_oz_excerpt.txt"' in pyproject
     assert "scripts/package_smoke.py" in run_ci
-    assert "resource_path(\"frontend\")" in app_impl
+    assert "resource_path(\"frontend\")" in app_static
     assert 'os.getenv("DOCFLOW_CONFIG", "config.yaml")' in app_impl
     assert 'resource_path("config.example.yaml")' in startup
     assert "installed-wheel smoke test" in development_doc
@@ -534,6 +537,9 @@ def test_phase80_desktop_ui_has_labels_focus_and_status_contract():
     app_html = Path("frontend/partials/app.html").read_text(encoding="utf-8")
     app_css = Path("frontend/app.css").read_text(encoding="utf-8")
     browser_acceptance = Path("src/quality/browser_acceptance.py").read_text(encoding="utf-8")
+    browser_acceptance_a11y = Path("src/quality/browser_acceptance_a11y.py").read_text(
+        encoding="utf-8"
+    )
 
     labeled_controls = [
         "query-scope-mode",
@@ -579,10 +585,10 @@ def test_phase80_desktop_ui_has_labels_focus_and_status_contract():
         assert f'id="{status_id}"' in html
 
     assert "desktop_status_messages_are_announced" in browser_acceptance
-    assert "hasAssociatedLabel" in browser_acceptance
-    assert "document.querySelector(`label[for=\"" in browser_acceptance
-    assert "notes-url-status" in browser_acceptance
-    assert "knowledge-status" in browser_acceptance
+    assert "hasAssociatedLabel" in browser_acceptance_a11y
+    assert "document.querySelector(`label[for=\"" in browser_acceptance_a11y
+    assert "notes-url-status" in browser_acceptance_a11y
+    assert "knowledge-status" in browser_acceptance_a11y
     assert "button:focus-visible" in app_css
     assert "outline: 2px solid rgb(var(--color-primary))" in app_css
 
@@ -593,6 +599,9 @@ def test_phase81_degraded_answer_quality_is_visible():
     quality = Path("src/query/answer_quality.py").read_text(encoding="utf-8")
     schemas = Path("src/api/schemas.py").read_text(encoding="utf-8")
     query_handlers = Path("src/api/handlers/query_handlers.py").read_text(encoding="utf-8")
+    query_stream_handlers = Path("src/api/handlers/query_stream_handlers.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "answerQualityMarkup" in html
     assert "renderAnswerQuality" in html
@@ -608,7 +617,7 @@ def test_phase81_degraded_answer_quality_is_visible():
         assert status in quality + html
 
     assert "quality: dict" in schemas
-    assert 'q.put(("quality"' in query_handlers
+    assert 'q.put(("quality"' in query_stream_handlers
     assert '"quality"' in query_handlers
     assert "answer_quality_states_render" in Path("src/quality/browser_acceptance.py").read_text(
         encoding="utf-8"
