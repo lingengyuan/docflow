@@ -118,10 +118,6 @@ The claim-support check is deterministic citation and source-content coverage. I
 
 `docflow dev eval faithfulness --json` runs a deterministic answer-grounding fixture. It covers supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers. Latest local run: 14/14 passed.
 
-## Internal Planning Report
-
-The old maturity scorecard is an internal planning aid only. It is not a public quality claim and should not be used in README, release notes, or status summaries.
-
 ## Reproducibility
 
 Local answer generation defaults to deterministic settings in `config.example.yaml`:

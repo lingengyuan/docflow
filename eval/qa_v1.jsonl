@@ -4,8 +4,8 @@
 {"id": "readme_demo_entry", "category": "readme", "question": "Where does README mention 导入示例资料 for the first-run demo?", "expected_files": ["README.md"], "expected_terms": ["导入示例资料"], "must_find": true}
 {"id": "readme_sqlite_storage", "category": "readme", "question": "Where does DocFlow keep metadata?", "expected_files": ["README.md"], "expected_terms": ["SQLite"], "must_find": true}
 {"id": "readme_qdrant_vectors", "category": "readme", "question": "Where does DocFlow keep vectors?", "expected_files": ["README.md"], "expected_terms": ["Qdrant"], "must_find": true}
-{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["368"], "must_find": true}
-{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["81"], "must_find": true}
+{"id": "readme_test_count", "category": "readme", "question": "How many tests passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["485"], "must_find": true}
+{"id": "readme_browser_checks", "category": "readme", "question": "How many browser checks passed in the README baseline?", "expected_files": ["README.md"], "expected_terms": ["82"], "must_find": true}
 {"id": "readme_offline_check", "category": "readme", "question": "What offline check is mentioned in README?", "expected_files": ["README.md"], "expected_terms": ["offline network check"], "must_find": true}
 {"id": "readme_license", "category": "readme", "question": "What license does README list?", "expected_files": ["README.md"], "expected_terms": ["MIT"], "must_find": true}
 {"id": "privacy_positioning", "category": "privacy", "question": "How does privacy.md define DocFlow?", "expected_files": ["docs/privacy.md"], "expected_terms": ["local-first personal knowledge assistant"], "must_find": true}
@@ -23,7 +23,7 @@
 {"id": "eval_incremental_indexing", "category": "evaluation", "question": "What indexing check is planned as a measured output?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["Incremental indexing checks"], "must_find": true}
 {"id": "eval_reproducibility", "category": "evaluation", "question": "What reproducibility section exists?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["Reproducibility"], "must_find": true}
 {"id": "eval_query_seed", "category": "evaluation", "question": "Which config section contains deterministic generation settings?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["query:"], "must_find": true}
-{"id": "eval_not_external_claim", "category": "evaluation", "question": "Why is the maturity score not enough?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["not a public quality claim"], "must_find": true}
+{"id": "eval_not_external_claim", "category": "evaluation", "question": "Why is the public-domain regression result not a broad external benchmark claim?", "expected_files": ["docs/evaluation.md"], "expected_terms": ["not a BEIR, MTEB, or C-MTEB score", "broad external benchmark"], "must_find": true}
 {"id": "status_beyond_prototype", "category": "status", "question": "How does status describe the project state?", "expected_files": ["docs/status.md"], "expected_terms": ["beyond the original prototype phase"], "must_find": true}
 {"id": "status_docker_compose", "category": "status", "question": "What first-run startup support is listed?", "expected_files": ["docs/status.md"], "expected_terms": ["Docker Compose"], "must_find": true}
 {"id": "status_demo_library", "category": "status", "question": "What first-run library support exists?", "expected_files": ["docs/status.md"], "expected_terms": ["demo library"], "must_find": true}

@@ -89,6 +89,11 @@ PUBLIC_HELP_FORBIDDEN_TERMS = [
     "install-local",
 ]
 
+DEV_HELP_FORBIDDEN_TERMS = [
+    "maturity-eval",
+    "scorecard",
+]
+
 MAINTENANCE_MODULES = {
     "__init__.py": "package marker",
     "backup.py": "backup, restore-plan, restore-drill",
@@ -151,6 +156,11 @@ def check_public_help() -> list[str]:
     return [term for term in PUBLIC_HELP_FORBIDDEN_TERMS if term in help_text]
 
 
+def check_dev_help_internal_leaks() -> list[str]:
+    help_text = run_help("dev", "--help")
+    return [term for term in DEV_HELP_FORBIDDEN_TERMS if term in help_text]
+
+
 def check_group_help() -> dict[str, bool]:
     admin_help = run_help("admin", "--help")
     dev_help = run_help("dev", "--help")
@@ -180,6 +190,7 @@ def build_report() -> dict[str, Any]:
     removed_paths = check_removed_paths(tracked)
     readme_findings = check_public_readmes()
     help_leaks = check_public_help()
+    dev_help_leaks = check_dev_help_internal_leaks()
     group_help = check_group_help()
     unknown_maintenance = check_maintenance_modules()
 
@@ -192,6 +203,11 @@ def build_report() -> dict[str, Any]:
         issues.append(f"public command surface exposes retired commands: {readme_findings}")
     if help_leaks:
         issues.append(f"public help exposes internal commands: {', '.join(help_leaks)}")
+    if dev_help_leaks:
+        issues.append(
+            "dev help exposes legacy subjective-score commands: "
+            + ", ".join(dev_help_leaks)
+        )
     if not all(group_help.values()):
         issues.append(f"group help is incomplete: {group_help}")
     if unknown_maintenance:
@@ -208,6 +224,7 @@ def build_report() -> dict[str, Any]:
         "retired_command_replacements": docflow_main.RETIRED_TOP_LEVEL_COMMANDS,
         "tracked_removed_paths": removed_paths,
         "public_help_leaks": help_leaks,
+        "dev_help_internal_leaks": dev_help_leaks,
         "command_surface_findings": readme_findings,
         "command_surface_files": COMMAND_SURFACE_FILES,
         "maintenance_modules": MAINTENANCE_MODULES,

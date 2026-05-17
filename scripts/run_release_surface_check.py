@@ -71,6 +71,18 @@ DISALLOWED_PUBLIC_DOC_REFS = [
     "scoring-2026-05.md",
 ]
 
+DISALLOWED_LEGACY_SCORE_FILES = [
+    "eval/phase11_maturity_dimensions.json",
+    "eval/phase11_questions.jsonl",
+]
+
+DISALLOWED_SUBJECTIVE_SCORE_PHRASES = [
+    "rolling 9-point maturity scorecard",
+    "9-point maturity scorecard",
+    "9-point maturity",
+    "maturity scorecard",
+]
+
 DISALLOWED_TRACKED_PATHS = [
     "obsidian-plugin/",
     "frontend/js/pwa.js",
@@ -168,6 +180,12 @@ def check_public_docs() -> None:
     leaked = [path for path in tracked if path.startswith(internal_prefixes)]
     if leaked:
         fail(f"internal planning files are tracked: {', '.join(leaked[:10])}")
+    legacy_score_files = [path for path in tracked if path in DISALLOWED_LEGACY_SCORE_FILES]
+    if legacy_score_files:
+        fail(
+            "legacy subjective-score files are tracked: "
+            + ", ".join(legacy_score_files)
+        )
     out_of_scope_paths = [
         path
         for path in tracked
@@ -199,6 +217,14 @@ def check_public_docs() -> None:
             fail(
                 f"{public_file.relative_to(ROOT)} still references internal docs: "
                 + ", ".join(leaked_refs)
+            )
+        leaked_score_phrases = [
+            phrase for phrase in DISALLOWED_SUBJECTIVE_SCORE_PHRASES if phrase in text
+        ]
+        if leaked_score_phrases:
+            fail(
+                f"{public_file.relative_to(ROOT)} still uses subjective score phrasing: "
+                + ", ".join(leaked_score_phrases)
             )
 
     scanned_files = [

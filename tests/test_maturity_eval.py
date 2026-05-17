@@ -54,7 +54,8 @@ def test_maturity_report_includes_retrieval_eval():
         },
     )
 
-    assert report["schema"] == "docflow.maturity.v1"
+    assert report["schema"] == "docflow.internal_planning_baseline.v1"
+    assert "not a public quality claim" in report["claim_policy"]
     assert report["retrieval_eval"]["cases"] == 1
     assert report["measurements"]["passed_signals"] == 1
     assert report["measurements"]["signals"][0]["metrics"]["recall_at_5"] == 1.0

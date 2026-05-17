@@ -24,6 +24,8 @@ DISALLOWED_SCORE_CLAIMS = [
     (re.compile(r"\b9[05]\+\b", re.IGNORECASE), "optimistic public score target"),
     (re.compile(r"\b9[05]\s*/\s*100\b", re.IGNORECASE), "subjective public score"),
     (re.compile(r"\b9[05][ -]?point\b", re.IGNORECASE), "score-framed quality push"),
+    (re.compile(r"\b9-point maturity\b", re.IGNORECASE), "legacy subjective baseline"),
+    (re.compile(r"\bmaturity scorecard\b", re.IGNORECASE), "legacy subjective baseline"),
     (re.compile(r"(?:达到|超过|冲到|冲刺|目标)\s*9[05]\s*(?:分|\+)?"), "主观公开评分目标"),
 ]
 

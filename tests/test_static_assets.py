@@ -856,7 +856,8 @@ def test_phase59_public_claims_are_precise():
     assert "source-filtered" in readme
     assert "不等同于大规模公开 benchmark" in readme_zh
     assert "do not present it as an external benchmark" in status_doc
-    assert "internal planning aid only" in evaluation_doc
+    assert "internal planning aid only" not in evaluation_doc
+    assert "maturity scorecard" not in evaluation_doc
 
 
 def test_phase18_frontend_uses_local_tailwind_build():

@@ -90,7 +90,11 @@ def build_report(
     parsing_eval: dict | None = None,
 ) -> dict:
     return {
-        "schema": "docflow.maturity.v1",
+        "schema": "docflow.internal_planning_baseline.v1",
+        "claim_policy": (
+            "Internal planning baseline only; not release readiness and not a public "
+            "quality claim."
+        ),
         "summary": summarize_dimensions(dimensions),
         "measurements": summarize_measurements(retrieval_eval, parsing_eval),
         "dimensions": [dimension_to_dict(d) for d in dimensions],
@@ -145,8 +149,9 @@ def _ratio(numerator: int, denominator: int) -> float:
 def format_report(report: dict) -> str:
     summary = report["summary"]
     lines = [
-        "DocFlow maturity baseline",
-        f"Overall score: {summary['overall_score']}/{summary['target_score']}",
+        "DocFlow internal planning baseline",
+        "Internal only: not release readiness and not a public quality claim.",
+        f"Overall planning score: {summary['overall_score']}/{summary['target_score']}",
         f"Dimensions: {summary['dimensions']} total, {summary['at_target']} at target, "
         f"{summary['near_target']} near target, {summary['below_target']} below target",
         "",

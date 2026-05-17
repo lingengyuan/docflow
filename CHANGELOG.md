@@ -24,6 +24,7 @@
 - Tightened release security posture with pinned GitHub Actions, pinned Docker/Qdrant images, narrower workflow permissions, Python package checksums, Docker SBOM/provenance output, and clearer unsigned-release boundaries.
 - Added repeatable release-candidate metadata generation with package checksums, a release manifest, a release-notes template, and explicit PyPI publishing boundaries.
 - Expanded type-checked boundaries across API runtime state, ingest parser/pipeline contracts, and maintenance platform/offline-doctor reporting.
+- Hid the legacy internal quality baseline from public help, removed old Phase 11 eval files from the tracked project surface, and added guards against subjective score phrasing returning to public docs.
 
 ## 0.58.0 - 2026-05-12
 
@@ -173,4 +174,4 @@
 
 ## 0.11.0 - 2026-05-04
 
-- Added the rolling 9-point maturity scorecard and fixed retrieval evidence checks.
+- Added an internal planning baseline for early quality gaps and fixed retrieval evidence checks.

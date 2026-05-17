@@ -54,14 +54,13 @@ DEV_COMMANDS = {
     "eval": "Run retrieval, parsing, performance, faithfulness, or external checks.",
     "browser-acceptance": "Run browser acceptance checks against a running app.",
     "sample-suite": "Generate and validate the sample-suite fixtures.",
-    "maturity-eval": "Run the internal planning scorecard.",
     "dead-code-audit": "Audit the command and release surface for stale entries.",
 }
 
 RETIRED_TOP_LEVEL_COMMANDS = {
     "browser-acceptance": "docflow dev browser-acceptance",
     "sample-suite": "docflow dev sample-suite",
-    "maturity-eval": "docflow dev maturity-eval",
+    "maturity-eval": "internal planning baseline; use docflow dev eval ... for evidence",
     "restore-drill": "docflow admin restore-drill",
     "check": "docflow admin check",
     "rebuild": "docflow admin rebuild",
@@ -75,6 +74,8 @@ RETIRED_TOP_LEVEL_COMMANDS = {
     "eval": "docflow dev eval",
     "benchmark": "docflow dev eval performance",
 }
+
+INTERNAL_ONLY_TOP_LEVEL_COMMANDS = {"maturity-eval"}
 
 
 def serve():
@@ -268,6 +269,11 @@ def eval_command(args: list[str]):
 def maturity_eval(args: list[str]):
     from scripts.run_maturity_eval import main as run_maturity_main
 
+    print(
+        "Internal-only planning baseline. This is not release readiness or a "
+        "public quality claim.",
+        file=sys.stderr,
+    )
     sys.argv = [sys.argv[0], *args]
     return run_maturity_main()
 
@@ -474,6 +480,12 @@ def dev_command(args: list[str]) -> int:
 
 def _retired_command(cmd: str) -> int:
     replacement = RETIRED_TOP_LEVEL_COMMANDS[cmd]
+    if cmd in INTERNAL_ONLY_TOP_LEVEL_COMMANDS:
+        print(
+            "The top-level maturity-eval command is retired. Use measured checks under "
+            "`docflow dev eval ...`; the historical planning baseline is internal-only."
+        )
+        return 1
     print(f"`docflow {cmd}` has moved. Use `{replacement}`.")
     return 1
 
