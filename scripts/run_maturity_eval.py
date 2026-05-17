@@ -18,6 +18,13 @@ DEFAULT_DIMENSIONS = Path("eval/internal_quality_baseline_dimensions.json")
 DEFAULT_CASES = Path("eval/qa_v1.jsonl")
 
 
+def configure_output_encoding() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def run_retrieval_eval(
     config: str,
     cases_path: Path,
@@ -58,6 +65,7 @@ def run_retrieval_eval(
 
 
 def main() -> int:
+    configure_output_encoding()
     parser = argparse.ArgumentParser(
         description=(
             "Run DocFlow's internal planning baseline. This is not release readiness "

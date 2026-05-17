@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -7,13 +8,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run_docflow(*args: str) -> subprocess.CompletedProcess[str]:
+def run_docflow(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(ROOT / "main.py"), *args],
         cwd=ROOT,
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env=env,
     )
 
 
@@ -46,7 +49,16 @@ def test_phase118_dev_help_does_not_promote_legacy_score_command():
 
 
 def test_phase118_internal_baseline_warns_before_output():
-    result = run_docflow("dev", "maturity-eval", "--skip-retrieval", "--skip-parsing")
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "cp1252"
+
+    result = run_docflow(
+        "dev",
+        "maturity-eval",
+        "--skip-retrieval",
+        "--skip-parsing",
+        env=env,
+    )
 
     assert result.returncode == 0
     assert "Internal-only planning baseline" in result.stderr
