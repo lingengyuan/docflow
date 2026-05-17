@@ -114,7 +114,7 @@ Latest local run: passed; 10,000 documents, 10,000 chunks, 20/20 queries returne
 
 The claim-support check is deterministic citation and source-content coverage. It proves whether each displayed claim carries a verified source marker and whether the cited snippets share meaningful surface terms with the claim. It does not replace human review, semantic entailment, or a broad factuality benchmark.
 
-`docflow dev eval faithfulness --json` runs a small deterministic answer-grounding fixture. It covers supported claims, uncited claims, fabricated source markers, wrong-source citations, and insufficient-evidence answers. Latest local run: 5/5 passed.
+`docflow dev eval faithfulness --json` runs a deterministic answer-grounding fixture. It covers supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers. Latest local run: 14/14 passed.
 
 ## Internal Planning Report
 

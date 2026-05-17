@@ -131,6 +131,48 @@ def test_evidence_summary_uses_claim_support_gap():
     assert summary["recommendations"][0].startswith("先打开来源")
 
 
+def test_evidence_summary_keeps_conflicts_when_claims_are_supported():
+    claim_support = audit_answer_claim_support(
+        "Cloud sync approved for policy [来源: current.md, 第1页]。",
+        [
+            {"file_name": "current.md", "page_num": 1, "snippet": "Cloud sync approved for policy."}
+        ],
+    )
+
+    summary = EvidenceService().summarize(
+        [
+            {
+                "file_name": "current.md",
+                "snippet": "Cloud sync approved for policy.",
+                "evidence_level": "strong",
+            },
+            {
+                "file_name": "legacy.md",
+                "snippet": "Cloud sync rejected under legacy policy.",
+                "evidence_level": "strong",
+            },
+        ],
+        claim_support=claim_support,
+    )
+
+    assert summary["level"] == "conflict"
+    assert summary["label"] == "存在冲突"
+    assert summary["conflicts"][0]["type"] == "status"
+
+
+def test_claim_support_downgrades_no_evidence_answer_without_sources():
+    audit = audit_answer_claim_support("DocFlow 已经完成云端同步。", [])
+
+    quality = quality_with_claim_support(grounded_quality(), audit)
+    evidence = EvidenceService().summarize([], claim_support=audit)
+
+    assert audit["level"] == "unsupported"
+    assert audit["unsupported_claims"] == 1
+    assert quality["status"] == "citation_needs_review"
+    assert evidence["level"] == "none"
+    assert evidence["label"] == "资料不足"
+
+
 def test_stream_finalize_returns_claim_support_quality():
     chunks = [
         {

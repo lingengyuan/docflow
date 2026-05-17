@@ -58,12 +58,12 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The active review panel now presents a single knowledge loop across sources, questions, citations, saved notes, relationships, review prompts, and feedback.
 - The Notes active-review panel now mounts from the Vite-built Preact component path, reducing the legacy browser script to a compatibility entry point.
 - External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. A BEIR SciFact-lite subset result is now archived with its result artifact and claim boundary.
-- Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, and insufficient-evidence answers.
+- Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers.
 - A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 471 passed.
+- Unit/integration tests: 473 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.
@@ -72,7 +72,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - External benchmark catalog: valid; 1 archived external score.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
-- Faithfulness eval: 5/5 passed across supported, uncited, fabricated-source, wrong-source, and insufficient-evidence cases.
+- Faithfulness eval: 14/14 passed across supported, uncited, fabricated-source, wrong-source, no-evidence, partial-citation, mismatched-page, conflict, stale-source, multi-citation, and insufficient-evidence cases.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
 - Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, P95 97.11 ms, workspace 29,115,676 bytes. This measures local parser/chunker/SQLite source lookup only, not embedding, reranking, or answer first-token latency.
 - Release surface check: passed.

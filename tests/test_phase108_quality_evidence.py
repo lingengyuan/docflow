@@ -43,6 +43,7 @@ def test_faithfulness_fixture_covers_supported_and_failure_modes():
     report = evaluate_cases(load_cases(Path("eval/answer_faithfulness_v1.jsonl")))
 
     assert report["failed"] == 0
+    assert report["cases"] >= 14
     result_ids = {result["id"] for result in report["results"]}
     assert {
         "supported_claim",
@@ -50,7 +51,20 @@ def test_faithfulness_fixture_covers_supported_and_failure_modes():
         "fabricated_source_marker",
         "wrong_source_text",
         "insufficient_evidence_message",
+        "no_evidence_answer_without_citations",
+        "partial_citation_two_sentences",
+        "missing_page_source_marker",
+        "file_level_marker_supported",
+        "conflicting_sources",
+        "stale_source_recommendation",
+        "weak_citation_with_verified_marker",
+        "multi_cited_claim_supported",
+        "alternate_no_answer_marker",
     } <= result_ids
+    results = {result["id"]: result for result in report["results"]}
+    assert results["conflicting_sources"]["evidence"]["label"] == "存在冲突"
+    assert results["stale_source_recommendation"]["evidence"]["recommendations"]
+    assert results["no_evidence_answer_without_citations"]["quality"]["label"] == "部分结论缺少来源"
 
 
 def test_large_library_benchmark_reports_index_and_query_metrics(tmp_path):
