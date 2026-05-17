@@ -56,13 +56,14 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The Settings page now mounts from a Vite-built Preact component with an explicit design contract, while the existing browser shell keeps the other desktop pages stable during gradual migration.
 - Saved notes, source snippets, generated knowledge outputs, and user-confirmed related documents now write back into the same relationship graph used by the Library and active review panels.
 - The active review panel now presents a single knowledge loop across sources, questions, citations, saved notes, relationships, review prompts, and feedback.
+- The Notes active-review panel now mounts from the Vite-built Preact component path, reducing the legacy browser script to a compatibility entry point.
 - External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. A BEIR SciFact-lite subset result is now archived with its result artifact and claim boundary.
 - Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, and insufficient-evidence answers.
 - A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 470 passed.
+- Unit/integration tests: 471 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.

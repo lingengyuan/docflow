@@ -262,6 +262,7 @@ def test_phase33_frontend_scripts_are_split_by_domain():
         "theme.js",
         "app-shell.js",
         "generated/settings-app.js",
+        "generated/notes-review-app.js",
         "settings.js",
         "settings-models.js",
         "settings-data.js",
@@ -346,6 +347,27 @@ def test_phase106_settings_view_has_component_boundary_and_design_contract():
     assert "vite.settings.config.ts" in Path("tsconfig.json").read_text(encoding="utf-8")
     assert '"preact": "10.29.1"' in package
     assert "frontend/js/generated/settings-app.js" in pyproject
+
+
+def test_phase112_notes_review_has_component_boundary_and_design_contract():
+    source = Path("frontend/src/notes-review-app.tsx").read_text(encoding="utf-8")
+    legacy = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+    generated = Path("frontend/js/generated/notes-review-app.js").read_text(encoding="utf-8")
+    bootstrap = Path("frontend/js/bootstrap.js").read_text(encoding="utf-8")
+    package = Path("package.json").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert "function NotesReviewPanel" in source
+    assert "function WorkflowCard" in source
+    assert "buildKnowledgeReviewViewModel" in source
+    assert "buildRelationshipOpportunityAction" in source
+    assert "DocFlowNotesReviewApp" in source
+    assert "DocFlowNotesReviewApp" in generated
+    assert "generated/notes-review-app.js" in bootstrap
+    assert "vite.notes-review.config.ts" in package
+    assert "frontend/js/generated/notes-review-app.js" in pyproject
+    assert len(legacy.splitlines()) < 20
+    assert "window.DocFlowNotesReviewApp" in legacy
 
 
 def test_phase106_settings_component_keeps_user_surface_clean():
@@ -763,7 +785,10 @@ def test_phase57_library_exposes_real_knowledge_views():
     assert "知识卡片" in html
     assert "knowledgeOverviewMarkup" in html
     assert "可连接资料" in html
-    assert "knowledgeRelationshipOpportunityMarkup" in html
+    assert (
+        "knowledgeRelationshipOpportunityMarkup" in html
+        or "RelationshipOpportunityList" in html
+    )
     assert "relationship_opportunities" in html
 
 
@@ -884,10 +909,14 @@ def test_streaming_answer_hides_internal_citation_markers_until_finalized():
 
 
 def test_notes_review_surfaces_answer_source_relationships():
-    text = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+    text = (
+        Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+        + "\n"
+        + Path("frontend/src/notes-review-app.tsx").read_text(encoding="utf-8")
+    )
 
     assert "relationship_timeline" in text
-    assert "knowledgeRelationshipMarkup" in text
+    assert "RelationshipList" in text
     assert "account_tree" in text
     assert "来源：" in text
 
@@ -895,20 +924,28 @@ def test_notes_review_surfaces_answer_source_relationships():
 def test_phase94_knowledge_depth_surfaces_usage_loops():
     service = Path("src/api/services/knowledge_depth.py").read_text(encoding="utf-8")
     review_service = Path("src/api/services/knowledge_review.py").read_text(encoding="utf-8")
-    ui = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+    ui = (
+        Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+        + "\n"
+        + Path("frontend/src/notes-review-app.tsx").read_text(encoding="utf-8")
+    )
 
     assert "KnowledgeDepthService" in service
     assert "source_trails" in service
     assert "coverage_gaps" in service
     assert "concepts" in service
     assert "knowledge_depth" in review_service
-    assert "knowledgeSourceTrailMarkup" in ui
-    assert "knowledgeCoverageGapMarkup" in ui
-    assert "knowledgeConceptMarkup" in ui
+    assert "SourceTrailList" in ui
+    assert "CoverageGapList" in ui
+    assert "ConceptList" in ui
 
 
 def test_phase107_knowledge_loop_can_save_relationships_from_ui():
-    notes_ui = Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+    notes_ui = (
+        Path("frontend/js/notes-review.js").read_text(encoding="utf-8")
+        + "\n"
+        + Path("frontend/src/notes-review-app.tsx").read_text(encoding="utf-8")
+    )
     library_ui = Path("frontend/js/library-knowledge.js").read_text(encoding="utf-8")
     source_preview_actions = Path("frontend/js/source-preview-actions.js").read_text(
         encoding="utf-8"

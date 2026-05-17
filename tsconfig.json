@@ -15,6 +15,7 @@
     "frontend/tests/**/*.ts",
     "frontend/tests/**/*.tsx",
     "vite.config.ts",
+    "vite.notes-review.config.ts",
     "vite.settings.config.ts"
   ]
 }

@@ -18,6 +18,7 @@
 - Added a no-build GHCR `edge` image path, OpenSSF Scorecard workflow, dependency layer files, threat model, and model-license documentation.
 - Added a release-readiness guard that blocks public subjective score claims and records the latest reviewed OpenSSF Scorecard gap before release work.
 - Added an active-review knowledge loop that connects sources, questions, citations, saved notes, relationships, review prompts, and feedback in one user-facing panel.
+- Moved the Notes active-review panel into the Preact component build path while keeping the legacy browser entry point stable.
 
 ## 0.58.0 - 2026-05-12
 
