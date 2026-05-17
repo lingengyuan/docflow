@@ -57,19 +57,20 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Saved notes, source snippets, generated knowledge outputs, and user-confirmed related documents now write back into the same relationship graph used by the Library and active review panels.
 - The active review panel now presents a single knowledge loop across sources, questions, citations, saved notes, relationships, review prompts, and feedback.
 - The Notes active-review panel now mounts from the Vite-built Preact component path, reducing the legacy browser script to a compatibility entry point.
-- External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. A BEIR SciFact-lite subset result is now archived with its result artifact and claim boundary.
+- External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. BEIR SciFact-lite and NFCorpus-lite subset results are now archived with result artifacts and claim boundaries.
 - Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers.
 - A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 473 passed.
+- Unit/integration tests: 474 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.
 - Public eval: 547/547 passed, Recall@5 0.9982, MRR@5 0.9145, nDCG@5 0.9357, P50 213.92 ms, P95 271.26 ms. This is a committed public-domain regression check, not a broad public benchmark.
 - External benchmark: BEIR SciFact-lite subset with 20 questions, Recall@5 0.95, MRR@5 0.95, nDCG@5 0.95, P50 315.66 ms, P95 700.93 ms, 79 indexed documents, no source filtering. Archived subset only; not a full BEIR leaderboard score.
-- External benchmark catalog: valid; 1 archived external score.
+- External benchmark: BEIR NFCorpus-lite subset with 20 questions, Recall@5 0.30, MRR@5 0.50, nDCG@5 0.3246, P50 187.99 ms, P95 412.77 ms, 139 indexed documents, no source filtering, max 5 relevant documents per query. Archived subset only; not a full BEIR leaderboard score.
+- External benchmark catalog: valid; 2 archived external scores.
 - Retrieval eval: 84/84 passed, Recall@5 1.0, MRR@5 1.0, nDCG@5 1.0, P50 310.27 ms, P95 775.24 ms.
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 - Faithfulness eval: 14/14 passed across supported, uncited, fabricated-source, wrong-source, no-evidence, partial-citation, mismatched-page, conflict, stale-source, multi-citation, and insufficient-evidence cases.
@@ -86,7 +87,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The answer-level source check verifies citation coverage and source-content overlap, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
 - Parser/chunker performance smoke, parsing eval, faithfulness eval, and a 200-document large-library smoke are now in the standard GitHub CI path, but full 10,000-document large-library retrieval, embedding, and model-answer benchmarks are still not part of every pull-request CI run.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
-- Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite result gives one external subset check. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
+- Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite and NFCorpus-lite results give two external subset checks. The NFCorpus-lite result also exposes a weak external medical short-query score. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
 - Open-source security posture is not mature yet. The latest reviewed OpenSSF Scorecard result is 4.2/10, with branch protection, enforced code review, token-permission tightening, dependency pinning, signed releases, and package publishing still below mature open-source expectations.
 - DocFlow is not published to PyPI yet. Source checkout and GHCR image startup remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.

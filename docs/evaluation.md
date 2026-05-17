@@ -56,11 +56,13 @@ The full public retrieval benchmark uses Qdrant plus embedding model downloads, 
 
 DocFlow tracks external benchmark readiness in `eval/external_benchmarks.json`. `docflow dev eval external --json` reports the current status and claim policy.
 
-`docflow dev eval external run --query-limit 20 --distractors-per-query 3 --write-results` runs the archived BEIR SciFact-lite subset. This command intentionally downloads the public SciFact dataset when it is not already cached; it is not part of DocFlow's default offline local-use path. The latest archived artifact is `eval/results/external/beir-scifact-lite-20e459e.json`.
+`docflow dev eval external run --dataset scifact --query-limit 20 --distractors-per-query 3 --write-results` runs the archived BEIR SciFact-lite subset. `docflow dev eval external run --dataset nfcorpus --query-limit 20 --distractors-per-query 3 --max-relevant-per-query 5 --write-results` runs the archived BEIR NFCorpus-lite subset. These commands intentionally download public BEIR datasets when they are not already cached; they are not part of DocFlow's default offline local-use path.
 
 Latest archived BEIR SciFact-lite subset: 20 questions, Recall@5 0.95, MRR@5 0.95, nDCG@5 0.95, retrieval P50 315.66 ms and P95 700.93 ms, with 79 indexed documents and no source filtering.
 
-This is an external subset result, not a full BEIR leaderboard score. The committed public and internal regression results must therefore stay labeled as DocFlow regression checks, not as broad BEIR, MTEB, or C-MTEB results.
+Latest archived BEIR NFCorpus-lite subset: 20 questions, Recall@5 0.30, MRR@5 0.50, nDCG@5 0.3246, retrieval P50 187.99 ms and P95 412.77 ms, with 139 indexed documents, no source filtering, and max 5 relevant documents per query. The latest archived artifact is `eval/results/external/beir-nfcorpus-lite-08f3965.json`.
+
+These are external subset results, not a full BEIR leaderboard score. The committed public and internal regression results must therefore stay labeled as DocFlow regression checks, not as broad BEIR, MTEB, or C-MTEB results.
 
 Reference baselines:
 

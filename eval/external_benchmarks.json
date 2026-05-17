@@ -1,6 +1,6 @@
 {
   "schema": "docflow.external_benchmark_catalog.v1",
-  "updated_at": "2026-05-16",
+  "updated_at": "2026-05-17",
   "claim_policy": [
     "DocFlow's committed public regression set is not an external benchmark.",
     "Do not claim BEIR, MTEB, or C-MTEB scores until the corresponding benchmark run is completed and archived.",
@@ -26,6 +26,42 @@
         "retrieval_p50_ms": 315.66,
         "retrieval_p95_ms": 700.93
       },
+      "archived_results": [
+        {
+          "id": "beir_scifact_lite",
+          "name": "BEIR SciFact-lite",
+          "result": "eval/results/external/beir-scifact-lite-20e459e.json",
+          "scope": "BEIR SciFact test split subset, 20 queries, 79 indexed documents, 3 distractors per query, no source filtering.",
+          "model_config": "DocFlow default embedding stack from config.yaml, no rerank.",
+          "runtime": "Local macOS validation machine with Qdrant and cached Qwen/Qwen3-Embedding-0.6B model.",
+          "metrics": {
+            "recall_at_5": 0.95,
+            "mrr_at_5": 0.95,
+            "ndcg_at_5": 0.95,
+            "pass_rate": 1.0,
+            "retrieval_p50_ms": 315.66,
+            "retrieval_p95_ms": 700.93
+          },
+          "claim_note": "Archived subset only; not a full BEIR leaderboard score."
+        },
+        {
+          "id": "beir_nfcorpus_lite",
+          "name": "BEIR NFCorpus-lite",
+          "result": "eval/results/external/beir-nfcorpus-lite-08f3965.json",
+          "scope": "BEIR NFCorpus test split subset, 20 queries, 139 indexed documents, 3 distractors per query, max 5 relevant documents per query, no source filtering.",
+          "model_config": "DocFlow default embedding stack from config.yaml, no rerank.",
+          "runtime": "Local macOS validation machine with Qdrant and cached Qwen/Qwen3-Embedding-0.6B model.",
+          "metrics": {
+            "recall_at_5": 0.3,
+            "mrr_at_5": 0.5,
+            "ndcg_at_5": 0.3246,
+            "pass_rate": 0.2,
+            "retrieval_p50_ms": 187.99,
+            "retrieval_p95_ms": 412.77
+          },
+          "claim_note": "Archived subset only; not a full BEIR leaderboard score."
+        }
+      ],
       "claim_note": "Archived subset only; not a full BEIR leaderboard score.",
       "required_before_claim": [
         "dataset/task list",

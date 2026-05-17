@@ -125,6 +125,8 @@ include = ["src*", "scripts*"]
 "share/docflow/eval/results/external" = [
   "eval/results/external/beir-scifact-lite-20e459e.json",
   "eval/results/external/beir-scifact-lite-latest.json",
+  "eval/results/external/beir-nfcorpus-lite-08f3965.json",
+  "eval/results/external/beir-nfcorpus-lite-latest.json",
 ]
 "share/docflow/eval/results/large-library" = [
   "eval/results/large-library/large-library-20e459e.json",

@@ -558,9 +558,11 @@ def test_phase99_external_benchmark_claims_are_explicitly_bounded():
     assert '"docflow_status": "not_run"' in catalog
     assert "BEIR SciFact-lite" in evaluation_doc
     assert "BEIR SciFact-lite" in status_doc
+    assert "BEIR NFCorpus-lite" in evaluation_doc
+    assert "BEIR NFCorpus-lite" in status_doc
     assert "Archived subset only" in status_doc
     assert "not a full BEIR leaderboard score" in evaluation_doc
-    assert "External benchmark catalog: valid; 1 archived external score." in status_doc
+    assert "External benchmark catalog: valid; 2 archived external scores." in status_doc
     assert "docflow dev eval external --json" in evaluation_doc
     assert "docflow dev eval external run" in evaluation_doc
     assert 'args[0] == "external"' in main_source
@@ -568,7 +570,9 @@ def test_phase99_external_benchmark_claims_are_explicitly_bounded():
     assert "run_external_benchmark_status.py --json" in ci_workflow
     assert "eval/external_benchmarks.json" in pyproject
     assert "eval/results/external/beir-scifact-lite-20e459e.json" in pyproject
+    assert "eval/results/external/beir-nfcorpus-lite-08f3965.json" in pyproject
     assert "BEIR SciFact-lite" in release_check
+    assert "BEIR NFCorpus-lite" in release_check
 
 
 def test_phase75_release_install_surface_is_documented():

@@ -38,8 +38,8 @@ def load_catalog(path: Path = DEFAULT_CATALOG) -> dict[str, Any]:
 
 def summary(catalog: dict[str, Any]) -> dict[str, Any]:
     benchmarks = catalog["benchmarks"]
-    archived = [item for item in benchmarks if item["docflow_status"] == "archived"]
     benchmark_summaries = []
+    archived_score_count = 0
     for item in benchmarks:
         benchmark: dict[str, Any] = {
             "id": item["id"],
@@ -47,6 +47,12 @@ def summary(catalog: dict[str, Any]) -> dict[str, Any]:
             "status": item["docflow_status"],
             "source": item["primary_source"],
         }
+        archived_results = item.get("archived_results")
+        if isinstance(archived_results, list) and archived_results:
+            benchmark["archived_results"] = archived_results
+            archived_score_count += len(archived_results)
+        elif item["docflow_status"] == "archived":
+            archived_score_count += 1
         for optional in (
             "archived_result",
             "archived_scope",
@@ -62,7 +68,7 @@ def summary(catalog: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema": catalog["schema"],
         "updated_at": catalog.get("updated_at"),
-        "external_benchmark_scores": len(archived),
+        "external_benchmark_scores": archived_score_count,
         "benchmarks": benchmark_summaries,
         "claim_policy": catalog.get("claim_policy", []),
     }

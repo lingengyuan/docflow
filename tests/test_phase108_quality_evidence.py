@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 
 from scripts.run_external_benchmark_status import load_catalog, summary
-from scripts.run_external_retrieval_eval import build_scifact_subset, write_scifact_corpus
+from scripts.run_external_retrieval_eval import (
+    build_beir_subset,
+    build_scifact_subset,
+    write_beir_corpus,
+    write_scifact_corpus,
+)
 from scripts.run_faithfulness_eval import evaluate_cases, load_cases
 from scripts.run_large_library_benchmark import run_large_library_benchmark
 
@@ -37,6 +42,43 @@ def test_scifact_subset_builds_external_cases_without_source_filter(tmp_path):
     assert subset.queries[0].expected_files == ["scifact-10.md"]
     assert subset.queries[0].expected_terms == []
     assert {path.name for path in corpus_paths} == {"scifact-10.md", "scifact-20.md"}
+
+
+def test_generic_beir_subset_uses_dataset_specific_names(tmp_path):
+    dataset = tmp_path / "nfcorpus"
+    (dataset / "qrels").mkdir(parents=True)
+    _write_jsonl(
+        dataset / "corpus.jsonl",
+        [
+            {"_id": "MED/10", "title": "Nutrition", "text": "Diet evidence text."},
+            {"_id": "MED/20", "title": "Sleep", "text": "Sleep distractor text."},
+        ],
+    )
+    _write_jsonl(dataset / "queries.jsonl", [{"_id": "plos-1", "text": "Diet claim."}])
+    (dataset / "qrels" / "test.tsv").write_text(
+        "query-id\tcorpus-id\tscore\nplos-1\tMED/10\t1\nplos-1\tMED/20\t1\n",
+        encoding="utf-8",
+    )
+
+    subset = build_beir_subset(
+        dataset,
+        dataset_slug="nfcorpus",
+        dataset_name="NFCorpus",
+        category="external_beir_nfcorpus",
+        query_limit=1,
+        distractors_per_query=1,
+        max_relevant_per_query=1,
+        source_zip_sha256="def456",
+    )
+    corpus_paths = write_beir_corpus(subset, tmp_path / "corpus")
+
+    assert subset.queries[0].id == "beir_nfcorpus_plos-1"
+    assert subset.queries[0].category == "external_beir_nfcorpus"
+    assert subset.queries[0].expected_files == ["nfcorpus-MED_10.md"]
+    assert {path.name for path in corpus_paths} == {
+        "nfcorpus-MED_10.md",
+        "nfcorpus-MED_20.md",
+    }
 
 
 def test_faithfulness_fixture_covers_supported_and_failure_modes():
@@ -80,14 +122,18 @@ def test_large_library_benchmark_reports_index_and_query_metrics(tmp_path):
     assert all(result["passed"] for result in report["query"]["results"])
 
 
-def test_external_catalog_tracks_archived_scifact_result():
+def test_external_catalog_tracks_archived_beir_results():
     report = summary(load_catalog())
     beir = next(item for item in report["benchmarks"] if item["id"] == "beir")
 
     assert beir["status"] == "archived"
     assert Path(beir["archived_result"]).exists()
     assert beir["claim_note"].startswith("Archived subset only")
-    assert report["external_benchmark_scores"] >= 1
+    assert report["external_benchmark_scores"] >= 2
+    archived_results = beir["archived_results"]
+    archived_names = {item["name"] for item in archived_results}
+    assert {"BEIR SciFact-lite", "BEIR NFCorpus-lite"} <= archived_names
+    assert all(Path(item["result"]).exists() for item in archived_results)
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:

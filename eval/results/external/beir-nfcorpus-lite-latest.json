@@ -1,0 +1,1524 @@
+{
+  "schema": "docflow.external_retrieval_eval.v1",
+  "generated_at": "2026-05-17T06:31:45.070981+00:00",
+  "git_sha": "08f3965",
+  "source_tree": {
+    "worktree_dirty": true,
+    "status_entries": 2,
+    "note": "Result was generated from the current local source tree. If worktree_dirty is true, the artifact records a pre-commit working-tree run."
+  },
+  "benchmark": {
+    "id": "beir_nfcorpus_lite",
+    "suite": "BEIR",
+    "dataset": "NFCorpus",
+    "split": "test",
+    "source_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/nfcorpus.zip",
+    "source_zip_sha256": "efe5be03f8c5b86a5870102d0599d227c8c6e2484328e68c6522560385671b0b",
+    "query_limit": 20,
+    "distractors_per_query": 3,
+    "max_relevant_per_query": 5,
+    "source_filter": false,
+    "artifact_slug": "beir-nfcorpus-lite",
+    "claim_scope": "Archived BEIR NFCorpus subset result; not a full BEIR leaderboard score."
+  },
+  "cases": 20,
+  "corpus_documents": 139,
+  "passed": 4,
+  "failed": 16,
+  "include_rerank": false,
+  "metrics": {
+    "eligible_cases": 20,
+    "recall_at_5": 0.3,
+    "mrr_at_5": 0.5,
+    "ndcg_at_5": 0.3246,
+    "pass_rate": 0.2
+  },
+  "performance": {
+    "cases": 20,
+    "retrieval_total_ms_p50": 187.99,
+    "retrieval_total_ms_p95": 412.77,
+    "retrieval_total_ms_max": 3491.73,
+    "cases_per_second": 2.8371,
+    "ingest_total_ms": 495617.29,
+    "indexed_files": 139,
+    "indexed_chunks": 271,
+    "db_bytes": 3547136
+  },
+  "results": [
+    {
+      "id": "beir_nfcorpus_PLAIN-1008",
+      "category": "external_beir_nfcorpus",
+      "question": "deafness",
+      "expected_files": [
+        "nfcorpus-MED-4532.md",
+        "nfcorpus-MED-4533.md",
+        "nfcorpus-MED-4534.md",
+        "nfcorpus-MED-4535.md",
+        "nfcorpus-MED-4536.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "missing_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-4532.md,nfcorpus-MED-4533.md,nfcorpus-MED-4534.md,nfcorpus-MED-4535.md,nfcorpus-MED-4536.md",
+      "matched_files": [],
+      "missing_files": [
+        "nfcorpus-MED-4532.md",
+        "nfcorpus-MED-4533.md",
+        "nfcorpus-MED-4534.md",
+        "nfcorpus-MED-4535.md",
+        "nfcorpus-MED-4536.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 4,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1032.md",
+          "section": "Defecation syncope. A symptom with multiple etiologies.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1019.md",
+          "section": "Diabetic retinopathy.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3783.md",
+          "section": "Fish odour syndrome",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-1021.md",
+        "nfcorpus-MED-1032.md",
+        "nfcorpus-MED-1019.md",
+        "nfcorpus-MED-3783.md"
+      ],
+      "top_qdrant_ids": [
+        197,
+        221,
+        193,
+        94
+      ],
+      "timings": {
+        "embed_ms": 3180.72,
+        "vector_ms": 10.98,
+        "fts_ms": 299.53,
+        "rerank_ms": 0.0,
+        "total_ms": 3491.73
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1018",
+      "category": "external_beir_nfcorpus",
+      "question": "DHA",
+      "expected_files": [
+        "nfcorpus-MED-2750.md",
+        "nfcorpus-MED-2751.md",
+        "nfcorpus-MED-2752.md",
+        "nfcorpus-MED-2754.md",
+        "nfcorpus-MED-2755.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-2754.md,nfcorpus-MED-2755.md",
+      "matched_files": [
+        "nfcorpus-MED-2750.md",
+        "nfcorpus-MED-2751.md",
+        "nfcorpus-MED-2752.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-2754.md",
+        "nfcorpus-MED-2755.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-2751.md",
+          "section": "Global fishmeal and fish-oil supply: inputs, outputs and markets.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4005.md",
+          "section": "Effect of the fat composition of a single high-fat meal on inflammatory markers in healthy young women.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4380.md",
+          "section": "Domoic acid and human exposure risks: a review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4381.md",
+          "section": "Amnesic shellfish poison.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4000.md",
+          "section": "Coconut oil predicts a beneficial lipid profile in pre-menopausal women in the Philippines",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-2751.md",
+        "nfcorpus-MED-4005.md",
+        "nfcorpus-MED-4380.md",
+        "nfcorpus-MED-4381.md",
+        "nfcorpus-MED-4000.md"
+      ],
+      "top_qdrant_ids": [
+        14,
+        53,
+        36,
+        37,
+        48
+      ],
+      "timings": {
+        "embed_ms": 126.16,
+        "vector_ms": 6.14,
+        "fts_ms": 3.02,
+        "rerank_ms": 0.0,
+        "total_ms": 135.57
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-102",
+      "category": "external_beir_nfcorpus",
+      "question": "Stopping Heart Disease in Childhood",
+      "expected_files": [
+        "nfcorpus-MED-3254.md",
+        "nfcorpus-MED-3253.md",
+        "nfcorpus-MED-3255.md",
+        "nfcorpus-MED-5322.md",
+        "nfcorpus-MED-5323.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-5322.md,nfcorpus-MED-5323.md",
+      "matched_files": [
+        "nfcorpus-MED-3254.md",
+        "nfcorpus-MED-3253.md",
+        "nfcorpus-MED-3255.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-5322.md",
+        "nfcorpus-MED-5323.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 18,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-3253.md",
+          "section": "Pathobiological determinants of atherosclerosis in youth risk scores are associated with early and advanced atherosclerosis.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3255.md",
+          "section": "Endothelial function in healthy 11-year-old children after dietary intervention with onset in infancy: the Special Turku Coronary Risk Factor Inter...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4255.md",
+          "section": "Resolving the Coronary Artery Disease Epidemic Through Plant-Based Nutrition.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3253.md",
+          "section": "Pathobiological determinants of atherosclerosis in youth risk scores are associated with early and advanced atherosclerosis.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3254.md",
+          "section": "Relation of serum lipoprotein levels and systolic blood pressure to early atherosclerosis. The Bogalusa Heart Study.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-3253.md",
+        "nfcorpus-MED-3255.md",
+        "nfcorpus-MED-4255.md",
+        "nfcorpus-MED-3253.md",
+        "nfcorpus-MED-3254.md"
+      ],
+      "top_qdrant_ids": [
+        24,
+        27,
+        64,
+        26,
+        23
+      ],
+      "timings": {
+        "embed_ms": 186.97,
+        "vector_ms": 6.42,
+        "fts_ms": 5.42,
+        "rerank_ms": 0.0,
+        "total_ms": 199.11
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1028",
+      "category": "external_beir_nfcorpus",
+      "question": "dietary scoring",
+      "expected_files": [
+        "nfcorpus-MED-4686.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "nfcorpus-MED-4686.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-1038.md",
+          "section": "Dietary fiber and personality factors as determinants of stool output.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4255.md",
+          "section": "Resolving the Coronary Artery Disease Epidemic Through Plant-Based Nutrition.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3244.md",
+          "section": "A Novel Measure of Dietary Change in a Prostate Cancer Dietary Program Incorporating Mindfulness Training",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3780.md",
+          "section": "Gut flora metabolism of phosphatidylcholine promotes cardiovascular disease",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2112.md",
+          "section": "How evidence-based medicine biases physicians against nutrition.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-1038.md",
+        "nfcorpus-MED-4255.md",
+        "nfcorpus-MED-3244.md",
+        "nfcorpus-MED-3780.md",
+        "nfcorpus-MED-2112.md"
+      ],
+      "top_qdrant_ids": [
+        228,
+        65,
+        46,
+        39,
+        63
+      ],
+      "timings": {
+        "embed_ms": 180.39,
+        "vector_ms": 6.53,
+        "fts_ms": 5.06,
+        "rerank_ms": 0.0,
+        "total_ms": 192.3
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1039",
+      "category": "external_beir_nfcorpus",
+      "question": "domoic acid",
+      "expected_files": [
+        "nfcorpus-MED-4380.md",
+        "nfcorpus-MED-4381.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "nfcorpus-MED-4380.md",
+        "nfcorpus-MED-4381.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 14,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-4380.md",
+          "section": "Domoic acid and human exposure risks: a review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4381.md",
+          "section": "Amnesic shellfish poison.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1266.md",
+          "section": "The Cyanobacteria Derived Toxin Beta-N-Methylamino-L-Alanine and Amyotrophic Lateral Sclerosis",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1278.md",
+          "section": "Does α-Amino-β-methylaminopropionic Acid (BMAA) Play a Role in Neurodegeneration?",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1046.md",
+          "section": "Cephalic phase of colonic pressure response to food.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-4380.md",
+        "nfcorpus-MED-4381.md",
+        "nfcorpus-MED-1266.md",
+        "nfcorpus-MED-1278.md",
+        "nfcorpus-MED-1046.md"
+      ],
+      "top_qdrant_ids": [
+        36,
+        37,
+        137,
+        142,
+        238
+      ],
+      "timings": {
+        "embed_ms": 205.67,
+        "vector_ms": 7.33,
+        "fts_ms": 4.28,
+        "rerank_ms": 0.0,
+        "total_ms": 217.68
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1050",
+      "category": "external_beir_nfcorpus",
+      "question": "Dr. Dean Ornish",
+      "expected_files": [
+        "nfcorpus-MED-2763.md",
+        "nfcorpus-MED-3780.md",
+        "nfcorpus-MED-3784.md",
+        "nfcorpus-MED-3242.md",
+        "nfcorpus-MED-3244.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-3780.md,nfcorpus-MED-3784.md,nfcorpus-MED-3242.md",
+      "matched_files": [
+        "nfcorpus-MED-2763.md",
+        "nfcorpus-MED-3244.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-3780.md",
+        "nfcorpus-MED-3784.md",
+        "nfcorpus-MED-3242.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 14,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2763.md",
+          "section": "Facing the facelessness of public health: what's the public got to do with it?",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1050.md",
+          "section": "The effect of personal lifestyle intervention among health care providers on their patients and clinics; the Promoting Health by Self Experience (P...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2750.md",
+          "section": "Lack of benefit of dietary advice to men with angina: results of a controlled trial.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-1021.md",
+        "nfcorpus-MED-1021.md",
+        "nfcorpus-MED-2763.md",
+        "nfcorpus-MED-1050.md",
+        "nfcorpus-MED-2750.md"
+      ],
+      "top_qdrant_ids": [
+        199,
+        198,
+        38,
+        244,
+        11
+      ],
+      "timings": {
+        "embed_ms": 239.89,
+        "vector_ms": 6.78,
+        "fts_ms": 3.55,
+        "rerank_ms": 0.0,
+        "total_ms": 250.72
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1066",
+      "category": "external_beir_nfcorpus",
+      "question": "Dr. Walter Willett",
+      "expected_files": [
+        "nfcorpus-MED-4000.md",
+        "nfcorpus-MED-4002.md",
+        "nfcorpus-MED-5016.md",
+        "nfcorpus-MED-4005.md",
+        "nfcorpus-MED-4007.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "missing_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-4000.md,nfcorpus-MED-4002.md,nfcorpus-MED-5016.md,nfcorpus-MED-4005.md,nfcorpus-MED-4007.md",
+      "matched_files": [],
+      "missing_files": [
+        "nfcorpus-MED-4000.md",
+        "nfcorpus-MED-4002.md",
+        "nfcorpus-MED-5016.md",
+        "nfcorpus-MED-4005.md",
+        "nfcorpus-MED-4007.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 7,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1047.md",
+          "section": "The development of the concept of dietary fiber in human nutrition.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1055.md",
+          "section": "Why the Bush administration and the global sugar industry are determined to demolish the 2004 WHO global strategy on diet, physical activity and he...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1058.md",
+          "section": "Political context of the World Health Organization: sugar industry threatens to scupper the WHO.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-1021.md",
+        "nfcorpus-MED-1021.md",
+        "nfcorpus-MED-1047.md",
+        "nfcorpus-MED-1055.md",
+        "nfcorpus-MED-1058.md"
+      ],
+      "top_qdrant_ids": [
+        199,
+        198,
+        239,
+        253,
+        255
+      ],
+      "timings": {
+        "embed_ms": 221.89,
+        "vector_ms": 6.96,
+        "fts_ms": 3.76,
+        "rerank_ms": 0.0,
+        "total_ms": 232.92
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1088",
+      "category": "external_beir_nfcorpus",
+      "question": "ECMO",
+      "expected_files": [
+        "nfcorpus-MED-2109.md",
+        "nfcorpus-MED-2110.md",
+        "nfcorpus-MED-2111.md",
+        "nfcorpus-MED-2112.md",
+        "nfcorpus-MED-4255.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-2112.md,nfcorpus-MED-4255.md",
+      "matched_files": [
+        "nfcorpus-MED-2109.md",
+        "nfcorpus-MED-2110.md",
+        "nfcorpus-MED-2111.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-2112.md",
+        "nfcorpus-MED-4255.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 15,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-2110.md",
+          "section": "Extracorporeal membrane oxygenation for newborn respiratory failure: forty-five cases.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2109.md",
+          "section": "Extracorporeal membrane oxygenation and conventional medical therapy in neonates with persistent pulmonary hypertension of the newborn: a prospecti...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2754.md",
+          "section": "Efficacy of omega-3 fatty acid supplements (eicosapentaenoic acid and docosahexaenoic acid) in the secondary prevention of cardiovascular disease: ...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4007.md",
+          "section": "Study of the ketogenic agent AC-1202 in mild to moderate Alzheimer's disease: a randomized, double-blind, placebo-controlled, multicenter trial",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1032.md",
+          "section": "Defecation syncope. A symptom with multiple etiologies.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-2110.md",
+        "nfcorpus-MED-2109.md",
+        "nfcorpus-MED-2754.md",
+        "nfcorpus-MED-4007.md",
+        "nfcorpus-MED-1032.md"
+      ],
+      "top_qdrant_ids": [
+        61,
+        59,
+        18,
+        56,
+        221
+      ],
+      "timings": {
+        "embed_ms": 177.91,
+        "vector_ms": 7.51,
+        "fts_ms": 3.2,
+        "rerank_ms": 0.0,
+        "total_ms": 189.01
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1098",
+      "category": "external_beir_nfcorpus",
+      "question": "eggnog",
+      "expected_files": [
+        "nfcorpus-MED-3806.md",
+        "nfcorpus-MED-3807.md",
+        "nfcorpus-MED-3808.md",
+        "nfcorpus-MED-3809.md",
+        "nfcorpus-MED-3810.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-3806.md,nfcorpus-MED-3807.md,nfcorpus-MED-3808.md,nfcorpus-MED-3809.md",
+      "matched_files": [
+        "nfcorpus-MED-3810.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-3806.md",
+        "nfcorpus-MED-3807.md",
+        "nfcorpus-MED-3808.md",
+        "nfcorpus-MED-3809.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 2,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-4165.md",
+          "section": "Dietary sources and antioxidant effects of ergothioneine.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3810.md",
+          "section": "Christmas gingerbread (Lebkuchen) and Christmas cheer--review of the potential role of mood elevating amphetamine-like compounds formed in vivo and...",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-4165.md",
+        "nfcorpus-MED-3810.md"
+      ],
+      "top_qdrant_ids": [
+        105,
+        74
+      ],
+      "timings": {
+        "embed_ms": 183.92,
+        "vector_ms": 10.31,
+        "fts_ms": 0.55,
+        "rerank_ms": 0.0,
+        "total_ms": 195.01
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1109",
+      "category": "external_beir_nfcorpus",
+      "question": "endocrine disruptors",
+      "expected_files": [
+        "nfcorpus-MED-2494.md",
+        "nfcorpus-MED-2495.md",
+        "nfcorpus-MED-2496.md",
+        "nfcorpus-MED-2493.md",
+        "nfcorpus-MED-2497.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-2495.md,nfcorpus-MED-2497.md",
+      "matched_files": [
+        "nfcorpus-MED-2494.md",
+        "nfcorpus-MED-2496.md",
+        "nfcorpus-MED-2493.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-2495.md",
+        "nfcorpus-MED-2497.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-5323.md",
+          "section": "Endocrine-disrupting chemicals and obesity development in humans: a review.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1003.md",
+          "section": "In Utero and Childhood Polybrominated Diphenyl Ether (PBDE) Exposures and Neurodevelopment in the CHAMACOS Study",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2496.md",
+          "section": "Fish intake and breastfeeding time are associated with serum concentrations of organochlorines in a Swedish population.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1002.md",
+          "section": "Polybrominated diphenyl ethers (PBDEs), hydroxylated PBDEs (OH-PBDEs), and measures of thyroid function in second trimester pregnant women in California",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1000.md",
+          "section": "Neurobehavioral function and low-level exposure to brominated flame retardants in adolescents: a cross-sectional study",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-5323.md",
+        "nfcorpus-MED-1003.md",
+        "nfcorpus-MED-2496.md",
+        "nfcorpus-MED-1002.md",
+        "nfcorpus-MED-1000.md"
+      ],
+      "top_qdrant_ids": [
+        32,
+        159,
+        81,
+        157,
+        156
+      ],
+      "timings": {
+        "embed_ms": 215.51,
+        "vector_ms": 7.32,
+        "fts_ms": 3.22,
+        "rerank_ms": 0.0,
+        "total_ms": 226.42
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1119",
+      "category": "external_beir_nfcorpus",
+      "question": "energy drinks",
+      "expected_files": [
+        "nfcorpus-MED-3788.md",
+        "nfcorpus-MED-3780.md",
+        "nfcorpus-MED-3781.md",
+        "nfcorpus-MED-3782.md",
+        "nfcorpus-MED-3783.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "missing_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-3788.md,nfcorpus-MED-3780.md,nfcorpus-MED-3781.md,nfcorpus-MED-3782.md,nfcorpus-MED-3783.md",
+      "matched_files": [],
+      "missing_files": [
+        "nfcorpus-MED-3788.md",
+        "nfcorpus-MED-3780.md",
+        "nfcorpus-MED-3781.md",
+        "nfcorpus-MED-3782.md",
+        "nfcorpus-MED-3783.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-5062.md",
+          "section": "Food additives and hyperactive behaviour in 3-year-old and 8/9-year-old children in the community: a randomised, double-blinded, placebo-controlled...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3524.md",
+          "section": "Diet promotes sleep duration and quality.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1055.md",
+          "section": "Why the Bush administration and the global sugar industry are determined to demolish the 2004 WHO global strategy on diet, physical activity and he...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2513.md",
+          "section": "Insights into the beneficial effect of caloric/ dietary restriction for a healthy and prolonged life",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4005.md",
+          "section": "Effect of the fat composition of a single high-fat meal on inflammatory markers in healthy young women.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-5062.md",
+        "nfcorpus-MED-3524.md",
+        "nfcorpus-MED-1055.md",
+        "nfcorpus-MED-2513.md",
+        "nfcorpus-MED-4005.md"
+      ],
+      "top_qdrant_ids": [
+        100,
+        134,
+        252,
+        144,
+        53
+      ],
+      "timings": {
+        "embed_ms": 176.5,
+        "vector_ms": 6.13,
+        "fts_ms": 4.04,
+        "rerank_ms": 0.0,
+        "total_ms": 186.97
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-112",
+      "category": "external_beir_nfcorpus",
+      "question": "Food Dyes and ADHD",
+      "expected_files": [
+        "nfcorpus-MED-3378.md",
+        "nfcorpus-MED-3380.md",
+        "nfcorpus-MED-5062.md",
+        "nfcorpus-MED-3382.md",
+        "nfcorpus-MED-2938.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-3378.md,nfcorpus-MED-2938.md",
+      "matched_files": [
+        "nfcorpus-MED-3380.md",
+        "nfcorpus-MED-5062.md",
+        "nfcorpus-MED-3382.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-3378.md",
+        "nfcorpus-MED-2938.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 15,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-3380.md",
+          "section": "Artificial food dyes and attention deficit hyperactivity disorder.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3382.md",
+          "section": "Dietary sensitivities and ADHD symptoms: thirty-five years of research.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2494.md",
+          "section": "Cancer and non-cancer health effects from food contaminant exposures for children and adults in California: a risk assessment",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1004.md",
+          "section": "Diet Contributes Significantly to the Body Burden of PBDEs in the General U.S. Population",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2497.md",
+          "section": "Prenatal exposure to polychlorinated biphenyls and dioxins is associated with increased risk of wheeze and infections in infants.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-3380.md",
+        "nfcorpus-MED-3382.md",
+        "nfcorpus-MED-2494.md",
+        "nfcorpus-MED-1004.md",
+        "nfcorpus-MED-2497.md"
+      ],
+      "top_qdrant_ids": [
+        98,
+        101,
+        76,
+        161,
+        86
+      ],
+      "timings": {
+        "embed_ms": 173.21,
+        "vector_ms": 7.46,
+        "fts_ms": 5.21,
+        "rerank_ms": 0.0,
+        "total_ms": 186.18
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1130",
+      "category": "external_beir_nfcorpus",
+      "question": "ergothioneine",
+      "expected_files": [
+        "nfcorpus-MED-4165.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "nfcorpus-MED-4165.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 13,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-4165.md",
+          "section": "Dietary sources and antioxidant effects of ergothioneine.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3807.md",
+          "section": "Artemisia dracunculus L. (tarragon): a critical review of its traditional use, chemical composition, pharmacology, and safety.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3808.md",
+          "section": "Risk assessment of consumption of methylchavicol and tarragon: the genotoxic potential in vivo and in vitro.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3532.md",
+          "section": "Application of LC and LC-MS to the analysis of melatonin and serotonin in edible plants.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3809.md",
+          "section": "Toxicological and mutagenic analysis of Artemisia dracunculus (tarragon) extract.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-4165.md",
+        "nfcorpus-MED-3807.md",
+        "nfcorpus-MED-3808.md",
+        "nfcorpus-MED-3532.md",
+        "nfcorpus-MED-3809.md"
+      ],
+      "top_qdrant_ids": [
+        105,
+        69,
+        70,
+        131,
+        73
+      ],
+      "timings": {
+        "embed_ms": 161.08,
+        "vector_ms": 6.42,
+        "fts_ms": 2.59,
+        "rerank_ms": 0.0,
+        "total_ms": 170.39
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1141",
+      "category": "external_beir_nfcorpus",
+      "question": "Evidence-based medicine",
+      "expected_files": [
+        "nfcorpus-MED-1496.md",
+        "nfcorpus-MED-1497.md",
+        "nfcorpus-MED-1498.md",
+        "nfcorpus-MED-1499.md",
+        "nfcorpus-MED-1500.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-1496.md,nfcorpus-MED-1497.md,nfcorpus-MED-1499.md,nfcorpus-MED-1500.md",
+      "matched_files": [
+        "nfcorpus-MED-1498.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-1496.md",
+        "nfcorpus-MED-1497.md",
+        "nfcorpus-MED-1499.md",
+        "nfcorpus-MED-1500.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 19,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-2112.md",
+          "section": "How evidence-based medicine biases physicians against nutrition.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1498.md",
+          "section": "A modest proposal for a longitudinal study of dementia prevention (with apologies to Jonathan Swift, 1729).",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1014.md",
+          "section": "Medication management of irritable bowel syndrome.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1037.md",
+          "section": "A brief journey into medical care and disease in ancient Egypt.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1021.md",
+          "section": "Management of diabetic retinopathy: a systematic review.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-2112.md",
+        "nfcorpus-MED-1498.md",
+        "nfcorpus-MED-1014.md",
+        "nfcorpus-MED-1037.md",
+        "nfcorpus-MED-1021.md"
+      ],
+      "top_qdrant_ids": [
+        63,
+        110,
+        183,
+        227,
+        197
+      ],
+      "timings": {
+        "embed_ms": 156.45,
+        "vector_ms": 7.93,
+        "fts_ms": 5.2,
+        "rerank_ms": 0.0,
+        "total_ms": 169.92
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1151",
+      "category": "external_beir_nfcorpus",
+      "question": "factory farming practices",
+      "expected_files": [
+        "nfcorpus-MED-2700.md",
+        "nfcorpus-MED-2695.md",
+        "nfcorpus-MED-2697.md",
+        "nfcorpus-MED-2703.md",
+        "nfcorpus-MED-2698.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-2695.md,nfcorpus-MED-2697.md,nfcorpus-MED-2703.md,nfcorpus-MED-2698.md",
+      "matched_files": [
+        "nfcorpus-MED-2700.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-2695.md",
+        "nfcorpus-MED-2697.md",
+        "nfcorpus-MED-2703.md",
+        "nfcorpus-MED-2698.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-2751.md",
+          "section": "Global fishmeal and fish-oil supply: inputs, outputs and markets.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2494.md",
+          "section": "Cancer and non-cancer health effects from food contaminant exposures for children and adults in California: a risk assessment",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2700.md",
+          "section": "The effect of blood removal on oxidation and shelf life of broiler breast meat.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1055.md",
+          "section": "Why the Bush administration and the global sugar industry are determined to demolish the 2004 WHO global strategy on diet, physical activity and he...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2700.md",
+          "section": "The effect of blood removal on oxidation and shelf life of broiler breast meat.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-2751.md",
+        "nfcorpus-MED-2494.md",
+        "nfcorpus-MED-2700.md",
+        "nfcorpus-MED-1055.md",
+        "nfcorpus-MED-2700.md"
+      ],
+      "top_qdrant_ids": [
+        13,
+        78,
+        114,
+        251,
+        116
+      ],
+      "timings": {
+        "embed_ms": 155.5,
+        "vector_ms": 7.16,
+        "fts_ms": 2.94,
+        "rerank_ms": 0.0,
+        "total_ms": 165.91
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1161",
+      "category": "external_beir_nfcorpus",
+      "question": "fava beans",
+      "expected_files": [
+        "nfcorpus-MED-4281.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "missing_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-4281.md",
+      "matched_files": [],
+      "missing_files": [
+        "nfcorpus-MED-4281.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 5,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-1027.md",
+          "section": "Varicose Veins, Deep Vein Thrombosis, and Haemorrhoids: Epidemiology and Suggested Aetiology",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4165.md",
+          "section": "Dietary sources and antioxidant effects of ergothioneine.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-5062.md",
+          "section": "Food additives and hyperactive behaviour in 3-year-old and 8/9-year-old children in the community: a randomised, double-blinded, placebo-controlled...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2494.md",
+          "section": "Cancer and non-cancer health effects from food contaminant exposures for children and adults in California: a risk assessment",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2751.md",
+          "section": "Global fishmeal and fish-oil supply: inputs, outputs and markets.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-1027.md",
+        "nfcorpus-MED-4165.md",
+        "nfcorpus-MED-5062.md",
+        "nfcorpus-MED-2494.md",
+        "nfcorpus-MED-2751.md"
+      ],
+      "top_qdrant_ids": [
+        204,
+        106,
+        99,
+        77,
+        13
+      ],
+      "timings": {
+        "embed_ms": 154.28,
+        "vector_ms": 7.12,
+        "fts_ms": 2.74,
+        "rerank_ms": 0.0,
+        "total_ms": 164.39
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1172",
+      "category": "external_beir_nfcorpus",
+      "question": "fenugreek",
+      "expected_files": [
+        "nfcorpus-MED-3518.md",
+        "nfcorpus-MED-3519.md",
+        "nfcorpus-MED-3532.md",
+        "nfcorpus-MED-3533.md",
+        "nfcorpus-MED-3524.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-3532.md,nfcorpus-MED-3524.md",
+      "matched_files": [
+        "nfcorpus-MED-3518.md",
+        "nfcorpus-MED-3519.md",
+        "nfcorpus-MED-3533.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-3532.md",
+        "nfcorpus-MED-3524.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 14,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-3810.md",
+          "section": "Christmas gingerbread (Lebkuchen) and Christmas cheer--review of the potential role of mood elevating amphetamine-like compounds formed in vivo and...",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3806.md",
+          "section": "Toxicology of nutmeg abuse.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-3807.md",
+          "section": "Artemisia dracunculus L. (tarragon): a critical review of its traditional use, chemical composition, pharmacology, and safety.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4535.md",
+          "section": "Detection of toxic heavy metals and pesticide residue in herbal plants which are commonly used in the herbal formulations.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1005.md",
+          "section": "Effect of fibre, antispasmodics, and peppermint oil in the treatment of irritable bowel syndrome: systematic review and meta-analysis",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-3810.md",
+        "nfcorpus-MED-3806.md",
+        "nfcorpus-MED-3807.md",
+        "nfcorpus-MED-4535.md",
+        "nfcorpus-MED-1005.md"
+      ],
+      "top_qdrant_ids": [
+        74,
+        67,
+        68,
+        7,
+        164
+      ],
+      "timings": {
+        "embed_ms": 152.96,
+        "vector_ms": 6.7,
+        "fts_ms": 0.46,
+        "rerank_ms": 0.0,
+        "total_ms": 160.38
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1183",
+      "category": "external_beir_nfcorpus",
+      "question": "Finland",
+      "expected_files": [
+        "nfcorpus-MED-1265.md",
+        "nfcorpus-MED-1266.md",
+        "nfcorpus-MED-1267.md",
+        "nfcorpus-MED-1268.md",
+        "nfcorpus-MED-1278.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "no_evidence",
+      "failure_reason": "no_hits; missing_files=nfcorpus-MED-1265.md,nfcorpus-MED-1266.md,nfcorpus-MED-1267.md,nfcorpus-MED-1268.md,nfcorpus-MED-1278.md",
+      "matched_files": [],
+      "missing_files": [
+        "nfcorpus-MED-1265.md",
+        "nfcorpus-MED-1266.md",
+        "nfcorpus-MED-1267.md",
+        "nfcorpus-MED-1268.md",
+        "nfcorpus-MED-1278.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 0,
+      "evaluation_stage": "deduped",
+      "top_sources": [],
+      "top_files": [],
+      "top_qdrant_ids": [],
+      "timings": {
+        "embed_ms": 128.56,
+        "vector_ms": 7.05,
+        "fts_ms": 2.19,
+        "rerank_ms": 0.0,
+        "total_ms": 137.82
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-1193",
+      "category": "external_beir_nfcorpus",
+      "question": "flax oil",
+      "expected_files": [
+        "nfcorpus-MED-4000.md",
+        "nfcorpus-MED-4002.md",
+        "nfcorpus-MED-5016.md",
+        "nfcorpus-MED-4005.md",
+        "nfcorpus-MED-4007.md"
+      ],
+      "expected_terms": [],
+      "passed": false,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "partial_evidence",
+      "failure_reason": "missing_files=nfcorpus-MED-4007.md",
+      "matched_files": [
+        "nfcorpus-MED-4000.md",
+        "nfcorpus-MED-4002.md",
+        "nfcorpus-MED-5016.md",
+        "nfcorpus-MED-4005.md"
+      ],
+      "missing_files": [
+        "nfcorpus-MED-4007.md"
+      ],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 15,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-5016.md",
+          "section": "Effects of dietary coconut oil, butter and safflower oil on plasma lipids, lipoproteins and lathosterol levels.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2751.md",
+          "section": "Global fishmeal and fish-oil supply: inputs, outputs and markets.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4000.md",
+          "section": "Coconut oil predicts a beneficial lipid profile in pre-menopausal women in the Philippines",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1005.md",
+          "section": "Effect of fibre, antispasmodics, and peppermint oil in the treatment of irritable bowel syndrome: systematic review and meta-analysis",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-4005.md",
+          "section": "Effect of the fat composition of a single high-fat meal on inflammatory markers in healthy young women.",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-5016.md",
+        "nfcorpus-MED-2751.md",
+        "nfcorpus-MED-4000.md",
+        "nfcorpus-MED-1005.md",
+        "nfcorpus-MED-4005.md"
+      ],
+      "top_qdrant_ids": [
+        51,
+        14,
+        47,
+        164,
+        54
+      ],
+      "timings": {
+        "embed_ms": 150.67,
+        "vector_ms": 6.79,
+        "fts_ms": 4.07,
+        "rerank_ms": 0.0,
+        "total_ms": 161.85
+      }
+    },
+    {
+      "id": "beir_nfcorpus_PLAIN-12",
+      "category": "external_beir_nfcorpus",
+      "question": "Exploiting Autophagy to Live Longer",
+      "expected_files": [
+        "nfcorpus-MED-2513.md",
+        "nfcorpus-MED-5237.md",
+        "nfcorpus-MED-2517.md",
+        "nfcorpus-MED-2518.md",
+        "nfcorpus-MED-2519.md"
+      ],
+      "expected_terms": [],
+      "passed": true,
+      "must_find": true,
+      "file_filter": [],
+      "evidence_status": "grounded",
+      "failure_reason": "",
+      "matched_files": [
+        "nfcorpus-MED-2513.md",
+        "nfcorpus-MED-5237.md",
+        "nfcorpus-MED-2517.md",
+        "nfcorpus-MED-2518.md",
+        "nfcorpus-MED-2519.md"
+      ],
+      "missing_files": [],
+      "matched_terms": [],
+      "missing_terms": [],
+      "hit_count": 16,
+      "evaluation_stage": "parent_expanded",
+      "top_sources": [
+        {
+          "file_name": "nfcorpus-MED-2519.md",
+          "section": "Caloric restriction in humans: potential pitfalls and health concerns.",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-1068.md",
+          "section": "Molecular Mechanisms and the Role of Saturated Fatty Acids in the Progression of Non-Alcoholic Fatty Liver Disease",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2517.md",
+          "section": "mTOR is a key modulator of ageing and age-related disease",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2513.md",
+          "section": "Insights into the beneficial effect of caloric/ dietary restriction for a healthy and prolonged life",
+          "page_num": 1
+        },
+        {
+          "file_name": "nfcorpus-MED-2518.md",
+          "section": "Aging is not programmed",
+          "page_num": 1
+        }
+      ],
+      "top_files": [
+        "nfcorpus-MED-2519.md",
+        "nfcorpus-MED-1068.md",
+        "nfcorpus-MED-2517.md",
+        "nfcorpus-MED-2513.md",
+        "nfcorpus-MED-2518.md"
+      ],
+      "top_qdrant_ids": [
+        150,
+        270,
+        148,
+        144,
+        149
+      ],
+      "timings": {
+        "embed_ms": 201.06,
+        "vector_ms": 7.48,
+        "fts_ms": 6.4,
+        "rerank_ms": 0.0,
+        "total_ms": 215.21
+      }
+    }
+  ]
+}

@@ -231,6 +231,7 @@ def check_status_alignment() -> None:
         [
             "not a broad public benchmark",
             "BEIR SciFact-lite",
+            "BEIR NFCorpus-lite",
             "Archived subset only",
             "Offline doctor: 0 unexpected outbound connections",
             "DocFlow is not published to PyPI yet",
@@ -275,6 +276,8 @@ def check_docker_and_package_surface() -> None:
     for artifact in (
         "eval/results/external/beir-scifact-lite-20e459e.json",
         "eval/results/external/beir-scifact-lite-latest.json",
+        "eval/results/external/beir-nfcorpus-lite-08f3965.json",
+        "eval/results/external/beir-nfcorpus-lite-latest.json",
         "eval/results/large-library/large-library-20e459e.json",
         "eval/results/large-library/large-library-latest.json",
     ):
