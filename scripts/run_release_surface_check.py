@@ -328,7 +328,13 @@ def check_workflows() -> None:
     )
     require_snippets(
         ".github/workflows/scorecard.yml",
-        ["ossf/scorecard-action", "scorecard-results.sarif", "publish_results: true"],
+        [
+            "permissions: read-all",
+            "security-events: write",
+            "ossf/scorecard-action",
+            "scorecard-results.sarif",
+            "publish_results: true",
+        ],
     )
     require_snippets(
         ".github/workflows/python-package.yml",
