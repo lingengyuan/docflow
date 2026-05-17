@@ -6,8 +6,12 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+ACTION_PIN_PATTERN = re.compile(r"@[0-9a-f]{40}$")
 
 REQUIRED_ROOT_FILES = [
     ".github/ISSUE_TEMPLATE/bug.md",
@@ -116,6 +120,27 @@ def require_snippets(path: str, snippets: list[str]) -> None:
     missing = [snippet for snippet in snippets if snippet not in text]
     if missing:
         fail(f"{path} is missing required text: {', '.join(missing)}")
+
+
+def workflow_documents() -> list[tuple[Path, Any]]:
+    documents: list[tuple[Path, Any]] = []
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        documents.append((path, yaml.safe_load(path.read_text(encoding="utf-8"))))
+    return documents
+
+
+def workflow_uses_entries(node: Any) -> list[str]:
+    entries: list[str] = []
+    if isinstance(node, dict):
+        uses = node.get("uses")
+        if isinstance(uses, str):
+            entries.append(uses)
+        for value in node.values():
+            entries.extend(workflow_uses_entries(value))
+    elif isinstance(node, list):
+        for value in node:
+            entries.extend(workflow_uses_entries(value))
+    return entries
 
 
 def git_ls_files() -> list[str]:
@@ -255,10 +280,23 @@ def check_docker_and_package_surface() -> None:
         [
             "ghcr.io/lingengyuan/docflow:edge",
             "qdrant:",
+            "qdrant/qdrant:latest@sha256:",
             "./config.docker.yaml:/app/config.yaml:ro",
         ],
     )
-    require_snippets("Dockerfile", ['CMD ["docflow", "serve"]'])
+    require_snippets(
+        "docker-compose.yml",
+        [
+            "qdrant/qdrant:latest@sha256:",
+        ],
+    )
+    require_snippets(
+        "Dockerfile",
+        [
+            "python:3.12-slim@sha256:",
+            'CMD ["docflow", "serve"]',
+        ],
+    )
 
     pyproject = read("pyproject.toml")
     if '"ROADMAP.md"' not in pyproject:
@@ -288,8 +326,34 @@ def check_docker_and_package_surface() -> None:
             fail(f"pyproject package data is missing docs/assets/{asset}")
 
 
+def check_workflow_security_invariants() -> None:
+    for path, document in workflow_documents():
+        relative = path.relative_to(ROOT)
+        text = path.read_text(encoding="utf-8")
+        if "permissions: read-all" in text:
+            fail(f"{relative} uses broad read-all token permissions")
+        unpinned = [
+            uses for uses in workflow_uses_entries(document) if not ACTION_PIN_PATTERN.search(uses)
+        ]
+        if unpinned:
+            fail(
+                f"{relative} has unpinned workflow actions: "
+                + ", ".join(sorted(set(unpinned)))
+            )
+
+    for path in ("docker-compose.yml", "docker-compose.image.yml"):
+        text = read(path)
+        if "qdrant/qdrant:latest" in text and "qdrant/qdrant:latest@sha256:" not in text:
+            fail(f"{path} must pin the Qdrant service image by digest")
+
+    dockerfile = read("Dockerfile")
+    if "python:3.12-slim" in dockerfile and "python:3.12-slim@sha256:" not in dockerfile:
+        fail("Dockerfile must pin the Python base image by digest")
+
+
 def check_workflows() -> None:
     require_files(REQUIRED_WORKFLOWS)
+    check_workflow_security_invariants()
     require_snippets(
         ".github/workflows/ci.yml",
         [
@@ -327,22 +391,27 @@ def check_workflows() -> None:
             "type=raw,value=edge",
             "ghcr.io/",
             "github.repository",
-            "docker/build-push-action",
+            "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8",
+            "sbom: true",
+            "provenance: mode=max",
         ],
     )
     require_snippets(
         ".github/workflows/scorecard.yml",
         [
-            "permissions: read-all",
+            "contents: read",
             "security-events: write",
-            "ossf/scorecard-action",
+            "id-token: write",
+            "actions: read",
+            "persist-credentials: false",
+            "ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde",
             "scorecard-results.sarif",
             "publish_results: true",
         ],
     )
     require_snippets(
         ".github/workflows/python-package.yml",
-        ["python scripts/package_smoke.py", "docflow-python-package"],
+        ["python scripts/package_smoke.py", "SHA256SUMS", "docflow-python-package"],
     )
     require_snippets(
         "docs/development.md",
@@ -350,7 +419,21 @@ def check_workflows() -> None:
     )
     require_snippets(
         "docs/threat-model.md",
-        ["Browser to DocFlow API", "DocFlow to the internet", "OpenSSF Scorecard"],
+        [
+            "Browser to DocFlow API",
+            "DocFlow to the internet",
+            "OpenSSF Scorecard",
+            "Release artifact tampering",
+        ],
+    )
+    require_snippets(
+        "docs/release.md",
+        [
+            "workflow actions, Docker bases, and Qdrant service images are still pinned",
+            "SHA256SUMS",
+            "Docker image SBOM and provenance attestations",
+            "Release artifacts are not signed yet",
+        ],
     )
     require_snippets(
         "docs/model-licenses.md",

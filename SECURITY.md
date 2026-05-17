@@ -39,4 +39,6 @@ For security-related changes:
 - Run the offline network check.
 - Review new network access paths.
 - Confirm generated files and local runtime data are ignored by git.
+- Keep GitHub Actions, Docker base images, and service container images pinned to reviewed commits or image digests. Public application tags such as `edge` may remain moving convenience tags and must not be described as signed or immutable.
+- Confirm release artifacts have checksums, and do not claim signed releases until signing is actually enabled.
 - Update `docs/privacy.md` when behavior changes.

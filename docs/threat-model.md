@@ -37,7 +37,8 @@ use when changing storage, parsing, model, network, or release behavior.
 | Parser crash or bad file input | Parser/eval tests and visible failure paths | Parsers are not isolated in a sandbox process |
 | Local database or backup exposure | Runtime data is ignored by git and stays local | SQLite databases and backups are not encrypted at rest |
 | Browser API exposure | Defaults target local browser use | No built-in authentication if users bind the service to a broader network |
-| Supply-chain drift | Pinned dependencies, dependency audit, CodeQL, Dependabot, release-surface check | OpenSSF Scorecard should be reviewed before releases |
+| Supply-chain drift | Pinned dependencies, pinned workflow actions, pinned Docker/Qdrant images, dependency audit, CodeQL, Dependabot, release-surface check | OpenSSF Scorecard should be reviewed before releases |
+| Release artifact tampering | Python package checksums plus Docker SBOM/provenance in release workflows | Release artifacts are not signed yet |
 
 ## Maintainer Checklist
 
@@ -49,3 +50,5 @@ use when changing storage, parsing, model, network, or release behavior.
   prove failure is visible instead of silently hidden.
 - Public release artifacts must pass CI, package smoke, release-surface checks,
   dependency audit, and OpenSSF Scorecard review before tag notes call them ready.
+- Workflow action updates and Docker base-image updates must keep pinned commit
+  hashes or image digests in the same pull request.

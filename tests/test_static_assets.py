@@ -506,6 +506,13 @@ def test_phase88_performance_smoke_is_documented_and_in_ci():
 def test_phase97_github_ci_runs_release_and_eval_gates():
     ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     eval_workflow = Path(".github/workflows/evaluation.yml").read_text(encoding="utf-8")
+    scorecard_workflow = Path(".github/workflows/scorecard.yml").read_text(encoding="utf-8")
+    docker_workflow = Path(".github/workflows/docker-image.yml").read_text(encoding="utf-8")
+    python_package_workflow = Path(".github/workflows/python-package.yml").read_text(
+        encoding="utf-8"
+    )
+    dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
+    compose = Path("docker-compose.yml").read_text(encoding="utf-8")
     release_check = Path("scripts/run_release_surface_check.py").read_text(encoding="utf-8")
     evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
     release_doc = Path("docs/release.md").read_text(encoding="utf-8")
@@ -537,6 +544,14 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
     assert "release surface" in release_doc
     assert "scheduled evaluation workflow" in release_doc
     assert "GitHub CI now runs" in status_doc
+    assert "permissions: read-all" not in scorecard_workflow
+    assert "ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde" in scorecard_workflow
+    assert "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8" in docker_workflow
+    assert "sbom: true" in docker_workflow
+    assert "provenance: mode=max" in docker_workflow
+    assert "SHA256SUMS" in python_package_workflow
+    assert "python:3.12-slim@sha256:" in dockerfile
+    assert "qdrant/qdrant:latest@sha256:" in compose
 
 
 def test_phase99_external_benchmark_claims_are_explicitly_bounded():

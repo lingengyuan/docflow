@@ -28,10 +28,15 @@ DISALLOWED_SCORE_CLAIMS = [
 ]
 
 REQUIRED_STATUS_SNIPPETS = [
-    "OpenSSF Scorecard: latest reviewed result was 4.2/10",
+    "OpenSSF Scorecard: latest reviewed pre-Phase115 baseline was 4.5/10",
     "not a mature open-source security score",
-    "branch protection, enforced code review, token-permission tightening",
-    "signed releases, and package publishing remain open",
+    (
+        "Phase115 addressed workflow token permissions, GitHub Action pins, "
+        "Docker base/Qdrant service image pins"
+    ),
+    "branch protection, enforced code review, CI-on-PR history",
+    "signed releases, PyPI publishing, fuzzing",
+    "hash-pinned Python installation commands",
     "not a broad public benchmark",
     "A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed",
     "DocFlow is not published to PyPI yet",

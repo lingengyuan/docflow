@@ -21,6 +21,7 @@
 - Added an active-review knowledge loop that connects sources, questions, citations, saved notes, relationships, review prompts, and feedback in one user-facing panel.
 - Moved the Notes active-review panel into the Preact component build path while keeping the legacy browser entry point stable.
 - Expanded answer faithfulness checks to cover no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, and multi-citation support.
+- Tightened release security posture with pinned GitHub Actions, pinned Docker/Qdrant images, narrower workflow permissions, Python package checksums, Docker SBOM/provenance output, and clearer unsigned-release boundaries.
 
 ## 0.58.0 - 2026-05-12
 

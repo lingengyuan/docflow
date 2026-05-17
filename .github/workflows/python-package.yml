@@ -6,14 +6,17 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build package artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # actions/checkout@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -23,7 +26,19 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python scripts/package_smoke.py
           python -m build
-      - uses: actions/upload-artifact@v5
+      - name: Generate artifact checksums
+        run: |
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+
+          lines = []
+          for path in sorted(Path("dist").glob("*")):
+              if path.is_file():
+                  lines.append(f"{sha256(path.read_bytes()).hexdigest()}  {path.name}")
+          Path("dist/SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
         with:
           name: docflow-python-package
           path: dist/*
