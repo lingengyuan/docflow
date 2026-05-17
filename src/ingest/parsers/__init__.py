@@ -9,7 +9,9 @@ ParserRegistry — 根据文件扩展名选择对应的 FileParser。
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
+from src.ingest.parsers.base import FileParser
 from src.ingest.parsers.docx_parser import DocxParser
 from src.ingest.parsers.image_parser import ImageParser
 from src.ingest.parsers.markdown_parser import MarkdownParser
@@ -20,13 +22,13 @@ IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
 
 
 class ParserRegistry:
-    def __init__(self):
-        self._parsers: dict[str, object] = {}
+    def __init__(self) -> None:
+        self._parsers: dict[str, FileParser] = {}
 
-    def register(self, ext: str, parser: object) -> None:
+    def register(self, ext: str, parser: FileParser) -> None:
         self._parsers[ext.lower()] = parser
 
-    def resolve(self, file_path: Path) -> object:
+    def resolve(self, file_path: Path) -> FileParser:
         ext = file_path.suffix.lower()
         parser = self._parsers.get(ext)
         if parser is None:
@@ -41,7 +43,7 @@ class ParserRegistry:
         return list(self._parsers.keys())
 
     @classmethod
-    def from_config(cls, cfg: dict) -> ParserRegistry:
+    def from_config(cls, cfg: dict[str, Any]) -> ParserRegistry:
         registry = cls()
         ollama_url = cfg["ollama"]["base_url"]
         ocr_model = cfg["ollama"]["ocr_model"]

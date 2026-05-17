@@ -23,6 +23,7 @@
 - Expanded answer faithfulness checks to cover no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, and multi-citation support.
 - Tightened release security posture with pinned GitHub Actions, pinned Docker/Qdrant images, narrower workflow permissions, Python package checksums, Docker SBOM/provenance output, and clearer unsigned-release boundaries.
 - Added repeatable release-candidate metadata generation with package checksums, a release manifest, a release-notes template, and explicit PyPI publishing boundaries.
+- Expanded type-checked boundaries across API runtime state, ingest parser/pipeline contracts, and maintenance platform/offline-doctor reporting.
 
 ## 0.58.0 - 2026-05-12
 

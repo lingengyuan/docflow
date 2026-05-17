@@ -9,7 +9,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from src.api.state import AppContext
+from src.api.state import AppContext, LLMSwitchState, WatchDirLike
 
 
 @dataclass
@@ -98,11 +98,11 @@ class ApiRuntime:
         self.app_context.watcher = value
 
     @property
-    def watch_dirs(self) -> list[Any]:
+    def watch_dirs(self) -> list[WatchDirLike]:
         return self.app_context.watch_dirs
 
     @watch_dirs.setter
-    def watch_dirs(self, value: list[Any]) -> None:
+    def watch_dirs(self, value: list[WatchDirLike]) -> None:
         self.app_context.watch_dirs = value
 
     @property
@@ -118,7 +118,7 @@ class ApiRuntime:
         return self.app_context.model_tasks
 
     @property
-    def llm_switch_state(self) -> Any:
+    def llm_switch_state(self) -> LLMSwitchState:
         return self.app_context.llm_switch_state
 
     def _sync_app_state(self) -> None:

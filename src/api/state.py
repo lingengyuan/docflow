@@ -8,11 +8,27 @@ from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import time
-from typing import Any
+from typing import Any, Literal, Protocol, TypedDict, cast
 
 from src.api.model_tasks import ModelTaskController
 
 logger = logging.getLogger(__name__)
+
+LLMSwitchStatus = Literal["idle", "switching", "error"]
+
+
+class LLMSwitchSnapshot(TypedDict):
+    state: LLMSwitchStatus
+    model: str | None
+    message: str
+    started_at: float | None
+    finished_at: float | None
+
+
+class WatchDirLike(Protocol):
+    path: Path
+    recursive: bool
+    extensions: list[str]
 
 
 class LLMSwitchState(MutableMapping[str, Any]):
@@ -28,7 +44,13 @@ class LLMSwitchState(MutableMapping[str, Any]):
             "finished_at": None,
         }
 
-    def set(self, state: str, *, model: str | None = None, message: str = "") -> None:
+    def set(
+        self,
+        state: LLMSwitchStatus,
+        *,
+        model: str | None = None,
+        message: str = "",
+    ) -> None:
         now = time()
         with self._lock:
             self._data.update(
@@ -41,9 +63,9 @@ class LLMSwitchState(MutableMapping[str, Any]):
                 }
             )
 
-    def snapshot(self) -> dict[str, Any]:
+    def snapshot(self) -> LLMSwitchSnapshot:
         with self._lock:
-            return dict(self._data)
+            return cast(LLMSwitchSnapshot, dict(self._data))
 
     def __getitem__(self, key: str) -> Any:
         with self._lock:
@@ -76,7 +98,7 @@ class AppContext:
     query_engine: Any = None
     store: Any = None
     watcher: Any = None
-    watch_dirs: list[Any] = field(default_factory=list)
+    watch_dirs: list[WatchDirLike] = field(default_factory=list)
     llm_options: list[str] = field(default_factory=list)
     llm_switch_state: LLMSwitchState = field(default_factory=LLMSwitchState)
 
@@ -88,7 +110,7 @@ class AppContext:
         query_engine: Any,
         store: Any,
         watcher: Any,
-        watch_dirs: list[Any],
+        watch_dirs: list[WatchDirLike],
         llm_options: list[str],
     ) -> None:
         self.pipeline = pipeline

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from qdrant_client.models import VectorParams
 
 from src.embedding_backend import EmbeddingBackendConfig, load_embedding_model
 from src.ingest.chunker import Chunk
@@ -94,7 +95,11 @@ class Embedder:
         existing_dim = None
         if self._qdrant.collection_exists(self.collection_name):
             info = self._qdrant.get_collection(self.collection_name)
-            existing_dim = info.config.params.vectors.size
+            vectors_config = info.config.params.vectors
+            if isinstance(vectors_config, VectorParams):
+                existing_dim = vectors_config.size
+            elif isinstance(vectors_config, dict) and vectors_config:
+                existing_dim = next(iter(vectors_config.values())).size
         self._vector_store.ensure_collection(self.collection_name, vector_dim)
         if existing_dim is not None and existing_dim != vector_dim:
             logger.warning(

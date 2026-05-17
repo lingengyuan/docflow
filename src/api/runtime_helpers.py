@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import yaml
 
 from src.api.runtime import get_api_runtime
+from src.api.state import LLMSwitchStatus
 from src.config import ConfigError, DocFlowSettings
 from src.config import WatchDirSettings as RuntimeWatchDirSettings
 from src.ingest.watcher import WatchDir
@@ -153,7 +154,12 @@ def _llm_model_status(model_name: str) -> dict:
     }
 
 
-def _set_llm_switch_state(state: str, *, model: str | None = None, message: str = ""):
+def _set_llm_switch_state(
+    state: LLMSwitchStatus,
+    *,
+    model: str | None = None,
+    message: str = "",
+) -> None:
     _api().llm_switch_state.set(state, model=model, message=message)
 
 

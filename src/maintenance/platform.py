@@ -7,11 +7,48 @@ import json
 import platform
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import yaml
 
 from src.maintenance.startup import ensure_config_file
+
+
+class PythonReport(TypedDict):
+    version: str
+    implementation: str
+    executable: str
+
+
+class OSReport(TypedDict):
+    system: str
+    release: str
+    machine: str
+    apple_silicon: bool
+
+
+class ConfiguredReport(TypedDict):
+    llm_backend: str
+    embedding_backend: Any
+    vlm_enabled: bool
+
+
+class CapabilityReport(TypedDict):
+    base_runtime: bool
+    ollama_compatible_answers: bool
+    mlx_answers: bool
+    mlx_reranker: bool
+    onnx_embeddings: bool
+    torch_embeddings: bool
+
+
+class PlatformReport(TypedDict):
+    python: PythonReport
+    os: OSReport
+    configured: ConfiguredReport
+    capabilities: CapabilityReport
+    optional_packages: dict[str, bool]
+    warnings: list[str]
 
 
 def _package_available(module_name: str) -> bool:
@@ -24,7 +61,7 @@ def _load_config(config_path: str | Path = "config.yaml") -> dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
-def build_platform_report(config_path: str | Path = "config.yaml") -> dict[str, Any]:
+def build_platform_report(config_path: str | Path = "config.yaml") -> PlatformReport:
     cfg = _load_config(config_path)
     machine = platform.machine().lower()
     system = platform.system().lower()

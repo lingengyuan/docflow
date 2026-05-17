@@ -7,12 +7,16 @@ import logging
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import yaml
 
 from src import net
 from src.model_cache import configured_hf_model_status
+
+if TYPE_CHECKING:
+    from src.ingest.chunker import Chunk
 
 
 def _load_config_for_offline_guard(config_path: str | Path) -> dict:
@@ -59,11 +63,11 @@ class _OfflineFakeEmbedder:
 
     def upsert_embeddings(
         self,
-        chunks: list,
-        vectors: np.ndarray,
-        min_next_id: int = 1,
+        chunks: list[Chunk],
+        dense_vecs: np.ndarray,
+        min_next_id: int | None = 1,
     ) -> list[int]:
-        del vectors
+        del dense_vecs
         start = int(min_next_id or 1)
         return list(range(start, start + len(chunks)))
 

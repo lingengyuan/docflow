@@ -25,7 +25,12 @@ from src.ingest.embedder import Embedder
 from src.ingest.parsers import ParserRegistry
 from src.ingest.pdf_analyzer import ParsedDocument
 from src.ingest.pipeline_context import is_cjk_dominant as _is_cjk_dominant
-from src.ingest.pipeline_types import IngestMetrics, PreparedIngestFile, ProgressCallback
+from src.ingest.pipeline_types import (
+    IngestEmbedder,
+    IngestMetrics,
+    PreparedIngestFile,
+    ProgressCallback,
+)
 from src.ingest.store import DocStore
 
 logger = logging.getLogger(__name__)
@@ -35,7 +40,7 @@ class IngestPipeline:
         self,
         registry: ParserRegistry,
         chunker: StructuredChunker,
-        embedder: Embedder,
+        embedder: IngestEmbedder,
         store: DocStore,
         use_embedding_cache: bool = True,
         contextual_prefix_enabled: bool = False,

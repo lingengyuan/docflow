@@ -65,7 +65,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 478 passed.
+- Unit/integration tests: 481 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.
