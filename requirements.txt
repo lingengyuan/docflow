@@ -1,3 +1,7 @@
+# Full pinned runtime install for the default local desktop Q&A path.
+# Dependency layers are documented in requirements-core.txt,
+# requirements-local-model.txt, requirements-vision.txt, and
+# requirements-mac-mlx.txt.
 fastapi==0.135.1
 httpx==0.28.1
 jieba==0.42.1

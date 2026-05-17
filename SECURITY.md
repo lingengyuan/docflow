@@ -29,6 +29,8 @@ DocFlow should not:
 
 Expected local services include the browser app, SQLite, Qdrant on localhost, and optionally Ollama on localhost.
 
+The detailed maintainer threat model lives in [docs/threat-model.md](docs/threat-model.md).
+
 ## Maintainer Checklist
 
 For security-related changes:

@@ -29,6 +29,12 @@ REQUIRED_ROOT_FILES = [
     "docker-compose.image.yml",
     "docker-compose.yml",
     "pyproject.toml",
+    "requirements-core.txt",
+    "requirements-dev.txt",
+    "requirements-local-model.txt",
+    "requirements-mac-mlx.txt",
+    "requirements-vision.txt",
+    "requirements.txt",
 ]
 
 PUBLIC_DOCS = [
@@ -37,9 +43,11 @@ PUBLIC_DOCS = [
     "development.md",
     "evaluation.md",
     "features.md",
+    "model-licenses.md",
     "privacy.md",
     "release.md",
     "status.md",
+    "threat-model.md",
 ]
 
 PUBLIC_ADRS = [
@@ -84,6 +92,7 @@ REQUIRED_WORKFLOWS = [
     ".github/workflows/docker-image.yml",
     ".github/workflows/evaluation.yml",
     ".github/workflows/python-package.yml",
+    ".github/workflows/scorecard.yml",
 ]
 
 
@@ -212,7 +221,7 @@ def check_status_alignment() -> None:
         "README.md",
         [
             "No telemetry, analytics, or document upload.",
-            "docker compose up --build",
+            "docker compose -f docker-compose.image.yml up",
             "docflow doctor --offline",
             "not a personal vault",
         ],
@@ -225,6 +234,7 @@ def check_status_alignment() -> None:
             "Archived subset only",
             "Offline doctor: 0 unexpected outbound connections",
             "DocFlow is not published to PyPI yet",
+            "OpenSSF Scorecard",
         ],
     )
 
@@ -242,7 +252,7 @@ def check_docker_and_package_surface() -> None:
     require_snippets(
         "docker-compose.image.yml",
         [
-            "ghcr.io/lingengyuan/docflow",
+            "ghcr.io/lingengyuan/docflow:edge",
             "qdrant:",
             "./config.docker.yaml:/app/config.yaml:ro",
         ],
@@ -308,11 +318,33 @@ def check_workflows() -> None:
     )
     require_snippets(
         ".github/workflows/docker-image.yml",
-        ["ghcr.io/", "github.repository", "docker/build-push-action"],
+        [
+            "branches: [main]",
+            "type=raw,value=edge",
+            "ghcr.io/",
+            "github.repository",
+            "docker/build-push-action",
+        ],
+    )
+    require_snippets(
+        ".github/workflows/scorecard.yml",
+        ["ossf/scorecard-action", "scorecard-results.sarif", "publish_results: true"],
     )
     require_snippets(
         ".github/workflows/python-package.yml",
         ["python scripts/package_smoke.py", "docflow-python-package"],
+    )
+    require_snippets(
+        "docs/development.md",
+        ["requirements-core.txt", "requirements-local-model.txt", "requirements-vision.txt"],
+    )
+    require_snippets(
+        "docs/threat-model.md",
+        ["Browser to DocFlow API", "DocFlow to the internet", "OpenSSF Scorecard"],
+    )
+    require_snippets(
+        "docs/model-licenses.md",
+        ["Model weights are separate artifacts", "Qwen/Qwen3-Embedding-0.6B", "glm-ocr"],
     )
 
 

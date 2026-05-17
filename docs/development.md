@@ -6,7 +6,7 @@ For daily use, prefer one of these supported paths:
 
 - Source checkout: clone the repository, create a virtual environment, install with `pip install -e .`, start Qdrant, and run `docflow serve`.
 - Docker from source: run `docker compose up --build` to build the app container and start Qdrant together.
-- Docker image release: after a tagged image is published, run `docker compose -f docker-compose.image.yml up` to use `ghcr.io/lingengyuan/docflow` without rebuilding locally.
+- Docker image release: run `docker compose -f docker-compose.image.yml up` to use `ghcr.io/lingengyuan/docflow:edge` without rebuilding locally. Versioned tags are produced for releases.
 
 DocFlow is not on PyPI yet. The wheel now packages browser assets, configuration templates, and public docs, and `scripts/package_smoke.py` verifies an installed wheel can find them. Until PyPI publishing is enabled, use source checkout or Docker for daily use.
 
@@ -16,6 +16,17 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 pip install -e .
 ```
+
+Dependency layers:
+
+| File | Purpose |
+| --- | --- |
+| `requirements-core.txt` | API, browser shell, parsers, local storage, and maintenance checks without local model inference |
+| `requirements-local-model.txt` | Default local embedding and reranking path on top of core dependencies |
+| `requirements.txt` | Full pinned runtime install used by the app, Dockerfile, and package metadata |
+| `requirements-vision.txt` | Optional image understanding dependencies |
+| `requirements-mac-mlx.txt` | Optional Apple Silicon MLX local answer and reranking dependencies |
+| `requirements-dev.txt` | Test, lint, package, and audit tooling |
 
 Install optional image understanding support only when needed:
 

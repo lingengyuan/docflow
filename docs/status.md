@@ -34,7 +34,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Performance smoke now covers parser/chunker behavior for a synthetic long note and a synthetic many-note library in the standard local CI script.
 - Incremental indexing has a regression test for add, modify, and delete behavior.
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
-- Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for tagged releases.
+- Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for the no-build public image path.
+- The GHCR image workflow now publishes `ghcr.io/lingengyuan/docflow:edge` from `main` and versioned tags from releases.
+- OpenSSF Scorecard now runs as a scheduled and main-branch open-source health baseline.
+- Public security docs now include a maintainer threat model and model-license boundary.
+- Dependency files now document core, local-model, vision, Apple Silicon MLX, and development layers separately.
 - Python package artifacts now include browser assets, config templates, and public docs, with an installed-wheel smoke test in the local CI script.
 - Storage is split into focused database, file, vector, history, and library metadata modules. Retrieval routing and MLX reranking now live outside the main retriever implementation. API health checks now live outside the main app implementation.
 - Runtime dependencies now keep Apple Silicon MLX support in an optional requirements file, and code hygiene tests prevent silent broad exception handlers and non-maintenance print calls from creeping back into `src/`.
@@ -57,7 +61,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 464 passed.
+- Unit/integration tests: 468 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
@@ -71,6 +75,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, P95 97.11 ms, workspace 29,115,676 bytes. This measures local parser/chunker/SQLite source lookup only, not embedding, reranking, or answer first-token latency.
 - Release surface check: passed.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
+- OpenSSF Scorecard: workflow configured; review the latest GitHub Actions result before tagging a release.
 
 ## Remaining Gaps
 
@@ -81,7 +86,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite result gives one external subset check. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
-- DocFlow is not published to PyPI yet. Source checkout and Docker remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
+- DocFlow is not published to PyPI yet. Source checkout and GHCR image startup remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 
 ## Status Update Rule
 

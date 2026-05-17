@@ -1,6 +1,6 @@
 services:
   docflow:
-    image: ${DOCFLOW_IMAGE:-ghcr.io/lingengyuan/docflow:latest}
+    image: ${DOCFLOW_IMAGE:-ghcr.io/lingengyuan/docflow:edge}
     container_name: docflow-app
     depends_on:
       - qdrant

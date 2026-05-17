@@ -11,6 +11,8 @@ Use this checklist before tagging a public DocFlow release.
 - Confirm known limitations are listed in `docs/status.md`.
 - Confirm install cost, model size boundaries, and upgrade notes are current in `README.md`, `docs/development.md`, and `docs/architecture.md`.
 - Confirm Docker image release notes name the exact image tag, for example `ghcr.io/lingengyuan/docflow:v0.58.0`.
+- Confirm `docs/threat-model.md` and `docs/model-licenses.md` still match the release behavior.
+- Confirm OpenSSF Scorecard has a recent run and review any high-risk findings before tagging.
 - Confirm `scripts/run_release_surface_check.py` passes so the public docs, Docker files, workflows, package data, and ignored internal history are aligned.
 - Confirm `scripts/package_smoke.py` passes before treating wheel artifacts as releasable.
 - Confirm the scheduled evaluation workflow has a recent successful run before quoting public retrieval numbers in release notes.
@@ -28,6 +30,8 @@ docflow dev eval parsing --write-results
 docflow dev browser-acceptance
 docflow doctor --offline
 ```
+
+Review the latest OpenSSF Scorecard workflow result in GitHub Actions before tagging.
 
 For visible UI changes, open the browser workspace and click the main flows for chat, library, notes, source preview, and settings.
 
@@ -51,14 +55,16 @@ git push origin v0.58.0
 
 Use the actual version for the release you are publishing.
 
-Tagged releases build:
+The main branch publishes `ghcr.io/lingengyuan/docflow:edge` for no-build smoke usage after CI. Tagged releases build:
 
 - Python wheel and source archive artifacts through `.github/workflows/python-package.yml`.
 - GHCR Docker images through `.github/workflows/docker-image.yml`.
+- OpenSSF Scorecard SARIF through `.github/workflows/scorecard.yml`.
 - The release surface check, parsing eval, performance smoke, and package smoke test are part of GitHub CI and the local CI script so public docs, install paths, package data, and internal-file exclusions are checked before release work.
 - The scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model downloads isolated from normal pull-request CI.
 
 DocFlow is not published to PyPI yet. Wheel artifacts now include browser assets, config templates, and runtime docs, and the installed-wheel smoke test must pass before a release. Before enabling PyPI publishing, review optional heavy dependencies and publish policy separately.
+If PyPI publishing is enabled later, use Trusted Publishing instead of a long-lived token.
 
 ## 5. Release Notes
 

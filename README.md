@@ -9,14 +9,14 @@ The screenshots in this README are captured from the bundled demo library, not a
 DocFlow is a local-first document Q&A and knowledge workspace. Point it at a folder of PDFs, Markdown, DOCX, code, or images. Ask questions in your browser. Get answers with cited sources.
 
 - **Auditable local defaults.** No telemetry, analytics, or document upload. Optional webpage import, model downloads, and cloud backends are explicit.
-- **Measured checks.** Current local checks include a 547-case public-domain regression eval, one archived BEIR SciFact-lite subset result, 84 source-filtered internal retrieval cases, 120 parsing fixtures, 5 faithfulness cases, 464 tests, 81 browser checks, a 10,000-document synthetic local lookup benchmark, and a release-surface check.
+- **Measured checks.** Current local checks include a 547-case public-domain regression eval, one archived BEIR SciFact-lite subset result, 84 source-filtered internal retrieval cases, 120 parsing fixtures, 5 faithfulness cases, 468 tests, 81 browser checks, a 10,000-document synthetic local lookup benchmark, and a release-surface check.
 - **Drop-in local models.** Works with Ollama, LM Studio, or any OpenAI-compatible local endpoint.
 
 Quick start:
 
 ```bash
 git clone https://github.com/lingengyuan/docflow.git && cd docflow
-docker compose up --build
+docker compose -f docker-compose.image.yml up
 ```
 
 Then open <http://localhost:8000> and click the demo-library card, **导入示例资料**,
@@ -25,7 +25,7 @@ button switches common navigation and status labels while fuller localization co
 
 For real answers, run a local model server such as Ollama or LM Studio and select it in Settings. The Docker path starts the app and Qdrant; model weights are still managed by the local model tool you choose.
 
-Expected first-run cost: Docker plus Qdrant, about 0.5 GB for the base app image after build on the current validation machine, plus local model weights you choose. A 7B Ollama model is usually 4-5 GB. Image understanding and Apple Silicon MLX support are optional installs.
+Expected first-run cost: Docker plus Qdrant, about 0.5 GB for the base app image on the current validation machine, plus local model weights you choose. A 7B Ollama model is usually 4-5 GB. Image understanding and Apple Silicon MLX support are optional installs.
 
 ## Why DocFlow
 
@@ -91,7 +91,9 @@ docflow doctor --offline
 Evaluation and release verification commands live in [Evaluation](docs/evaluation.md) and
 [Release](docs/release.md).
 
-Release builds also support `docker-compose.image.yml` with `ghcr.io/lingengyuan/docflow` after a tagged image is published.
+For source development, use `docker compose up --build`. Public image startup uses
+`docker-compose.image.yml` with `ghcr.io/lingengyuan/docflow:edge`, while versioned
+tags are produced for releases.
 
 ## Contributing
 
@@ -99,7 +101,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). Keep changes focused, run tests before 
 
 ## Documentation
 
-[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md) · [Release](docs/release.md) · [Status](docs/status.md) · [ADRs](docs/adr/README.md) · [Roadmap](ROADMAP.md)
+[Features](docs/features.md) · [Architecture](docs/architecture.md) · [Privacy](docs/privacy.md) · [Threat Model](docs/threat-model.md) · [Model Licenses](docs/model-licenses.md) · [CLI](docs/cli.md) · [Development](docs/development.md) · [Evaluation](docs/evaluation.md) · [Release](docs/release.md) · [Status](docs/status.md) · [ADRs](docs/adr/README.md) · [Roadmap](ROADMAP.md)
 
 ## License
 

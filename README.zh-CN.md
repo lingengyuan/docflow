@@ -22,17 +22,17 @@ DocFlow 会监听你机器上的本地文件夹，把资料写入本地索引，
 ```bash
 git clone https://github.com/lingengyuan/docflow.git
 cd docflow
-docker compose up --build
+docker compose -f docker-compose.image.yml up
 ```
 
 打开 [http://localhost:8000](http://localhost:8000)，然后选择 **导入示例资料** 体验一个小型本地资料库。
 README 中的截图来自内置示例资料库，不包含个人文件夹或真实笔记内容。
 
-首次运行成本需要提前知道：Docker 和 Qdrant 会占用本地空间，当前验证机器上应用镜像构建后约 0.5 GB；你选择的本地问答模型会额外占用空间，常见 7B Ollama 模型通常约 4-5 GB。图片理解和 Apple Silicon MLX 支持都是可选安装。
+首次运行成本需要提前知道：Docker 和 Qdrant 会占用本地空间，当前验证机器上应用镜像约 0.5 GB；你选择的本地问答模型会额外占用空间，常见 7B Ollama 模型通常约 4-5 GB。图片理解和 Apple Silicon MLX 支持都是可选安装。
 
 ### 当前验证结果
 
-当前仓库最近一次本地验证结果：`464` 个测试通过，`81` 个浏览器检查通过，公开可复现检索评估 `547/547`，BEIR SciFact-lite 外部子集 Recall@5 `0.95`，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `120/120`，回答可信度检查 `5/5`，1 万份合成资料的本地查找基准通过，性能冒烟检查和发布门面检查通过，离线本地使用检查报告 `0` 个意外外连。
+当前仓库最近一次本地验证结果：`468` 个测试通过，`81` 个浏览器检查通过，公开可复现检索评估 `547/547`，BEIR SciFact-lite 外部子集 Recall@5 `0.95`，源文件过滤后的项目回归检索评估 `84/84`，解析评估 `120/120`，回答可信度检查 `5/5`，1 万份合成资料的本地查找基准通过，性能冒烟检查和发布门面检查通过，离线本地使用检查报告 `0` 个意外外连。
 
 这些数字适合用来守住项目回归；BEIR SciFact-lite 是外部子集结果，不等同于大规模公开 benchmark，也不等同于完整公开排行榜成绩。
 
@@ -46,7 +46,7 @@ DocFlow 不包含遥测、分析统计、自动错误上报，也不会为了产
 docflow doctor --offline
 ```
 
-正式发布后也可以用 `docker-compose.image.yml` 拉取 `ghcr.io/lingengyuan/docflow` 镜像运行，避免每次本地构建。
+公开镜像启动默认使用 `docker-compose.image.yml` 拉取 `ghcr.io/lingengyuan/docflow:edge`，避免每次本地构建。源码开发时再使用 `docker compose up --build`。
 
 ### 项目结构
 
@@ -81,7 +81,7 @@ docflow doctor --offline
 
 ### 维护指南
 
-见 [功能说明](docs/features.md)、[架构说明](docs/architecture.md)、[隐私说明](docs/privacy.md)、[命令说明](docs/cli.md)、[开发说明](docs/development.md)、[评估说明](docs/evaluation.md)、[发布说明](docs/release.md)、[状态说明](docs/status.md) 和 [路线图](ROADMAP.md)。
+见 [功能说明](docs/features.md)、[架构说明](docs/architecture.md)、[隐私说明](docs/privacy.md)、[威胁模型](docs/threat-model.md)、[模型许可](docs/model-licenses.md)、[命令说明](docs/cli.md)、[开发说明](docs/development.md)、[评估说明](docs/evaluation.md)、[发布说明](docs/release.md)、[状态说明](docs/status.md) 和 [路线图](ROADMAP.md)。
 
 ### 许可证
 
