@@ -26,18 +26,8 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python scripts/package_smoke.py
           python -m build
-      - name: Generate artifact checksums
-        run: |
-          python - <<'PY'
-          from hashlib import sha256
-          from pathlib import Path
-
-          lines = []
-          for path in sorted(Path("dist").glob("*")):
-              if path.is_file():
-                  lines.append(f"{sha256(path.read_bytes()).hexdigest()}  {path.name}")
-          Path("dist/SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
+      - name: Prepare release candidate metadata
+        run: python scripts/build_release_candidate.py --dist-dir dist --skip-build --json
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
         with:
           name: docflow-python-package

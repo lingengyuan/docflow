@@ -102,7 +102,11 @@ def test_phase115_release_security_posture_is_pinned_and_documented():
     assert "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8" in docker_workflow
     assert "sbom: true" in docker_workflow
     assert "provenance: mode=max" in docker_workflow
-    assert "SHA256SUMS" in python_package
+    assert (
+        "scripts/build_release_candidate.py --dist-dir dist --skip-build --json"
+        in python_package
+    )
+    assert "SHA256SUMS" in read("scripts/build_release_candidate.py")
     assert "workflow actions, Docker bases, and Qdrant service images are still pinned" in release
     assert "Release artifacts are not signed yet" in release
     assert "Do not describe a release as signed" in release
@@ -113,9 +117,11 @@ def test_phase115_release_security_posture_is_pinned_and_documented():
 
 
 def test_phase115_security_invariants_cover_future_workflows():
-    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+    workflow_dir = ROOT / ".github" / "workflows"
+    for path in sorted([*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")]):
         text = path.read_text(encoding="utf-8")
         workflow = yaml.safe_load(text)
+        assert "permissions:" in text
         assert "permissions: read-all" not in text
         for uses in workflow_uses_entries(workflow):
             assert re.search(r"@[0-9a-f]{40}$", uses), f"{path}: {uses}"

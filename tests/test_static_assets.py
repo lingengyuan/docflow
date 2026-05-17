@@ -549,7 +549,10 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
     assert "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8" in docker_workflow
     assert "sbom: true" in docker_workflow
     assert "provenance: mode=max" in docker_workflow
-    assert "SHA256SUMS" in python_package_workflow
+    assert (
+        "scripts/build_release_candidate.py --dist-dir dist --skip-build --json"
+        in python_package_workflow
+    )
     assert "python:3.12-slim@sha256:" in dockerfile
     assert "qdrant/qdrant:latest@sha256:" in compose
 

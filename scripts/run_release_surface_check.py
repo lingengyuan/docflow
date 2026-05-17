@@ -39,6 +39,7 @@ REQUIRED_ROOT_FILES = [
     "requirements-mac-mlx.txt",
     "requirements-vision.txt",
     "requirements.txt",
+    "scripts/build_release_candidate.py",
 ]
 
 PUBLIC_DOCS = [
@@ -124,7 +125,8 @@ def require_snippets(path: str, snippets: list[str]) -> None:
 
 def workflow_documents() -> list[tuple[Path, Any]]:
     documents: list[tuple[Path, Any]] = []
-    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+    workflow_dir = ROOT / ".github" / "workflows"
+    for path in sorted([*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")]):
         documents.append((path, yaml.safe_load(path.read_text(encoding="utf-8"))))
     return documents
 
@@ -260,9 +262,54 @@ def check_status_alignment() -> None:
             "Archived subset only",
             "Offline doctor: 0 unexpected outbound connections",
             "DocFlow is not published to PyPI yet",
+            "release candidate manifest",
             "OpenSSF Scorecard",
         ],
     )
+
+
+def check_pypi_claims_are_bounded() -> None:
+    public_files = [
+        ROOT / "README.md",
+        ROOT / "README.zh-CN.md",
+        ROOT / "CHANGELOG.md",
+        ROOT / "ROADMAP.md",
+        ROOT / "CONTRIBUTING.md",
+        ROOT / "SECURITY.md",
+        ROOT / ".github" / "PULL_REQUEST_TEMPLATE.md",
+        *sorted((ROOT / ".github" / "ISSUE_TEMPLATE").glob("*.md")),
+        *sorted((ROOT / "docs").glob("*.md")),
+        *sorted((ROOT / "docs" / "adr").glob("*.md")),
+    ]
+    disallowed = [
+        re.compile(r"\bpip install -U docflow\b"),
+        re.compile(r"\bpython -m pip install docflow\b"),
+        re.compile(r"\bpython -m pip install -U docflow\b"),
+        re.compile(r"\bpip install docflow\b"),
+        re.compile(r"\bpip install \"docflow"),
+        re.compile(r"\bpip install 'docflow"),
+        re.compile(r"\bDocFlow is (?:published|available) on PyPI\b", re.IGNORECASE),
+        re.compile(r"\bPyPI package is available\b", re.IGNORECASE),
+        re.compile(r"\binstall from PyPI\b", re.IGNORECASE),
+        re.compile(r"\binstall DocFlow from PyPI\b", re.IGNORECASE),
+    ]
+    allowed_context = (
+        "not published to PyPI",
+        "not on PyPI yet",
+        "PyPI publishing is enabled later",
+    )
+    findings: list[str] = []
+    for public_file in public_files:
+        text = public_file.read_text(encoding="utf-8")
+        for pattern in disallowed:
+            for match in pattern.finditer(text):
+                line = text.count("\n", 0, match.start()) + 1
+                line_text = text.splitlines()[line - 1]
+                if any(context in line_text for context in allowed_context):
+                    continue
+                findings.append(f"{public_file.relative_to(ROOT)}:{line}: {match.group(0)}")
+    if findings:
+        fail("public docs claim PyPI availability before publishing: " + "; ".join(findings))
 
 
 def check_docker_and_package_surface() -> None:
@@ -325,11 +372,29 @@ def check_docker_and_package_surface() -> None:
         if f"docs/assets/{asset}" not in pyproject:
             fail(f"pyproject package data is missing docs/assets/{asset}")
 
+    release_script = read("scripts/build_release_candidate.py")
+    for snippet in (
+        "docflow.release_candidate.v1",
+        "RELEASE_MANIFEST.json",
+        "RELEASE_NOTES.md",
+        "SHA256SUMS",
+        "\"build\":",
+        "\"python\":",
+        "\"platform\":",
+        "\"github_run_id\":",
+        "published\": False",
+        "signed\": False",
+    ):
+        if snippet not in release_script:
+            fail(f"release-candidate script is missing {snippet}")
+
 
 def check_workflow_security_invariants() -> None:
     for path, document in workflow_documents():
         relative = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8")
+        if "permissions:" not in text:
+            fail(f"{relative} must declare workflow or job token permissions explicitly")
         if "permissions: read-all" in text:
             fail(f"{relative} uses broad read-all token permissions")
         unpinned = [
@@ -411,7 +476,11 @@ def check_workflows() -> None:
     )
     require_snippets(
         ".github/workflows/python-package.yml",
-        ["python scripts/package_smoke.py", "SHA256SUMS", "docflow-python-package"],
+        [
+            "python scripts/package_smoke.py",
+            "scripts/build_release_candidate.py --dist-dir dist --skip-build --json",
+            "docflow-python-package",
+        ],
     )
     require_snippets(
         "docs/development.md",
@@ -431,8 +500,11 @@ def check_workflows() -> None:
         [
             "workflow actions, Docker bases, and Qdrant service images are still pinned",
             "SHA256SUMS",
+            "RELEASE_MANIFEST.json",
+            "RELEASE_NOTES.md",
             "Docker image SBOM and provenance attestations",
             "Release artifacts are not signed yet",
+            "Trusted Publishing",
         ],
     )
     require_snippets(
@@ -444,6 +516,7 @@ def check_workflows() -> None:
 def main() -> int:
     require_files(REQUIRED_ROOT_FILES)
     check_public_docs()
+    check_pypi_claims_are_bounded()
     check_status_alignment()
     check_docker_and_package_surface()
     check_workflows()

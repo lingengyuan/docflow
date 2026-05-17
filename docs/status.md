@@ -36,6 +36,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Release guidance now covers validation, status updates, tagging, release notes, screenshots, and known limitations.
 - Release packaging now has a GHCR Docker image workflow, a Python package artifact workflow, and a Docker Compose image file for the no-build public image path.
 - The GHCR image workflow now publishes `ghcr.io/lingengyuan/docflow:edge` from `main` and versioned tags from releases.
+- Release candidates now produce package checksums, a release candidate manifest, and release notes template before publishing anything.
 - OpenSSF Scorecard now runs as a scheduled and main-branch open-source health baseline.
 - Public security docs now include a maintainer threat model and model-license boundary.
 - Dependency files now document core, local-model, vision, Apple Silicon MLX, and development layers separately.
@@ -60,11 +61,11 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. BEIR SciFact-lite and NFCorpus-lite subset results are now archived with result artifacts and claim boundaries.
 - Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers.
 - A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
-- Release hardening now pins GitHub Actions to commit SHAs, pins the Docker base image and Qdrant service image by digest, tightens workflow token permissions, generates Python package checksums, and enables Docker SBOM/provenance output. The public `edge` app image remains a moving no-build smoke tag, and release artifacts are not signed yet.
+- Release hardening now pins GitHub Actions to commit SHAs, pins the Docker base image and Qdrant service image by digest, tightens workflow token permissions, generates Python package checksums, writes a release candidate manifest, and enables Docker SBOM/provenance output. The public `edge` app image remains a moving no-build smoke tag, and release artifacts are not signed yet.
 
 ## Latest Local Validation
 
-- Unit/integration tests: 476 passed.
+- Unit/integration tests: 478 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.

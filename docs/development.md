@@ -8,7 +8,7 @@ For daily use, prefer one of these supported paths:
 - Docker from source: run `docker compose up --build` to build the app container and start Qdrant together.
 - Docker image release: run `docker compose -f docker-compose.image.yml up` to use `ghcr.io/lingengyuan/docflow:edge` without rebuilding locally. Versioned tags are produced for releases.
 
-DocFlow is not on PyPI yet. The wheel now packages browser assets, configuration templates, and public docs, and `scripts/package_smoke.py` verifies an installed wheel can find them. Until PyPI publishing is enabled, use source checkout or Docker for daily use.
+DocFlow is not on PyPI yet. The wheel now packages browser assets, configuration templates, and public docs, and `scripts/package_smoke.py` verifies an installed wheel can find them. Release candidates also include `SHA256SUMS`, `RELEASE_MANIFEST.json`, and `RELEASE_NOTES.md` from `scripts/build_release_candidate.py`. Until PyPI publishing is enabled, use source checkout or Docker for daily use.
 
 ```bash
 python -m venv .venv

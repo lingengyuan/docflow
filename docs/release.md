@@ -14,6 +14,8 @@ Use this checklist before tagging a public DocFlow release.
 - Confirm `docs/threat-model.md` and `docs/model-licenses.md` still match the release behavior.
 - Confirm OpenSSF Scorecard has a recent run and review any high-risk findings before tagging.
 - Confirm workflow actions, Docker bases, and Qdrant service images are still pinned to the intended commits or image digests.
+- Confirm `scripts/build_release_candidate.py --dist-dir dist --clean-dist --json` can generate the release candidate from scratch.
+- Confirm `scripts/build_release_candidate.py --dist-dir dist --skip-build --json` produced `SHA256SUMS`, `RELEASE_MANIFEST.json`, and `RELEASE_NOTES.md` after package artifacts already exist.
 - Confirm `scripts/run_release_surface_check.py` passes so the public docs, Docker files, workflows, package data, and ignored internal history are aligned.
 - Confirm `scripts/package_smoke.py` passes before treating wheel artifacts as releasable.
 - Confirm the scheduled evaluation workflow has a recent successful run before quoting public retrieval numbers in release notes.
@@ -60,6 +62,7 @@ The main branch publishes `ghcr.io/lingengyuan/docflow:edge` for no-build smoke 
 
 - Python wheel and source archive artifacts through `.github/workflows/python-package.yml`.
 - `SHA256SUMS` for Python package artifacts through `.github/workflows/python-package.yml`.
+- `RELEASE_MANIFEST.json` and `RELEASE_NOTES.md` through `scripts/build_release_candidate.py`.
 - GHCR Docker images through `.github/workflows/docker-image.yml`.
 - Docker image SBOM and provenance attestations through `.github/workflows/docker-image.yml`.
 - OpenSSF Scorecard SARIF through `.github/workflows/scorecard.yml`.
@@ -69,9 +72,18 @@ The main branch publishes `ghcr.io/lingengyuan/docflow:edge` for no-build smoke 
 DocFlow is not published to PyPI yet. Wheel artifacts now include browser assets, config templates, and runtime docs, and the installed-wheel smoke test must pass before a release. Before enabling PyPI publishing, review optional heavy dependencies and publish policy separately.
 If PyPI publishing is enabled later, use Trusted Publishing instead of a long-lived token.
 
+## 5. PyPI Publishing Policy
+
+PyPI publishing is intentionally disabled. Do not add a direct PyPI install command to public docs, release notes, or issue templates until all of these are true:
+
+- Trusted Publishing is configured for the repository.
+- The wheel and source archive pass package smoke testing from the published artifact, not only from a local checkout.
+- Heavy optional dependency boundaries are reviewed again so the default PyPI install does not surprise users.
+- A rollback policy exists for a bad PyPI release.
+
 Release artifacts are not signed yet. Do not describe a release as signed until a real signing flow is added and validated. Current integrity coverage is limited to package checksums, Docker SBOM/provenance output, dependency audit, CodeQL, and OpenSSF Scorecard review.
 
-## 5. Release Notes
+## 6. Release Notes
 
 GitHub release notes should include:
 
@@ -83,7 +95,11 @@ GitHub release notes should include:
 - Privacy or network behavior changes.
 - Install and upgrade notes, including whether users need to rebuild Qdrant vectors or update local models.
 
-## 6. After Release
+Use `RELEASE_NOTES.md` as the starting template, then replace checklist placeholders with measured results from the release commit.
+
+The release manifest records the package files, checksums, source commit, build command, Python version, platform, and available GitHub workflow identifiers. Treat it as the release-candidate inventory, not as a signature.
+
+## 7. After Release
 
 - Confirm CI, CodeQL, and Dependabot are active.
 - Confirm dependency audit checks pass for Python and frontend dependencies.

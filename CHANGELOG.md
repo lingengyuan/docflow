@@ -4,7 +4,7 @@
 
 - Moved internal critique, improvement-planning, and scoring notes out of the public docs surface.
 - Added an Architecture Decision Record directory (`docs/adr/`) seeded with module-boundary, local-first/no-telemetry, and third-party integration scope ADRs.
-- Added PEP 621 `[project.optional-dependencies]` for `dev`, `vision`, and `mlx`, enabling `pip install "docflow[dev]"` while keeping the existing `requirements-*.txt` files as the canonical CI path.
+- Added PEP 621 `[project.optional-dependencies]` for `dev`, `vision`, and `mlx`, enabling local editable extras such as `pip install -e ".[dev]"` while keeping the existing `requirements-*.txt` files as the canonical CI path.
 - Linked the ADR index and public roadmap from the README and `docs/architecture.md`.
 - Added release packaging automation for GHCR Docker images and Python package artifacts.
 - Added a Docker image Compose file for tagged releases.
@@ -22,6 +22,7 @@
 - Moved the Notes active-review panel into the Preact component build path while keeping the legacy browser entry point stable.
 - Expanded answer faithfulness checks to cover no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, and multi-citation support.
 - Tightened release security posture with pinned GitHub Actions, pinned Docker/Qdrant images, narrower workflow permissions, Python package checksums, Docker SBOM/provenance output, and clearer unsigned-release boundaries.
+- Added repeatable release-candidate metadata generation with package checksums, a release manifest, a release-notes template, and explicit PyPI publishing boundaries.
 
 ## 0.58.0 - 2026-05-12
 
