@@ -300,6 +300,7 @@ def check_workflows() -> None:
             "scripts/run_dead_code_audit.py --json",
             "main.py dev eval parsing --json",
             "scripts/run_release_surface_check.py",
+            "scripts/run_phase110_readiness_check.py",
             "scripts/package_smoke.py",
             "doctor --offline",
         ],

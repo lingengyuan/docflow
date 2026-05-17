@@ -61,7 +61,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 468 passed.
+- Unit/integration tests: 470 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 81 checks passed.
@@ -75,7 +75,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, P95 97.11 ms, workspace 29,115,676 bytes. This measures local parser/chunker/SQLite source lookup only, not embedding, reranking, or answer first-token latency.
 - Release surface check: passed.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
-- OpenSSF Scorecard: workflow configured; review the latest GitHub Actions result before tagging a release.
+- OpenSSF Scorecard: latest reviewed result was 4.2/10 on commit `ab995f6` (2026-05-17). This is not a mature open-source security score; branch protection, enforced code review, token-permission tightening, dependency pinning, signed releases, and package publishing remain open.
 
 ## Remaining Gaps
 
@@ -86,6 +86,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite result gives one external subset check. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.
+- Open-source security posture is not mature yet. The latest reviewed OpenSSF Scorecard result is 4.2/10, with branch protection, enforced code review, token-permission tightening, dependency pinning, signed releases, and package publishing still below mature open-source expectations.
 - DocFlow is not published to PyPI yet. Source checkout and GHCR image startup remain the recommended public install paths; wheel artifacts are built and smoke-tested for releases, but PyPI publishing is not enabled.
 
 ## Status Update Rule

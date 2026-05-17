@@ -57,6 +57,9 @@ jobs:
       - name: Release surface
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/run_release_surface_check.py
+      - name: Release readiness
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/run_phase110_readiness_check.py
       - name: External benchmark catalog
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python scripts/run_external_benchmark_status.py --json

@@ -16,6 +16,7 @@
 - Grouped maintenance and contributor-only commands under `docflow admin ...` and `docflow dev ...`, leaving the public help focused on daily use.
 - Added an archived BEIR SciFact-lite external retrieval subset, answer faithfulness checks, and a synthetic 10,000-document local lookup benchmark.
 - Added a no-build GHCR `edge` image path, OpenSSF Scorecard workflow, dependency layer files, threat model, and model-license documentation.
+- Added a release-readiness guard that blocks public subjective score claims and records the latest reviewed OpenSSF Scorecard gap before release work.
 
 ## 0.58.0 - 2026-05-12
 

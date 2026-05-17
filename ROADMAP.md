@@ -6,6 +6,7 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 
 - Keep README concise, evidence-based, and aligned with real commands.
 - Avoid presenting source-filtered regression metrics as external benchmark results.
+- Track real release-readiness gaps, including OpenSSF Scorecard findings, branch protection, review policy, signed releases, and package publishing.
 - Maintain public docs for features, architecture, privacy, CLI, development, evaluation, and status.
 - Keep contribution, security, code of conduct, changelog, and issue templates current.
 
@@ -31,6 +32,8 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 ## 5. Measured Quality
 
 - Expand retrieval and parsing evaluation sets.
+- Expand external benchmark coverage beyond the current archived SciFact-lite subset.
+- Expand answer faithfulness checks beyond the current committed smoke set.
 - Add incremental indexing checks.
 - Track latency, storage use, and large-library behavior.
 - Publish measured results instead of subjective maturity scores.
@@ -46,3 +49,4 @@ DocFlow is moving from a capable local RAG app toward a mature personal knowledg
 
 - Deepen topic views, similar-document detection, knowledge cards, and periodic reviews.
 - Connect answers, notes, and source documents into a stronger knowledge workflow.
+- Make the everyday loop clearer: import local sources, ask, save, link back, review, and improve future retrieval from user feedback.
