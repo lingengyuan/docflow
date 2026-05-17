@@ -66,6 +66,12 @@ def run_view_checks(
         run_check(
             checks, "source_preview_loaded", lambda: check_source_preview_loaded(page, timeout_ms)
         )
+    if view.id == "notes":
+        run_check(
+            checks,
+            "notes_knowledge_loop_visible",
+            lambda: check_notes_knowledge_loop(page, timeout_ms),
+        )
 
 
 def check_server(base_url: str, timeout_ms: int) -> dict[str, Any]:
@@ -201,6 +207,22 @@ def check_source_preview_loaded(page: Any, timeout_ms: int) -> dict[str, Any]:
         timeout=timeout_ms,
     )
     return {"state": page.locator("#source-detail-panel").inner_text(timeout=timeout_ms)[:80]}
+
+
+def check_notes_knowledge_loop(page: Any, timeout_ms: int) -> dict[str, Any]:
+    page.wait_for_function(
+        """
+        () => {
+            const panel = document.querySelector('#knowledge-review-panel');
+            if (!panel) return false;
+            const text = panel.innerText || '';
+            return ['知识闭环', '资料', '提问', '来源', '沉淀', '关联', '回顾', '反馈']
+              .every(token => text.includes(token));
+        }
+        """,
+        timeout=timeout_ms,
+    )
+    return {"state": page.locator("#knowledge-review-panel").inner_text(timeout=timeout_ms)[:120]}
 
 
 def wait_for_view_ready(page: Any, view: ViewAcceptance, timeout_ms: int) -> dict[str, Any]:

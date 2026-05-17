@@ -17,6 +17,7 @@
 - Added an archived BEIR SciFact-lite external retrieval subset, answer faithfulness checks, and a synthetic 10,000-document local lookup benchmark.
 - Added a no-build GHCR `edge` image path, OpenSSF Scorecard workflow, dependency layer files, threat model, and model-license documentation.
 - Added a release-readiness guard that blocks public subjective score claims and records the latest reviewed OpenSSF Scorecard gap before release work.
+- Added an active-review knowledge loop that connects sources, questions, citations, saved notes, relationships, review prompts, and feedback in one user-facing panel.
 
 ## 0.58.0 - 2026-05-12
 

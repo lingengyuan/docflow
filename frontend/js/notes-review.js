@@ -9,6 +9,7 @@ function renderKnowledgeReview(review) {
     ? review.relationship_timeline
     : [];
   const depth = review?.knowledge_depth || {};
+  const workflow = review?.workflow || {};
   const concepts = Array.isArray(depth.concepts) ? depth.concepts : [];
   const trails = Array.isArray(depth.source_trails) ? depth.source_trails : [];
   const gaps = Array.isArray(depth.coverage_gaps) ? depth.coverage_gaps : [];
@@ -39,6 +40,7 @@ function renderKnowledgeReview(review) {
       <div class="font-semibold">${escHtml(item.title || '下一步')}</div>
       <div class="mt-0.5 text-[11px] text-on-surface-variant">${escHtml(item.detail || '')}</div>
     </button>`).join('');
+  const workflowMarkup = knowledgeWorkflowMarkup(workflow);
   const topicMarkup = topics.slice(0, 3).map(topic => `
     <span class="inline-flex items-center rounded-full bg-surface-container-low px-2 py-1 text-[11px] font-semibold text-on-surface-variant">
       ${escHtml(topic.title || '主题')} · ${Number(topic.file_count || 0)}
@@ -49,6 +51,7 @@ function renderKnowledgeReview(review) {
       ${knowledgeReviewSignalMarkup('问题', signals.questions)}
       ${knowledgeReviewSignalMarkup('关联', Number(signals.backlinks || 0) + Number(signals.source_links || 0))}
     </div>
+    ${workflowMarkup}
     ${conceptMarkup ? `<div class="mt-3">
       <div class="mb-2 text-[11px] font-bold text-on-surface-variant/60">活跃概念</div>
       <div class="flex flex-wrap gap-2">${conceptMarkup}</div>
@@ -72,6 +75,44 @@ function renderKnowledgeReview(review) {
     ${topicMarkup ? `<div class="mt-3 flex flex-wrap gap-2">${topicMarkup}</div>` : ''}
   `;
   renderLocalIcons(panel);
+}
+
+function knowledgeWorkflowMarkup(workflow) {
+  const steps = Array.isArray(workflow?.steps) ? workflow.steps : [];
+  if (!steps.length) return '';
+  const completed = Number(workflow.completed || 0);
+  const total = Number(workflow.total || steps.length || 1);
+  const nextStep = workflow.next_step || {};
+  const stepMarkup = steps.map(step => {
+    const complete = Boolean(step.complete);
+    const icon = complete ? 'check_circle' : 'radio_button_unchecked';
+    const stateClass = complete
+      ? 'bg-primary text-on-primary'
+      : 'bg-surface-container text-on-surface-variant';
+    return `
+      <div class="rounded-lg bg-surface-container-low px-3 py-2">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined ${stateClass} rounded-full" style="font-size:14px">${icon}</span>
+          <span class="text-[11px] font-semibold text-on-surface">${escHtml(step.title || '步骤')}</span>
+          <span class="ml-auto text-[11px] text-on-surface-variant/60">${Number(step.count || 0)}</span>
+        </div>
+        <div class="mt-1 text-[10px] leading-relaxed text-on-surface-variant/65">${escHtml(step.detail || '')}</div>
+      </div>`;
+  }).join('');
+  return `
+    <section class="mt-3 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3 py-3" aria-label="知识闭环">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-[11px] font-bold text-on-surface">知识闭环</div>
+          <div class="mt-0.5 text-[11px] text-on-surface-variant/65">资料、问题、来源、笔记、关联和反馈放在同一条回顾线上。</div>
+        </div>
+        <span class="rounded-full bg-primary-container px-2 py-0.5 text-[11px] font-semibold text-primary">${completed}/${total}</span>
+      </div>
+      <div class="mt-3 grid grid-cols-2 gap-2">${stepMarkup}</div>
+      <div class="mt-3 rounded-lg bg-secondary-container/80 px-3 py-2 text-[11px] text-on-surface">
+        <span class="font-semibold">下一步：</span>${escHtml(nextStep.detail || nextStep.next_action || '继续导入资料并提问')}
+      </div>
+    </section>`;
 }
 
 function knowledgeReviewSignalMarkup(label, value) {

@@ -116,6 +116,17 @@ def test_knowledge_service_builds_active_review_from_usage_signals(tmp_path):
         assert depth["source_trails"][0]["files"][0]["id"] == source_id
         assert depth["source_trails"][0]["feedback"]["rating"] == "useful"
         assert depth["next_actions"]
+        workflow = review["workflow"]
+        steps = {item["id"]: item for item in workflow["steps"]}
+        assert workflow["title"] == "知识闭环"
+        assert workflow["closed_loop_ready"] is True
+        assert steps["sources"]["complete"] is True
+        assert steps["questions"]["complete"] is True
+        assert steps["evidence"]["complete"] is True
+        assert steps["saved"]["complete"] is True
+        assert steps["relationships"]["complete"] is True
+        assert steps["review"]["complete"] is True
+        assert steps["feedback"]["complete"] is True
     finally:
         store.close()
 
@@ -295,5 +306,7 @@ def test_knowledge_review_api_uses_current_store(monkeypatch, tmp_path):
         assert body["signals"]["files"] == 1
         assert body["review_queue"]
         assert body["recommendations"]
+        assert body["workflow"]["steps"][0]["id"] == "sources"
+        assert body["workflow"]["steps"][0]["complete"] is True
     finally:
         store.close()

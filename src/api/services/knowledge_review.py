@@ -41,8 +41,9 @@ class KnowledgeReviewService:
             base=base,
             limit=limit,
         )
+        signals = self._review_signals(files, history, feedback, store)
         return {
-            "signals": self._review_signals(files, history, feedback, store),
+            "signals": signals,
             "recent_activity": {
                 "files": [base._file_summary(file) for file in files[:limit]],
                 "questions": [
@@ -58,6 +59,14 @@ class KnowledgeReviewService:
             "review_queue": review_queue,
             "relationship_timeline": relationship_timeline,
             "knowledge_depth": knowledge_depth,
+            "workflow": self._workflow(
+                signals=signals,
+                history=history,
+                feedback=feedback,
+                relationship_timeline=relationship_timeline,
+                review_queue=review_queue,
+                knowledge_depth=knowledge_depth,
+            ),
             "recommendations": self._recommendations(
                 files,
                 history,
@@ -191,6 +200,125 @@ class KnowledgeReviewService:
             "source_links": source_link_count,
             "backlinks": backlink_count,
         }
+
+    def _workflow(
+        self,
+        *,
+        signals: dict[str, Any],
+        history: list[dict[str, Any]],
+        feedback: dict[str, Any],
+        relationship_timeline: list[dict[str, Any]],
+        review_queue: list[dict[str, Any]],
+        knowledge_depth: dict[str, Any],
+    ) -> dict[str, Any]:
+        source_trails = self._list_from_depth(knowledge_depth, "source_trails")
+        coverage_gaps = self._list_from_depth(knowledge_depth, "coverage_gaps")
+        relationship_opportunities = self._list_from_depth(
+            knowledge_depth,
+            "relationship_opportunities",
+        )
+        evidence_count = sum(
+            int(item.get("citation_count") or len(item.get("files") or []))
+            for item in source_trails
+        )
+        saved_count = (
+            int(signals.get("saved_answers") or 0)
+            + int(signals.get("notes") or 0)
+            + int(signals.get("knowledge_outputs") or 0)
+        )
+        relationship_count = (
+            int(signals.get("source_links") or 0)
+            + int(signals.get("backlinks") or 0)
+            + len(relationship_timeline)
+        )
+        review_count = len(review_queue) + len(coverage_gaps) + len(relationship_opportunities)
+        steps = [
+            self._workflow_step(
+                "sources",
+                "资料",
+                int(signals.get("files") or 0),
+                "已有本地资料可提问",
+                "先导入一份本地资料",
+            ),
+            self._workflow_step(
+                "questions",
+                "提问",
+                len(history),
+                "问题已经进入历史记录",
+                "围绕资料提出第一个问题",
+            ),
+            self._workflow_step(
+                "evidence",
+                "来源",
+                evidence_count,
+                "回答来源已经形成可回看的轨迹",
+                "从回答引用回到来源片段",
+            ),
+            self._workflow_step(
+                "saved",
+                "沉淀",
+                saved_count,
+                "回答、笔记或知识产物已经沉淀",
+                "把有用回答保存成笔记",
+            ),
+            self._workflow_step(
+                "relationships",
+                "关联",
+                relationship_count,
+                "笔记和来源已经互相连接",
+                "把保存内容连接回来源",
+            ),
+            self._workflow_step(
+                "review",
+                "回顾",
+                review_count,
+                "已经生成可执行的回顾线索",
+                "回看高关联资料或待补齐来源",
+            ),
+            self._workflow_step(
+                "feedback",
+                "反馈",
+                int(feedback.get("total") or 0),
+                "回答反馈会参与后续回顾",
+                "标记最近回答是否有用",
+            ),
+        ]
+        completed = sum(1 for step in steps if step["complete"])
+        next_step = next((step for step in steps if not step["complete"]), steps[-1])
+        return {
+            "title": "知识闭环",
+            "steps": steps,
+            "completed": completed,
+            "total": len(steps),
+            "progress": round(completed / len(steps), 3) if steps else 0,
+            "next_step": next_step,
+            "closed_loop_ready": completed >= 6,
+        }
+
+    @staticmethod
+    def _workflow_step(
+        step_id: str,
+        title: str,
+        count: int,
+        complete_detail: str,
+        next_action: str,
+    ) -> dict[str, Any]:
+        complete = count > 0
+        return {
+            "id": step_id,
+            "title": title,
+            "count": count,
+            "complete": complete,
+            "detail": complete_detail if complete else next_action,
+            "next_action": next_action,
+        }
+
+    @staticmethod
+    def _list_from_depth(knowledge_depth: dict[str, Any], key: str) -> list[dict[str, Any]]:
+        value = knowledge_depth.get(key)
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, dict)]
 
     def _topic_activity(
         self,

@@ -119,7 +119,13 @@ def test_create_note_ingest_query_citation_and_save_answer_flow(monkeypatch, tmp
     assert query_body["citations"][0]["file_name"] == note_path.name
     assert query_body["citations"][0]["evidence_level"] == "strong"
     assert query_body["evidence"]["level"] == "strong"
-    assert store.list_history()[0]["question"] == "What is approved?"
+    history_item = store.list_history()[0]
+    assert history_item["question"] == "What is approved?"
+    feedback_response = client.post(
+        "/api/answers/feedback",
+        json={"history_id": history_item["id"], "rating": "useful"},
+    )
+    assert feedback_response.status_code == 200
 
     save_response = client.post(
         "/api/notes/from-answer",
@@ -147,4 +153,14 @@ def test_create_note_ingest_query_citation_and_save_answer_flow(monkeypatch, tmp
     overview = overview_response.json()
     assert overview["backlinks"][0]["file"]["id"] == saved_record["id"]
     assert any(edge["type"] == "backlink" for edge in overview["knowledge_graph"]["edges"])
+    review_response = client.get("/api/knowledge/review")
+    assert review_response.status_code == 200
+    workflow_steps = {item["id"]: item for item in review_response.json()["workflow"]["steps"]}
+    assert workflow_steps["sources"]["complete"] is True
+    assert workflow_steps["questions"]["complete"] is True
+    assert workflow_steps["evidence"]["complete"] is True
+    assert workflow_steps["saved"]["complete"] is True
+    assert workflow_steps["relationships"]["complete"] is True
+    assert workflow_steps["review"]["complete"] is True
+    assert workflow_steps["feedback"]["complete"] is True
     assert len(queue.submitted) == 2
