@@ -26,7 +26,7 @@ DocFlow uses measured checks as external quality evidence:
 - Incremental indexing checks.
 - Parser/chunker performance smoke checks.
 - Answer faithfulness checks.
-- Desktop large-library synthetic benchmarks.
+- Desktop large-library synthetic benchmarks with explicit stage thresholds.
 - Reproducibility checks.
 - Offline privacy checks.
 
@@ -106,7 +106,9 @@ Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; man
 
 ## Large-Library Benchmark
 
-`docflow dev eval large-library --documents 10000 --queries 20 --write-results` generates a synthetic desktop-scale Markdown library and measures local indexing plus SQLite source lookup. Each query must return the expected synthetic note as the top result to pass. It does not measure embedding, reranking, LLM answer generation, or first-token latency.
+`docflow dev eval large-library --documents 10000 --queries 20 --write-results` generates a synthetic desktop-scale Markdown library and measures local indexing, direct SQLite source lookup, full-text retrieval orchestration, citation construction, and deterministic answer assembly as separate stages. Each stage must return the expected synthetic note as the top result to pass.
+
+This check still does not measure embedding, Qdrant vector search, MLX reranking, live LLM generation, or first-token latency. The standard CI path runs a 200-document smoke version with thresholds. The scheduled evaluation workflow runs the larger 10,000-document version and archives the result artifact.
 
 Latest local run: passed; 10,000 documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, query P95 97.11 ms, workspace 29,115,676 bytes. The archived artifact is `eval/results/large-library/large-library-20e459e.json`.
 

@@ -503,6 +503,30 @@ def test_phase88_performance_smoke_is_documented_and_in_ci():
     assert "run_performance_smoke.py --json" in ci_script
 
 
+def test_phase119_large_library_gate_tracks_stages_and_thresholds():
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    status_doc = Path("docs/status.md").read_text(encoding="utf-8")
+    cli_doc = Path("docs/cli.md").read_text(encoding="utf-8")
+    ci_script = Path("scripts/run_ci.sh").read_text(encoding="utf-8")
+    ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    eval_workflow = Path(".github/workflows/evaluation.yml").read_text(encoding="utf-8")
+    benchmark_script = Path("scripts/run_large_library_benchmark.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "direct SQLite source lookup" in evaluation_doc
+    assert "full-text retrieval orchestration" in evaluation_doc
+    assert "deterministic answer assembly" in evaluation_doc
+    assert "thresholded 200-document large-library smoke" in status_doc
+    assert "stage thresholds" in cli_doc
+    assert "--max-retrieval-p95-ms 1500" in ci_script
+    assert "--max-answer-p95-ms 2000" in ci_workflow
+    assert "main.py dev eval large-library --documents 10000 --queries 20" in eval_workflow
+    assert "eval/results/large-library/*" in eval_workflow
+    assert "threshold_failures" in benchmark_script
+    assert "answer_path" in benchmark_script
+
+
 def test_phase97_github_ci_runs_release_and_eval_gates():
     ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     eval_workflow = Path(".github/workflows/evaluation.yml").read_text(encoding="utf-8")

@@ -114,12 +114,37 @@ def test_large_library_benchmark_reports_index_and_query_metrics(tmp_path):
 
     assert report["schema"] == "docflow.large_library_benchmark.v1"
     assert report["passed"] is True
+    assert "embedding" in report["scope"]
+    assert report["scope"]["answer_generation"] == "deterministic_local_stub"
+    assert report["thresholds"]["min_top_file_accuracy"] == 1.0
+    assert report["threshold_failures"] == []
     assert report["indexing"]["documents"] == 12
     assert report["indexing"]["chunks"] >= 12
-    assert report["query"]["cases"] == 3
-    assert report["query"]["p95_ms"] >= report["query"]["p50_ms"]
-    assert report["query"]["correct_top_file_count"] == 3
-    assert all(result["passed"] for result in report["query"]["results"])
+    assert report["lookup"]["cases"] == 3
+    assert report["lookup"]["p95_ms"] >= report["lookup"]["p50_ms"]
+    assert report["lookup"]["correct_top_file_count"] == 3
+    assert report["retrieval"]["correct_top_file_count"] == 3
+    assert report["answer_path"]["correct_top_file_count"] == 3
+    assert report["query"] == report["lookup"]
+    assert all(result["passed"] for result in report["lookup"]["results"])
+    assert all(result["passed"] for result in report["retrieval"]["results"])
+    assert all(result["passed"] for result in report["answer_path"]["results"])
+
+
+def test_large_library_benchmark_fails_when_smoke_threshold_is_breached(tmp_path):
+    report = run_large_library_benchmark(
+        documents=8,
+        queries=2,
+        tmp_root=tmp_path,
+        max_lookup_p95_ms=-1.0,
+    )
+
+    assert report["passed"] is False
+    assert {
+        "metric": "lookup.p95_ms",
+        "operator": "<=",
+        "threshold": -1.0,
+    }.items() <= report["threshold_failures"][0].items()
 
 
 def test_external_catalog_tracks_archived_beir_results():

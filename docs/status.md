@@ -51,7 +51,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Internal planning notes now live outside the public project surface; the repository no longer ships a public `plans/` directory.
 - Release surface checks now verify public docs, README/status validation counts, Docker Compose files, workflows, package data, and ignored internal handoff/output paths before package smoke testing.
 - GitHub CI now runs the release surface check, package smoke test, parser/chunker performance smoke, and parsing eval in addition to ruff, mypy, pytest, frontend checks, dependency audit, and offline doctor.
-- A scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model download enabled for that isolated benchmark job.
+- A scheduled evaluation workflow runs the full public retrieval eval with Qdrant and model download enabled for that isolated benchmark job, and also runs the larger 10,000-document large-library benchmark outside normal push CI.
 - Mypy now covers API schemas, the API runtime access layer, API services, and query modules; API handlers now read runtime state through `src/api/runtime.py` instead of reaching back into `src.api.app_impl`.
 - Runtime configuration now has a typed settings loader for core paths, Qdrant, ingest, LLM, query, and privacy settings. The source and Docker config templates share the same answer-quality keys so Docker does not drift into different thresholds.
 - Legacy internal quality-baseline tooling is hidden from public help and is not release evidence; public quality claims must come from measured checks.
@@ -61,7 +61,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The Notes active-review panel now mounts from the Vite-built Preact component path, reducing the legacy browser script to a compatibility entry point.
 - External benchmark tracking now lists BEIR, MTEB, and C-MTEB separately from DocFlow's committed regression sets. BEIR SciFact-lite and NFCorpus-lite subset results are now archived with result artifacts and claim boundaries.
 - Faithfulness checks now cover supported claims, uncited claims, fabricated source markers, wrong-source citations, no-evidence answers, partial citations, mismatched pages, conflicting sources, stale sources, multi-citation support, and insufficient-evidence answers.
-- A desktop large-library benchmark now records synthetic 10,000-document indexing and source lookup measurements separately from embedding, reranking, and answer generation.
+- A desktop large-library benchmark now records synthetic 10,000-document indexing, direct lookup, full-text retrieval orchestration, and deterministic answer assembly separately from embedding, vector search, MLX reranking, and live model generation.
 - Release hardening now pins GitHub Actions to commit SHAs, pins the Docker base image and Qdrant service image by digest, tightens workflow token permissions, generates Python package checksums, writes a release candidate manifest, and enables Docker SBOM/provenance output. The public `edge` app image remains a moving no-build smoke tag, and release artifacts are not signed yet.
 
 ## Latest Local Validation
@@ -88,7 +88,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - The offline doctor now covers local use paths, but user-triggered webpage import and configured cloud model backends still need explicit user review because they are intentionally external.
 - Citation source opening carries chunk identity and span metadata, and source preview highlights the cited range when the matching chunk is available.
 - The answer-level source check verifies citation coverage and source-content overlap, not deep semantic truth. A broader factuality benchmark is still needed before treating it as full answer-grounding proof.
-- Parser/chunker performance smoke, parsing eval, faithfulness eval, and a 200-document large-library smoke are now in the standard GitHub CI path, but full 10,000-document large-library retrieval, embedding, and model-answer benchmarks are still not part of every pull-request CI run.
+- Parser/chunker performance smoke, parsing eval, faithfulness eval, and a thresholded 200-document large-library smoke are now in the standard GitHub CI path. The scheduled workflow covers the larger 10,000-document synthetic path. Embedding, Qdrant vector search, MLX reranking, and live model-answer latency are still not part of every pull-request CI run.
 - Retrieval eval currently uses source filtering for project regression checks; do not present it as an external benchmark.
 - Public eval is still a committed regression set. It now has a scheduled GitHub workflow, which improves repeatability, and the archived BEIR SciFact-lite and NFCorpus-lite results give two external subset checks. The NFCorpus-lite result also exposes a weak external medical short-query score. A full BEIR, MTEB, C-MTEB, or domain-specific benchmark is still needed before making broad external quality claims.
 - API route handlers and retrieval orchestration are still larger than ideal. Storage is now split, but the app layer still needs more handler/service extraction before outside contributors will find it easy to review.

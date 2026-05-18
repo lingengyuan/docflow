@@ -49,9 +49,17 @@ jobs:
         run: python main.py dev eval parsing --config config.ci-eval.yaml --json
       - name: Public retrieval eval
         run: python main.py dev eval public --config config.ci-eval.yaml --no-rerank --write-results --json
+      - name: Large-library benchmark
+        run: >
+          python main.py dev eval large-library --documents 10000 --queries 20
+          --max-index-ms-per-document 100 --max-lookup-p95-ms 500
+          --max-retrieval-p95-ms 1500 --max-answer-p95-ms 2000
+          --min-top-file-accuracy 1.0 --write-results --json
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
         if: always()
         with:
           name: docflow-public-eval-results
-          path: eval/results/public/*
+          path: |
+            eval/results/public/*
+            eval/results/large-library/*
           if-no-files-found: ignore

@@ -453,7 +453,10 @@ def check_workflows() -> None:
             "pytest",
             "scripts/run_performance_smoke.py --json",
             "main.py dev eval faithfulness --json",
-            "main.py dev eval large-library --documents 200 --queries 5 --json",
+            "main.py dev eval large-library --documents 200 --queries 5",
+            "--max-retrieval-p95-ms 1500",
+            "--max-answer-p95-ms 2000",
+            "--min-top-file-accuracy 1.0 --json",
             "scripts/run_external_benchmark_status.py --json",
             "scripts/run_dead_code_audit.py --json",
             "main.py dev eval parsing --json",
@@ -472,7 +475,10 @@ def check_workflows() -> None:
             "allow_model_download: true",
             "main.py dev eval parsing",
             "main.py dev eval public",
+            "main.py dev eval large-library --documents 10000 --queries 20",
+            "--write-results --json",
             "--no-rerank",
+            "eval/results/large-library/*",
         ],
     )
     require_snippets(
