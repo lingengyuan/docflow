@@ -11,7 +11,7 @@ from scripts.run_external_retrieval_eval import (
     write_scifact_corpus,
 )
 from scripts.run_faithfulness_eval import evaluate_cases, load_cases
-from scripts.run_large_library_benchmark import run_large_library_benchmark
+from scripts.run_large_library_benchmark import _query_plan, run_large_library_benchmark
 
 
 def test_scifact_subset_builds_external_cases_without_source_filter(tmp_path):
@@ -129,6 +129,19 @@ def test_large_library_benchmark_reports_index_and_query_metrics(tmp_path):
     assert all(result["passed"] for result in report["lookup"]["results"])
     assert all(result["passed"] for result in report["retrieval"]["results"])
     assert all(result["passed"] for result in report["answer_path"]["results"])
+
+
+def test_large_library_query_plan_spans_the_full_synthetic_library():
+    plan = _query_plan(query_count=20, documents=10_000)
+
+    targets = [
+        int(item["expected_top_file"].removeprefix("knowledge-note-").removesuffix(".md"))
+        for item in plan
+    ]
+    assert len(targets) == 20
+    assert len(set(targets)) == 20
+    assert min(targets) <= 250
+    assert max(targets) >= 9_750
 
 
 def test_large_library_benchmark_fails_when_smoke_threshold_is_breached(tmp_path):

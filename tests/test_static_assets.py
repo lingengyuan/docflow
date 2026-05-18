@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -525,6 +527,30 @@ def test_phase119_large_library_gate_tracks_stages_and_thresholds():
     assert "eval/results/large-library/*" in eval_workflow
     assert "threshold_failures" in benchmark_script
     assert "answer_path" in benchmark_script
+
+
+def test_phase119_large_library_archived_result_matches_latest():
+    evaluation_doc = Path("docs/evaluation.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"`(eval/results/large-library/large-library-[0-9a-f]+\.json)`",
+        evaluation_doc,
+    )
+    assert match is not None
+
+    archived = json.loads(Path(match.group(1)).read_text(encoding="utf-8"))
+    latest = json.loads(
+        Path("eval/results/large-library/large-library-latest.json").read_text(encoding="utf-8")
+    )
+
+    assert archived == latest
+    assert archived["source_tree"]["worktree_dirty"] is False
+    assert archived["threshold_failures"] == []
+    assert archived["scope"]["embedding"] == "not_measured"
+    assert archived["scope"]["vector_store"] == "not_measured"
+    assert archived["scope"]["llm_first_token_latency"] == "not_measured"
+    assert archived["lookup"]["top_file_accuracy"] == 1.0
+    assert archived["retrieval"]["top_file_accuracy"] == 1.0
+    assert archived["answer_path"]["top_file_accuracy"] == 1.0
 
 
 def test_phase97_github_ci_runs_release_and_eval_gates():

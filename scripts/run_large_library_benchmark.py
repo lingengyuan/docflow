@@ -299,15 +299,30 @@ def _index_library(
 
 
 def _query_plan(query_count: int, documents: int) -> list[dict[str, Any]]:
-    return [
-        {
-            "id": f"large_library_{index:02d}",
-            "query": f"benchmark-evidence-{target:05d}",
-            "expected_top_file": f"knowledge-note-{target:05d}.md",
-        }
-        for index in range(1, query_count + 1)
-        for target in [((index * 37 - 1) % documents) + 1]
-    ]
+    if query_count <= 0 or documents <= 0:
+        return []
+
+    plan = []
+    used_targets: set[int] = set()
+    step = documents / query_count if query_count <= documents else 1
+    for index in range(1, query_count + 1):
+        if query_count <= documents:
+            target = min(documents, max(1, round((index - 0.5) * step)))
+            while target in used_targets and target < documents:
+                target += 1
+            while target in used_targets and target > 1:
+                target -= 1
+        else:
+            target = ((index - 1) % documents) + 1
+        used_targets.add(target)
+        plan.append(
+            {
+                "id": f"large_library_{index:02d}",
+                "query": f"benchmark-evidence-{target:05d}",
+                "expected_top_file": f"knowledge-note-{target:05d}.md",
+            }
+        )
+    return plan
 
 
 def _run_lookup_queries(store: DocStore, query_plan: list[dict[str, Any]]) -> list[dict[str, Any]]:

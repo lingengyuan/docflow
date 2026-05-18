@@ -49,6 +49,29 @@ jobs:
         run: python main.py dev eval parsing --config config.ci-eval.yaml --json
       - name: Public retrieval eval
         run: python main.py dev eval public --config config.ci-eval.yaml --no-rerank --write-results --json
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
+        if: always()
+        with:
+          name: docflow-public-eval-results
+          path: eval/results/public/*
+          if-no-files-found: ignore
+
+  large-library-benchmark:
+    name: Large-library benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # actions/checkout@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
       - name: Large-library benchmark
         run: >
           python main.py dev eval large-library --documents 10000 --queries 20
@@ -58,8 +81,6 @@ jobs:
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
         if: always()
         with:
-          name: docflow-public-eval-results
-          path: |
-            eval/results/public/*
-            eval/results/large-library/*
+          name: docflow-large-library-results
+          path: eval/results/large-library/*
           if-no-files-found: ignore
