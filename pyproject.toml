@@ -130,6 +130,7 @@ include = ["src*", "scripts*"]
 ]
 "share/docflow/eval/results/large-library" = [
   "eval/results/large-library/large-library-20e459e.json",
+  "eval/results/large-library/large-library-5b57389.json",
   "eval/results/large-library/large-library-latest.json",
 ]
 "share/docflow/eval/public_corpus" = [

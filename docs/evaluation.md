@@ -110,7 +110,7 @@ Latest local run: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; man
 
 This check still does not measure embedding, Qdrant vector search, MLX reranking, live LLM generation, or first-token latency. The standard CI path runs a 200-document smoke version with thresholds. The scheduled evaluation workflow runs the larger 10,000-document version and archives the result artifact.
 
-Latest local run: passed; 10,000 documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, query P95 97.11 ms, workspace 29,115,676 bytes. The archived artifact is `eval/results/large-library/large-library-20e459e.json`.
+Latest local run: passed; 10,000 documents, 10,000 chunks, all 20 queries returned the expected synthetic note as the top result in direct lookup, retrieval orchestration, and answer-path checks. The 20 query targets are spread across the synthetic library from note 250 through note 9,750. Indexing took 5,726.40 ms total, or 0.5726 ms per document. Stage P95 timings were 11.75 ms for direct lookup, 13.17 ms for retrieval orchestration, and 14.77 ms for deterministic answer assembly. No smoke thresholds failed. The archived artifact is `eval/results/large-library/large-library-5b57389.json`.
 
 ## Citation Alignment
 

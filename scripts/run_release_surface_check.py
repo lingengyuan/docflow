@@ -390,6 +390,7 @@ def check_docker_and_package_surface() -> None:
         "eval/results/external/beir-nfcorpus-lite-08f3965.json",
         "eval/results/external/beir-nfcorpus-lite-latest.json",
         "eval/results/large-library/large-library-20e459e.json",
+        "eval/results/large-library/large-library-5b57389.json",
         "eval/results/large-library/large-library-latest.json",
     ):
         if f'"{artifact}"' not in pyproject:

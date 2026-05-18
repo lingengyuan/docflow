@@ -66,7 +66,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 
 ## Latest Local Validation
 
-- Unit/integration tests: 485 passed.
+- Unit/integration tests: 489 passed.
 - Ruff: passed.
 - Mypy: passed.
 - Browser acceptance: 82 checks passed.
@@ -78,7 +78,7 @@ DocFlow is now beyond the original prototype phase and has a clearer public proj
 - Parsing eval: 120/120 passed, 147 chunks checked, 26,613 text characters checked.
 - Faithfulness eval: 14/14 passed across supported, uncited, fabricated-source, wrong-source, no-evidence, partial-citation, mismatched-page, conflict, stale-source, multi-citation, and insufficient-evidence cases.
 - Performance smoke: passed; long note 73,947 bytes, 192 chunks, 3.33 ms total; many-note library 80 files, 80 chunks, 9.73 ms total.
-- Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, 20/20 queries returned the expected synthetic note as the top result, index 22325.34 ms, query P50 49.94 ms, P95 97.11 ms, workspace 29,115,676 bytes. This measures local parser/chunker/SQLite source lookup only, not embedding, reranking, or answer first-token latency.
+- Large-library benchmark: passed; 10,000 synthetic Markdown documents, 10,000 chunks, all 20 queries returned the expected note in direct lookup, retrieval orchestration, and deterministic answer-path checks. The 20 query targets are spread from note 250 through note 9,750. Indexing took 5,726.40 ms total, or 0.5726 ms per document. Stage P95 timings were 11.75 ms for direct lookup, 13.17 ms for retrieval orchestration, and 14.77 ms for deterministic answer assembly. No smoke thresholds failed. This still does not measure embedding, Qdrant vector search, MLX reranking, live model generation, or first-token latency.
 - Release surface check: passed.
 - Offline doctor: 0 unexpected outbound connections across startup, ingest, query, model status, and source preview.
 - OpenSSF Scorecard: latest reviewed pre-Phase115 baseline was 4.5/10 on commit `672b4e0` (2026-05-17). This is not a mature open-source security score. Phase115 addressed workflow token permissions, GitHub Action pins, Docker base/Qdrant service image pins, package checksums, and Docker SBOM/provenance preparation; branch protection, enforced review policy, signed releases, PyPI publishing, fuzzing, contributor diversity, CII Best Practices, and hash-pinned Python installs remain open.
