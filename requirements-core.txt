@@ -1,6 +1,6 @@
 # Core app, API, parser, local storage, and browser runtime dependencies.
 # This layer is useful for maintenance checks that do not need local model inference.
-fastapi==0.135.1
+fastapi==0.136.1
 httpx==0.28.1
 jieba==0.42.1
 numpy==2.4.3
