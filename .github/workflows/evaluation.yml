@@ -49,7 +49,7 @@ jobs:
         run: python main.py dev eval parsing --config config.ci-eval.yaml --json
       - name: Public retrieval eval
         run: python main.py dev eval public --config config.ci-eval.yaml --no-rerank --write-results --json
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v7.0.1
         if: always()
         with:
           name: docflow-public-eval-results
@@ -78,7 +78,7 @@ jobs:
           --max-index-ms-per-document 100 --max-lookup-p95-ms 500
           --max-retrieval-p95-ms 1500 --max-answer-p95-ms 2000
           --min-top-file-accuracy 1.0 --write-results --json
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v5
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v7.0.1
         if: always()
         with:
           name: docflow-large-library-results
