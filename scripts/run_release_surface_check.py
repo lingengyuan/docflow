@@ -502,7 +502,7 @@ def check_workflows() -> None:
             "id-token: write",
             "actions: read",
             "persist-credentials: false",
-            "ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde",
+            "ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a",
             "scorecard-results.sarif",
             "publish_results: true",
         ],

@@ -49,7 +49,7 @@ def test_openssf_scorecard_is_part_of_release_surface():
     assert "id-token: write" in workflow
     assert "actions: read" in workflow
     assert "persist-credentials: false" in workflow
-    assert "ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde" in workflow
+    assert "ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a" in workflow
     assert "scorecard-results.sarif" in workflow
     assert "publish_results: true" in workflow
     assert "OpenSSF Scorecard" in release

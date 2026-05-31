@@ -347,7 +347,7 @@ def test_phase106_settings_view_has_component_boundary_and_design_contract():
     assert "settingsViewContract" in design_source
     assert "DocFlowSettingsApp" in generated
     assert "vite.settings.config.ts" in Path("tsconfig.json").read_text(encoding="utf-8")
-    assert '"preact": "10.29.1"' in package
+    assert '"preact": "10.29.2"' in package
     assert "frontend/js/generated/settings-app.js" in pyproject
 
 
@@ -595,7 +595,7 @@ def test_phase97_github_ci_runs_release_and_eval_gates():
     assert "scheduled evaluation workflow" in release_doc
     assert "GitHub CI now runs" in status_doc
     assert "permissions: read-all" not in scorecard_workflow
-    assert "ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde" in scorecard_workflow
+    assert "ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a" in scorecard_workflow
     assert "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8" in docker_workflow
     assert "sbom: true" in docker_workflow
     assert "provenance: mode=max" in docker_workflow
