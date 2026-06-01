@@ -12,6 +12,8 @@ from pathlib import Path
 class StoreDatabaseMixin:
     def __init__(self, db_path: str | Path):
         self.db_path = str(db_path)
+        if self.db_path != ":memory:":
+            Path(self.db_path).expanduser().parent.mkdir(parents=True, exist_ok=True)
         self._local = threading.local()
         self._init_db()
         self._migrate()

@@ -346,6 +346,14 @@ class TestDocStore:
         assert set(cached) == {"hash-a"}
         np.testing.assert_allclose(cached["hash-a"], vector)
 
+    def test_creates_database_parent_directory(self, tmp_path):
+        db_path = tmp_path / "nested" / "ci-eval" / "docflow.db"
+        db = DocStore(db_path)
+        db.close()
+
+        assert db_path.exists()
+        assert db_path.parent.is_dir()
+
     def test_conversation_messages_persist_and_delete(self, tmp_path):
         db_path = tmp_path / "conversation.db"
         db = DocStore(db_path)
